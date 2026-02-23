@@ -1,0 +1,12 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Packaged artifacts (if you use .skill packaging)
+*.skill
+dist/
+
+# Editor
+.idea/
+*.swp
+*.swo
