@@ -10,3 +10,10 @@ dist/
 .idea/
 *.swp
 *.swo
+
+# Scratchpad
+.notes
+.llms
+
+# Local config
+.claude/

@@ -1,74 +1,26 @@
-# Personal skills suite
+# Skills
 
-A single repo of custom AI agent skills. Install once on any machine and get the whole set.
-
-**GitHub:** [jonmumm/personal-skills](https://github.com/jonmumm/personal-skills)
-
-## First-time: push to GitHub
-
-If the repo isn’t on GitHub yet, log in and create it (one-time):
+Personal AI agent skills. Install globally with the [Skills CLI](https://skills.dev).
 
 ```bash
-cd /Users/jonathanmumm/src/skills
-gh auth login    # if you haven’t already
-gh repo create personal-skills --public --source=. --remote=origin --push --description "Personal AI agent skills suite"
+npx skills add jonmumm/skills -g
 ```
 
-If the repo already exists and you just need to add the remote and push:
-
-```bash
-git remote add origin https://github.com/jonmumm/personal-skills.git
-git push -u origin main
-```
-
-## Install on a new machine
-
-With the [Skills CLI](https://skills.sh):
-
-```bash
-npx skills add jonmumm/personal-skills
-```
-
-Or clone and use a local path (e.g. for Cursor or other agents that support a skills directory):
-
-```bash
-git clone https://github.com/jonmumm/personal-skills.git ~/personal-skills
-# Then point your agent at ~/personal-skills (or add via CLI if it supports local paths)
-```
-
-## Skills in this suite
+## Skills
 
 | Skill | Description |
 |-------|-------------|
-| example-skill | Template/placeholder — replace or remove when you add real skills |
+| [ralph-tdd](ralph-tdd/) | Autonomous TDD loop — agent picks tasks from a backlog, implements with red-green-refactor, verifies with mutation testing, commits. Designed for AFK coding. |
 
-## Adding a new skill
+## Adding a skill
 
-1. Create a directory: `<skill-name>/` (use lowercase, hyphens) at the repo root.
-2. Add `SKILL.md` with YAML frontmatter and instructions:
+1. Create `<skill-name>/SKILL.md` with frontmatter:
 
 ```markdown
 ---
-name: your-skill-name
+name: skill-name
 description: What it does. Use when [trigger scenarios].
 ---
-
-# Your Skill Name
-
-## Instructions
-...
 ```
 
-3. Commit and push. Pull on other machines to get the new skill.
-
-## Repo structure
-
-```
-.
-├── README.md           # this file
-├── skill-one/          # one folder per skill
-│   └── SKILL.md
-├── skill-two/
-│   └── SKILL.md
-└── ...
-```
+2. Commit and push.
