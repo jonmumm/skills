@@ -2,7 +2,24 @@
 
 A single repo of custom AI agent skills. Install once on any machine and get the whole set.
 
-**GitHub:** [jonmumm/personal-skills](https://github.com/jonmumm/personal-skills) (create the repo with the same name to match these instructions)
+**GitHub:** [jonmumm/personal-skills](https://github.com/jonmumm/personal-skills)
+
+## First-time: push to GitHub
+
+If the repo isn’t on GitHub yet, log in and create it (one-time):
+
+```bash
+cd /Users/jonathanmumm/src/skills
+gh auth login    # if you haven’t already
+gh repo create personal-skills --public --source=. --remote=origin --push --description "Personal AI agent skills suite"
+```
+
+If the repo already exists and you just need to add the remote and push:
+
+```bash
+git remote add origin https://github.com/jonmumm/personal-skills.git
+git push -u origin main
+```
 
 ## Install on a new machine
 
