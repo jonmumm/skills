@@ -1,9 +1,24 @@
-# progress.md & lessons.md Format
+# .ralph/progress.md & .ralph/lessons.md Format
 
-Two files track agent state across context windows:
+Ralph keeps working files under **`.ralph/`** (the scripts add `.ralph/` to `.gitignore` so they are not committed). Two files track agent state across context windows.
 
-- **progress.md** — what was done. Working memory. Delete after each sprint.
-- **lessons.md** — what to avoid. Persists across sprints. Review at iteration start.
+## Promise tags (agent → script)
+
+The agent can end a run with a tag so the Ralph script knows what to do:
+
+| Tag | Meaning | Script action |
+|-----|---------|----------------|
+| `<promise>COMPLETE</promise>` | All backlog tasks done | Exit 0 |
+| `<promise>AGENTS_CREATED</promise>` | AGENTS.md was just created | Exit 0, tell user to re-run |
+| `<promise>BLOCKED:reason</promise>` | Cannot proceed (env, deps, credentials, tool broken) | Exit 2, show reason |
+| `<promise>DECIDE:question</promise>` | Needs human decision (architecture, requirement) | Exit 3, show question |
+
+Agent should output only the tag (and optionally the reason/question) and stop; no extra output after the tag.
+
+---
+
+- **.ralph/progress.md** — what was done. Working memory. Delete after each sprint.
+- **.ralph/lessons.md** — what to avoid. Persists across sprints. Review at iteration start.
 
 ## Entry format
 
@@ -42,11 +57,11 @@ Append after each completed task:
 
 ---
 
-## lessons.md
+## .ralph/lessons.md
 
-Unlike progress.md, lessons.md **persists across sprints**. It captures patterns, mistakes, and rules the agent should follow to avoid repeating failures.
+Unlike .ralph/progress.md, .ralph/lessons.md **persists across sprints**. It captures patterns, mistakes, and rules the agent should follow to avoid repeating failures.
 
-Update lessons.md after:
+Update .ralph/lessons.md after:
 - A failed approach that had to be reversed
 - A mutation survivor that revealed a testing blind spot
 - A pattern the agent keeps getting wrong

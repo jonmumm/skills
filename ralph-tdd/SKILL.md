@@ -9,7 +9,7 @@ description: Ralph TDD loop — autonomous coding with TDD and mutation testing.
 
 Ralph runs AI coding agents in an AFK loop. The agent picks tasks from a backlog, implements with TDD, verifies test quality with mutation testing, and commits. You come back to working code.
 
-**TDD reference**: [references/tdd.md](references/tdd.md) has the red-green-refactor loop and test-quality rules used in step 4.
+**TDD**: Use the [mattpocock/skills/tdd](https://www.aihero.dev/skill-test-driven-development-claude-code) skill for red-green-refactor and vertical slicing (one test → one impl). Install: `npx skills add mattpocock/skills@tdd`. Ralph adds the backlog loop and mutation gate on top.
 
 ## Architecture
 
@@ -17,7 +17,7 @@ Ralph runs AI coding agents in an AFK loop. The agent picks tasks from a backlog
 ┌──────────────────────────────────────────────────────┐
 │ RALPH OUTER LOOP (per task)                          │
 │                                                      │
-│  1. Read progress.md + lessons.md                    │
+│  1. Read .ralph/progress.md + .ralph/lessons.md     │
 │  2. Read backlog (Linear, GitHub Issues, PRD, etc.)  │
 │  3. Pick highest-priority unfinished task             │
 │  4. TDD red-green-refactor (see ref below)           │
@@ -31,8 +31,8 @@ Ralph runs AI coding agents in an AFK loop. The agent picks tasks from a backlog
 │  │  9. Repeat until score >= 95%                  │  │
 │  └────────────────────────────────────────────────┘  │
 │                                                      │
-│  10. Mark task done, append to progress.md           │
-│      Update lessons.md if anything was learned       │
+│  10. Mark task done, append to .ralph/progress.md    │
+│      Update .ralph/lessons.md if anything learned    │
 │  11. Commit                                          │
 └──────────────────────────────────────────────────────┘
 ```
@@ -41,20 +41,20 @@ Outer loop = Ralph picking tasks. Inner loop = mutation quality gate. The gate p
 
 ### Mutation quality gate (steps 7–9)
 
-After tests pass: run `npm run test:mutate:incremental` (or project equivalent). For each surviving mutant on **files you changed**, write a test that would fail with the mutation, then re-run until mutation score ≥ 95% on those files. **Full setup and survivor table**: [references/mutation-testing.md](references/mutation-testing.md).
+After tests pass: run `npm run test:mutate:incremental` (or project equivalent). For each surviving mutant on **files you changed**, write a test that would fail with the mutation, then re-run until mutation score ≥ 95% on those files. **Full workflow and setup**: use the **mutation-testing** skill (this repo; install with Ralph stack).
 
 ## Reference guide
 
-Load detailed guidance when relevant to the project stack:
+Everything except progress format comes from installed skills (install with Ralph stack). Project-specific commands: use package.json scripts and config (vitest.config, playwright.config).
 
-| Topic | Reference | Load when |
-|-------|-----------|-----------|
-| **TDD** | [references/tdd.md](references/tdd.md) | Red-green-refactor, one test at a time, behavior-focused tests, when to mock |
-| **Vitest** | [references/vitest.md](references/vitest.md) | Writing or running unit tests, feedback loop test command, mocking |
-| Mutation testing | [references/mutation-testing.md](references/mutation-testing.md) | Running Stryker, killing survivors, first-time setup |
-| Playwright E2E | [references/playwright-e2e.md](references/playwright-e2e.md) | Writing or running E2E tests, debugging flaky browser tests |
-| Progress format | [references/progress-format.md](references/progress-format.md) | Appending entries to progress.md or lessons.md |
-| AGENTS.md template | [references/agents-template.md](references/agents-template.md) | Creating AGENTS.md for a new project |
+| Topic | Use | Load when |
+|-------|-----|-----------|
+| **TDD** | [mattpocock/skills@tdd](https://www.aihero.dev/skill-test-driven-development-claude-code) | Red-green-refactor, vertical slices, good vs bad tests |
+| **Vitest** | antfu/skills@vitest | Unit tests, Vitest API |
+| **Mutation testing** | mutation-testing skill (this repo) | Stryker, survivors, setup |
+| **E2E** | wshobson/agents@e2e-testing-patterns | E2E/Playwright patterns |
+| **AGENTS.md** | create-agents-md skill (this repo) | Creating AGENTS.md when missing |
+| **Progress format** | [references/progress-format.md](references/progress-format.md) | Appending to .ralph/progress.md or .ralph/lessons.md (Ralph-specific) |
 
 ## Pre-Flight Checklist
 
@@ -69,9 +69,9 @@ Load detailed guidance when relevant to the project stack:
 | 5 | Agent runtime — see [Agent Runtimes](#agent-runtimes) | Codex |
 | 6 | Permission mode — see [Permission Modes](#permission-modes) | Full auto |
 | 7 | Feedback commands: typecheck, lint, test, mutation | Auto-detect |
-| 8 | Does AGENTS.md exist? Create from [template](references/agents-template.md) if not. | — |
-| 9 | Start fresh progress.md or continue existing? | Fresh |
-| 10 | Does lessons.md exist? Create if not (persists across sprints). | — |
+| 8 | Does AGENTS.md exist? If not, the Ralph script will prompt the agent to run the **create-agents-md** skill first. | — |
+| 9 | Start fresh .ralph/progress.md or continue existing? | Fresh |
+| 10 | Does .ralph/lessons.md exist? Create if not (persists across sprints). | — |
 | 11 | Commit per task, or batch? | Per task |
 | 12 | Branch — current or create new? | Current |
 | 13 | Anything off-limits? | None |
@@ -117,13 +117,37 @@ For true AFK, use full-auto permission modes. Semi-auto modes may prompt for app
 
 ### 1. Run the Ralph TDD script
 
-See [scripts/ralph-tdd.sh](scripts/ralph-tdd.sh) — copy to your project root and customize the config variables at the top.
+See [scripts/ralph-tdd.sh](scripts/ralph-tdd.sh) and run it directly from the skills repo (no copy required).
 
-Make executable: `chmod +x ralph-tdd.sh`
+Make executable:
 
-Run: `./ralph-tdd.sh <iterations>` (e.g. `./ralph-tdd.sh 5`). Typically run AFK.
+```bash
+chmod +x /Users/jonathanmumm/src/skills/ralph-tdd/scripts/ralph-tdd.sh
+```
 
-### 2. Create progress.md
+Run:
+
+```bash
+/Users/jonathanmumm/src/skills/ralph-tdd/scripts/ralph-tdd.sh \
+  --project /abs/path/to/your-repo \
+  --iterations 5
+```
+
+Optional:
+
+```bash
+# Use Claude runtime instead of Codex
+/Users/jonathanmumm/src/skills/ralph-tdd/scripts/ralph-tdd.sh \
+  --project /abs/path/to/your-repo \
+  --iterations 5 \
+  --agent claude
+```
+
+Typically run AFK.
+
+### 2. Create .ralph/progress.md
+
+Ralph scripts write progress and lessons under **`.ralph/`** and ensure `.ralph/` is in the project’s `.gitignore` so these files are not committed.
 
 ```markdown
 # Progress
@@ -133,15 +157,13 @@ Agent working memory. Delete after sprint.
 ---
 ```
 
-See [references/progress-format.md](references/progress-format.md) for entry format.
+See [references/progress-format.md](references/progress-format.md) for entry format and promise tags (COMPLETE, BLOCKED, DECIDE).
 
-### 3. Create AGENTS.md
+### 3. Create AGENTS.md (if missing)
 
-The agent's onboarding doc — project description, tech stack, code conventions, feedback commands, core principles, what not to do.
+The agent's onboarding doc — project description, tech stack, feedback commands, conventions, off-limits. If `AGENTS.md` doesn't exist, the Ralph script instructs the agent to run the **create-agents-md** skill (this repo) to create it from the template, then continue.
 
-**Use the template**: [references/agents-template.md](references/agents-template.md) — copy to your project root as `AGENTS.md` and fill in placeholders.
-
-### 4. Create lessons.md
+### 4. Create .ralph/lessons.md
 
 ```markdown
 # Lessons
@@ -151,9 +173,9 @@ Patterns and rules learned during development. Review at the start of each itera
 ---
 ```
 
-The agent updates this file after any failed approach, mistake, or course correction. Unlike progress.md (what was done), lessons.md captures **what to avoid** — it persists across iterations and prevents repeating the same class of mistake.
+The agent updates this file after any failed approach, mistake, or course correction. Unlike .ralph/progress.md (what was done), .ralph/lessons.md captures **what to avoid** — it persists across iterations and prevents repeating the same class of mistake.
 
-See [references/progress-format.md](references/progress-format.md) for entry format.
+See [references/progress-format.md](references/progress-format.md) for entry format and promise tags (COMPLETE, BLOCKED, DECIDE).
 
 ## Task Prioritization
 
@@ -172,6 +194,10 @@ See [references/progress-format.md](references/progress-format.md) for entry for
 | **Linear** | MCP or CLI. Mark issue in-progress → implement → mark done. Preferred when available. |
 | **GitHub Issues** | `gh issue list`, `gh issue close` (or update labels/state) |
 | **PRD file** | Local `prd.md` with checklist; tick off items as done |
+
+## Optional: Critical work before backlog
+
+Some setups (e.g. pro-ralph) use a **STEERING.md** (or similar) file that the agent must complete before picking backlog tasks: one-time env fixes, install deps, install Playwright browsers, start dev server, etc. You can add a step in your prompt: "Check .agent/STEERING.md (or PROJECT_ROOT/STEERING.md); complete items in sequence and remove when done. Only then proceed to the backlog." This avoids burning iterations on broken env.
 
 ## Alternative Loop Types
 
