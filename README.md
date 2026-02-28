@@ -4,10 +4,11 @@ Personal AI agent skills. Install with the [Skills CLI](https://skills.dev).
 
 ## What's in this repo
 
-These four skills are installed when you add this repo (`npx skills add jonmumm/skills --all`):
+These five skills are installed when you add this repo (`npx skills add jonmumm/skills --all`):
 
 | Skill | Description |
 |-------|-------------|
+| [ralph-creator](ralph-creator/) | Create AFK Ralph loop scripts for any task. Generates a complete .ralph/ directory with loop script, backlog, progress tracking, and lessons file. Use when you want to create a custom ralph script for doing something on a long-running loop. |
 | [ralph-tdd](ralph-tdd/) | Autonomous TDD loop — agent picks tasks from a backlog, implements with TDD (uses mattpocock/skills@tdd), verifies with mutation testing, commits. AFK coding. |
 | [ralph-dogfooding](ralph-dogfooding/) | Autonomous dogfooding loop — explores core routes with Playwright MCP, captures evidence, dedupes in Linear via the linear-cli skill, logs progress per iteration. |
 | [mutation-testing](mutation-testing/) | Stryker mutation testing — setup, run incremental, kill survivors, reach ≥95% score. Used by ralph-tdd's quality gate. |
