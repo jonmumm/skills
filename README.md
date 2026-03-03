@@ -4,7 +4,7 @@ Personal AI agent skills. Install with the [Skills CLI](https://skills.dev).
 
 ## What's in this repo
 
-These five skills are installed when you add this repo (`npx skills add jonmumm/skills --all`):
+These seven skills are installed when you add this repo (`npx skills add jonmumm/skills --all`):
 
 | Skill | Description |
 |-------|-------------|
@@ -13,6 +13,8 @@ These five skills are installed when you add this repo (`npx skills add jonmumm/
 | [ralph-dogfooding](ralph-dogfooding/) | Autonomous dogfooding loop — explores core routes with Playwright MCP, captures evidence, dedupes in Linear via the linear-cli skill, logs progress per iteration. |
 | [mutation-testing](mutation-testing/) | Stryker mutation testing — setup, run incremental, kill survivors, reach ≥95% score. Used by ralph-tdd's quality gate. |
 | [create-agents-md](create-agents-md/) | Create minimal AGENTS.md (WHAT/WHY/HOW, feedback commands, .ralph/lessons). Ralph scripts prompt the agent to run this first when AGENTS.md is missing. |
+| [vsdd](vsdd/) | Verified Spec-Driven Development — rigorous spec → TDD → adversarial review → mutation testing pipeline. Three intensity levels (Full/Standard/Light). |
+| [react-render-performance](react-render-performance/) | Minimize unnecessary React re-renders with selectors and useSyncExternalStore. Patterns for XState, Zustand, Redux, and context. |
 
 ## Install
 
@@ -22,7 +24,7 @@ These five skills are installed when you add this repo (`npx skills add jonmumm/
 
 1. **CLIs** — Offers to install **Linear CLI** (`lin`/`linear`), **Codex CLI**, **Claude Code CLI** if missing.
 2. **Playwright MCP** — Adds Playwright MCP to `~/.codex/config.toml` so Codex can drive the browser (ralph-dogfooding uses it).
-3. **This repo's skills** — Runs `npx skills add jonmumm/skills --all` (installs all four skills above).
+3. **This repo's skills** — Runs `npx skills add jonmumm/skills --all` (installs all skills above).
 4. **Companion skills** — Always installs **linear-cli** (schpet/linear-cli; required for ralph-dogfooding). Then asks for each optional skill (tdd, vitest, e2e-testing-patterns; see table below). Use `-y` to accept defaults (install recommended companions, skip CLI install prompts). Use `-p` to install skills for the current project instead of globally.
 
 ```bash
@@ -47,6 +49,13 @@ git clone https://github.com/jonmumm/skills.git && cd skills && ./scripts/instal
 
 ```bash
 npx skills add jonmumm/skills --all -g -y
+```
+
+Or use the script (global by default; use `-p` for project-scoped):
+
+```bash
+./scripts/install-all-skills.sh        # global
+./scripts/install-all-skills.sh -p      # project only
 ```
 
 **Single skill:**

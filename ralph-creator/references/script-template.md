@@ -3,105 +3,101 @@
 Copy this template and replace all `{{PLACEHOLDERS}}`.
 
 ```bash
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
 # ─── CONFIG ──────────────────────────────────────────────────────────────────
 
-AGENT_CMD="claude -p --dangerously-skip-permissions"
+ITERATIONS="${1:-{{DEFAULT_ITERATIONS}}}"
 
 # Context files loaded via @ references.
-# Include: spec docs, config, backlog, progress, lessons.
+# Include: spec docs, config, backlog, progress, lessons, style guides.
 CONTEXT_FILES="@.ralph/backlog.md @.ralph/progress.md @.ralph/lessons.md {{ADDITIONAL_CONTEXT_FILES}}"
 
-PROMPT='{{TASK_DESCRIPTION}}
+# ─── PROMPT ──────────────────────────────────────────────────────────────────
+# IMPORTANT: Keep this short (15-30 lines). The @files provide context.
+# This prompt is ONLY for instructions. Lead with an imperative.
+# ─────────────────────────────────────────────────────────────────────────────
 
-## 1. Orient
+PROMPT='YOUR JOB: {{ONE_SENTENCE_DIRECTIVE}}
 
-Read the context files above:
-- .ralph/backlog.md → task checklist (checked = done, unchecked = todo)
-- .ralph/progress.md → what previous iterations accomplished
-- .ralph/lessons.md → mistakes to avoid and patterns that work
-{{ADDITIONAL_ORIENT_INSTRUCTIONS}}
+STEPS — follow exactly:
+1. Read .ralph/backlog.md. Find the FIRST unchecked `- [ ]` task.
+2. If no unchecked tasks remain, output <promise>COMPLETE</promise> and stop.
+3. Read the task description — it tells you exactly what to produce.
+{{EXECUTE_STEPS}}
+4. Verify: {{VERIFY_INSTRUCTION}}
+5. Edit .ralph/backlog.md — change that task from `- [ ]` to `- [x]`.
+6. Append one line to .ralph/progress.md: `- Done: <task title> — <what was produced>`
+7. If you learned something, append to .ralph/lessons.md.
 
-## 2. Pick Task
-
-Find the FIRST unchecked task (- [ ]) in .ralph/backlog.md.
-If all tasks are checked, output <promise>COMPLETE</promise> and stop.
-
-{{PRIORITY_GUIDANCE}}
-
-## 3. Execute
-
-{{EXECUTE_INSTRUCTIONS}}
-
-## 4. Verify
-
-After completing the work, verify before marking done:
-{{VERIFY_INSTRUCTIONS}}
-
-Do NOT mark a task done if verification fails. Fix it first.
-
-## 5. Update Tracking
-
-After verification passes:
-- Mark the task done: change "- [ ]" to "- [x]" in .ralph/backlog.md
-- Append to .ralph/progress.md:
-  - Which task was completed
-  - Key results or artifacts produced
-  - Any issues encountered
-- If anything went wrong or you learned something, append to .ralph/lessons.md
-
-## Quality Bar
-
-A task is DONE when:
-{{QUALITY_CRITERIA}}
-
-ONLY WORK ON A SINGLE TASK PER ITERATION.
-If all tasks are done, output <promise>COMPLETE</promise>.'
+RULES:
+- ONLY work on ONE task. Do not continue to the next.
+- Write output files FIRST, then update tracking.
+{{ADDITIONAL_RULES}}
+- Do NOT summarize context files. Do NOT ask what to work on. Just execute the steps above.'
 
 # ─── SCRIPT (no edits needed below) ──────────────────────────────────────────
 
-if [ -z "$1" ]; then
-  echo "Usage: $0 <iterations>"
-  echo "  Runs the {{NAME}} loop for N iterations."
-  echo "  Stops early if all tasks are complete."
-  exit 1
-fi
+cd {{PROJECT_ROOT}}
 
-MAX=$1
-
-for ((i=1; i<=MAX; i++)); do
+for i in $(seq 1 "$ITERATIONS"); do
   echo ""
-  echo "╔══════════════════════════════════════════════════════════════╗"
-  echo "║  {{NAME}} iteration $i of $MAX — $(date '+%Y-%m-%d %H:%M:%S')  "
-  echo "╚══════════════════════════════════════════════════════════════╝"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "  {{NAME}} — iteration $i / $ITERATIONS"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo ""
 
-  result=$($AGENT_CMD $CONTEXT_FILES "$PROMPT")
+  OUTPUT=$(claude -p \
+    --dangerously-skip-permissions \
+    $CONTEXT_FILES \
+    "$PROMPT" 2>&1) || true
 
-  echo "$result"
+  echo "$OUTPUT"
 
-  if [[ "$result" == *"<promise>COMPLETE</promise>"* ]]; then
+  if echo "$OUTPUT" | grep -q '<promise>COMPLETE</promise>'; then
     echo ""
-    echo "All tasks complete after $i iteration(s)."
-    exit 0
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  ALL TASKS COMPLETE"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    break
   fi
 done
-
-echo ""
-echo "Reached max iterations ($MAX). Check .ralph/backlog.md for remaining tasks."
 ```
 
 ## Placeholder Reference
 
-| Placeholder | What to fill in |
-|-------------|----------------|
-| `{{TASK_DESCRIPTION}}` | One-line description of what this ralph loop does |
-| `{{ADDITIONAL_CONTEXT_FILES}}` | Extra `@path/to/file` refs for specs, configs, etc. |
-| `{{ADDITIONAL_ORIENT_INSTRUCTIONS}}` | Extra files to read and what they contain |
-| `{{PRIORITY_GUIDANCE}}` | How to pick tasks when multiple are available |
-| `{{EXECUTE_INSTRUCTIONS}}` | Step-by-step domain-specific work instructions |
-| `{{VERIFY_INSTRUCTIONS}}` | How to confirm the task is actually done (feedback loop) |
-| `{{QUALITY_CRITERIA}}` | Bullet list of measurable "done" conditions |
-| `{{NAME}}` | Short name for the loop (used in output headers) |
+| Placeholder | What to fill in | Example |
+|---|---|---|
+| `{{ONE_SENTENCE_DIRECTIVE}}` | Imperative statement of what each iteration produces | `Write ONE Gherkin feature file per the backlog, then stop.` |
+| `{{DEFAULT_ITERATIONS}}` | Default iteration count (task count + 2) | `15` |
+| `{{ADDITIONAL_CONTEXT_FILES}}` | Extra `@path/to/file` refs for specs, configs, style guides | `@docs/spec.md @.ralph/style-guide.md` |
+| `{{EXECUTE_STEPS}}` | Numbered sub-steps for the domain-specific work (continue numbering from step 3) | See examples below |
+| `{{VERIFY_INSTRUCTION}}` | One-line verification action | `Read the file back to confirm it was written correctly.` |
+| `{{ADDITIONAL_RULES}}` | Extra domain-specific rules (one `- ` bullet per rule) | `- Every scenario must reference real values from the specs.` |
+| `{{PROJECT_ROOT}}` | Path to cd into before running | `/Users/me/my-project` |
+| `{{NAME}}` | Short name for the loop (used in output headers) | `ralph-gherkin` |
+
+## Execute Steps Examples
+
+### For writing files (specs, tests, docs):
+```
+3a. Read the task description — it tells you the filename and what to cover.
+3b. Write the file to <output_dir>/<filename> as specified.
+3c. Follow the style guide in <style-guide-file>.
+```
+
+### For code changes:
+```
+3a. Read the task description — it specifies what to implement and where.
+3b. Read the target files to understand existing code.
+3c. Make the changes. Follow existing patterns in the codebase.
+3d. Run tests: <test_command>
+```
+
+### For using MCP tools or CLIs:
+```
+3a. Read the task description for what to build.
+3b. Use the <tool_name> MCP tool to <action>. Call <specific_function> with <specific_params>.
+3c. Write results to <output_path>.
+```

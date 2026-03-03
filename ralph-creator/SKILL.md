@@ -50,17 +50,27 @@ Rules:
 Create `.ralph/ralph-<name>.sh` from [references/script-template.md](references/script-template.md).
 
 Customize:
-- `CONTEXT_FILES` — `@` references to specs, configs, backlog, progress, lessons
-- `PROMPT` — Must include all six sections:
+- `CONTEXT_FILES` — `@` references to specs, configs, backlog, progress, lessons, style guides
+- `ONE_SENTENCE_DIRECTIVE` — Imperative statement: what each iteration produces
+- `EXECUTE_STEPS` — Numbered sub-steps for the domain-specific work
+- `VERIFY_INSTRUCTION` — How to confirm the work is correct
+- `ADDITIONAL_RULES` — Domain-specific constraints
 
-| Section | Purpose |
-|---------|---------|
-| **Orient** | Read context files, backlog, progress, lessons |
-| **Pick Task** | First unchecked `- [ ]`, or `<promise>COMPLETE</promise>` |
-| **Execute** | Domain-specific work instructions |
-| **Verify** | Feedback loop — confirm task is done before marking it |
-| **Update Tracking** | Mark done in backlog, append progress/lessons |
-| **Quality Bar** | Explicit, measurable "done" criteria |
+The prompt structure is intentionally flat and imperative — NOT section-based. It reads:
+```
+YOUR JOB: <directive>
+STEPS — follow exactly:
+1. Read backlog...
+2. If done, output COMPLETE...
+3. <execute steps>...
+4. Verify...
+5-7. Update tracking...
+RULES:
+- <constraints>
+- Do NOT summarize. Do NOT ask. Just execute.
+```
+
+If the task needs a style guide, conventions doc, or reference material, put it in a SEPARATE file and add it to `CONTEXT_FILES` as another `@` reference. Do NOT inline it in the prompt.
 
 ### 5. Create Tracking Files
 
@@ -95,11 +105,26 @@ Suggest iterations = task count + 2 (buffer for retries + final COMPLETE check).
 
 ## Prompt Design Rules
 
-1. **`@` context refs** — Load docs upfront, don't waste tokens exploring
-2. **Verification step** — Agent confirms work before marking done
-3. **Quality bar** — Measurable "done" criteria, no ambiguity
-4. **Under 2000 words** — Specific, not verbose
-5. **One task per iteration** — Always: `ONLY WORK ON A SINGLE TASK PER ITERATION.`
-6. **Completion sigil** — Always: `If all tasks are done, output <promise>COMPLETE</promise>.`
-7. **Priority guidance** — How to pick when multiple tasks are available
-8. **Tool instructions** — If using MCP tools, APIs, or CLIs, include explicit how-to
+1. **Imperative first line** — The prompt MUST open with a direct command: `YOUR JOB: <one sentence>.` The model reads `@` context files first (often 1000+ lines), so the prompt must immediately snap it into execution mode, not summary mode.
+2. **Numbered steps, not section headers** — Use `STEPS:` with numbered items (`1. Do X. 2. Do Y.`), NOT markdown `## Section` headers. Section headers read as documentation. Numbered steps read as commands.
+3. **Explicit "Do NOT" rules** — End the prompt with a `RULES:` block that includes what the agent must NOT do (e.g., "Do NOT summarize the spec. Do NOT ask what to work on. Just execute."). Without these, the model defaults to helpful-assistant mode.
+4. **Short and punchy** — Prompt should be under 30 lines. The `@` files provide all the context. The prompt is ONLY for instructions. If domain-specific guidance (style guides, conventions) is needed, put it in a separate `@`-referenced file, not inline.
+5. **`@` context refs** — Load docs upfront, don't waste tokens exploring
+6. **Verification step** — Agent confirms work before marking done
+7. **Quality bar** — Measurable "done" criteria, no ambiguity
+8. **One task per iteration** — Always include: `ONLY work on ONE task. Do not continue to the next.`
+9. **Completion sigil** — Always: `If all tasks are done, output <promise>COMPLETE</promise>.`
+10. **Tool instructions** — If using MCP tools, APIs, or CLIs, include explicit how-to in the execute steps
+
+## Prompt Anti-Patterns (Avoid These)
+
+These patterns cause the agent to summarize context instead of executing tasks:
+
+| Anti-Pattern | Why It Fails | Fix |
+|---|---|---|
+| Starting with background/explanation | Model treats it as conversation context | Lead with `YOUR JOB:` imperative |
+| `## Section` headers in prompt | Reads as documentation, not commands | Use `STEPS:` with numbered list |
+| Long inline style guides/conventions | Buries the actual instructions | Move to separate `@`-referenced file |
+| Prompt > 40 lines | Model loses the thread after heavy `@` context | Keep to 15-30 lines max |
+| No explicit "Do NOT" rules | Model defaults to helpful-assistant behaviors | Add `RULES:` block with prohibitions |
+| Sections named "Orient" / "Context" | Encourages reading + summarizing, not acting | Name steps as actions: "Read backlog", "Write the file" |
