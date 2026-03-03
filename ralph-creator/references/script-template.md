@@ -9,32 +9,31 @@ set -euo pipefail
 # ─── CONFIG ──────────────────────────────────────────────────────────────────
 
 ITERATIONS="${1:-{{DEFAULT_ITERATIONS}}}"
-
-# Context files loaded via @ references.
-# Include: spec docs, config, backlog, progress, lessons, style guides.
-CONTEXT_FILES="@.ralph/backlog.md @.ralph/progress.md @.ralph/lessons.md {{ADDITIONAL_CONTEXT_FILES}}"
+LOGDIR=".ralph/logs"
+mkdir -p "$LOGDIR"
 
 # ─── PROMPT ──────────────────────────────────────────────────────────────────
-# IMPORTANT: Keep this short (15-30 lines). The @files provide context.
-# This prompt is ONLY for instructions. Lead with an imperative.
+# CRITICAL: @refs and instructions MUST be in ONE string passed to claude -p.
+# Passing @refs as separate CLI args causes the model to summarize file
+# contents instead of acting on them. Keep the prompt short (15-30 lines).
+# Detailed task descriptions go in backlog.md, not here.
 # ─────────────────────────────────────────────────────────────────────────────
 
-PROMPT='YOUR JOB: {{ONE_SENTENCE_DIRECTIVE}}
-
-STEPS — follow exactly:
-1. Read .ralph/backlog.md. Find the FIRST unchecked `- [ ]` task.
-2. If no unchecked tasks remain, output <promise>COMPLETE</promise> and stop.
-3. Read the task description — it tells you exactly what to produce.
-{{EXECUTE_STEPS}}
-4. Verify: {{VERIFY_INSTRUCTION}}
-5. Edit .ralph/backlog.md — change that task from `- [ ]` to `- [x]`.
-6. Append one line to .ralph/progress.md: `- Done: <task title> — <what was produced>`
-7. If you learned something, append to .ralph/lessons.md.
-
-RULES:
-- ONLY work on ONE task. Do not continue to the next.
-- Write output files FIRST, then update tracking.
-{{ADDITIONAL_RULES}}
+PROMPT='@.ralph/backlog.md @.ralph/progress.md @.ralph/lessons.md {{ADDITIONAL_CONTEXT_REFS}} \
+YOUR JOB: {{ONE_SENTENCE_DIRECTIVE}} \
+STEPS — follow exactly: \
+1. Read .ralph/backlog.md. Find the FIRST unchecked `- [ ]` task. \
+2. If no unchecked tasks remain, output <promise>COMPLETE</promise> and stop. \
+3. Read the task description — it tells you exactly what to produce. \
+{{EXECUTE_STEPS}} \
+4. Verify: {{VERIFY_INSTRUCTION}} \
+5. Edit .ralph/backlog.md — change that task from `- [ ]` to `- [x]`. \
+6. Append one line to .ralph/progress.md: `- Done: <task title> — <what was produced>` \
+7. If you learned something, append to .ralph/lessons.md. \
+RULES: \
+- ONLY work on ONE task. Do not continue to the next. \
+- Write output files FIRST, then update tracking. \
+{{ADDITIONAL_RULES}} \
 - Do NOT summarize context files. Do NOT ask what to work on. Just execute the steps above.'
 
 # ─── SCRIPT (no edits needed below) ──────────────────────────────────────────
@@ -45,24 +44,32 @@ for i in $(seq 1 "$ITERATIONS"); do
   echo ""
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo "  {{NAME}} — iteration $i / $ITERATIONS"
+  echo "  $(date '+%Y-%m-%d %H:%M:%S')"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo ""
 
-  OUTPUT=$(claude -p \
-    --dangerously-skip-permissions \
-    $CONTEXT_FILES \
-    "$PROMPT" 2>&1) || true
+  LOGFILE="$LOGDIR/iteration-$(printf '%02d' "$i").log"
 
-  echo "$OUTPUT"
+  # Stream to terminal AND log file in real-time via tee.
+  # DO NOT capture to variable — it buffers everything and shows no output
+  # until the entire iteration finishes (can be 10-20 minutes of silence).
+  claude -p --dangerously-skip-permissions --verbose \
+    "$PROMPT" \
+    2>&1 | tee "$LOGFILE" || true
 
-  if echo "$OUTPUT" | grep -q '<promise>COMPLETE</promise>'; then
+  if grep -q '<promise>COMPLETE</promise>' "$LOGFILE"; then
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "  ALL TASKS COMPLETE"
+    echo "  ALL TASKS COMPLETE after $i iteration(s)"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    break
+    exit 0
   fi
+
+  sleep 5
 done
+
+echo ""
+echo "Reached max iterations ($ITERATIONS). Check .ralph/backlog.md for remaining tasks."
 ```
 
 ## Placeholder Reference
@@ -71,7 +78,7 @@ done
 |---|---|---|
 | `{{ONE_SENTENCE_DIRECTIVE}}` | Imperative statement of what each iteration produces | `Write ONE Gherkin feature file per the backlog, then stop.` |
 | `{{DEFAULT_ITERATIONS}}` | Default iteration count (task count + 2) | `15` |
-| `{{ADDITIONAL_CONTEXT_FILES}}` | Extra `@path/to/file` refs for specs, configs, style guides | `@docs/spec.md @.ralph/style-guide.md` |
+| `{{ADDITIONAL_CONTEXT_REFS}}` | Extra `@path/to/file` refs inline in prompt (or empty) | `@docs/spec.md @.ralph/style-guide.md` |
 | `{{EXECUTE_STEPS}}` | Numbered sub-steps for the domain-specific work (continue numbering from step 3) | See examples below |
 | `{{VERIFY_INSTRUCTION}}` | One-line verification action | `Read the file back to confirm it was written correctly.` |
 | `{{ADDITIONAL_RULES}}` | Extra domain-specific rules (one `- ` bullet per rule) | `- Every scenario must reference real values from the specs.` |

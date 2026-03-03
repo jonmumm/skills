@@ -49,28 +49,16 @@ Rules:
 
 Create `.ralph/ralph-<name>.sh` from [references/script-template.md](references/script-template.md).
 
-Customize:
-- `CONTEXT_FILES` — `@` references to specs, configs, backlog, progress, lessons, style guides
-- `ONE_SENTENCE_DIRECTIVE` — Imperative statement: what each iteration produces
-- `EXECUTE_STEPS` — Numbered sub-steps for the domain-specific work
-- `VERIFY_INSTRUCTION` — How to confirm the work is correct
-- `ADDITIONAL_RULES` — Domain-specific constraints
+Customize the placeholders:
+- `{{ADDITIONAL_CONTEXT_REFS}}` — extra `@path` refs for skills, specs, style guides
+- `{{ONE_SENTENCE_DIRECTIVE}}` — imperative statement: what each iteration produces
+- `{{EXECUTE_STEPS}}` — numbered sub-steps for the domain-specific work
+- `{{VERIFY_INSTRUCTION}}` — how to confirm the work is correct
+- `{{ADDITIONAL_RULES}}` — domain-specific constraints
 
-The prompt structure is intentionally flat and imperative — NOT section-based. It reads:
-```
-YOUR JOB: <directive>
-STEPS — follow exactly:
-1. Read backlog...
-2. If done, output COMPLETE...
-3. <execute steps>...
-4. Verify...
-5-7. Update tracking...
-RULES:
-- <constraints>
-- Do NOT summarize. Do NOT ask. Just execute.
-```
+CRITICAL: The `@` refs and prompt text MUST be in ONE quoted string passed to `claude -p`. The template handles this correctly — do not separate them into different variables or CLI args.
 
-If the task needs a style guide, conventions doc, or reference material, put it in a SEPARATE file and add it to `CONTEXT_FILES` as another `@` reference. Do NOT inline it in the prompt.
+If the task needs a style guide or reference material, put it in a SEPARATE file and add it to `{{ADDITIONAL_CONTEXT_REFS}}` as another `@` reference. Do NOT inline it in the prompt.
 
 ### 5. Create Tracking Files
 
@@ -122,6 +110,8 @@ These patterns cause the agent to summarize context instead of executing tasks:
 
 | Anti-Pattern | Why It Fails | Fix |
 |---|---|---|
+| `@` refs as separate CLI args | Model receives file contents without a directive, just summarizes them | `@` refs MUST be inline in the prompt string: `"@file.md YOUR JOB: ..."` |
+| `OUTPUT=$(claude -p ...)` capture | Buffers all output — user sees nothing for 10-20 minutes | Use `\| tee "$LOGFILE"` for real-time streaming + log capture |
 | Starting with background/explanation | Model treats it as conversation context | Lead with `YOUR JOB:` imperative |
 | `## Section` headers in prompt | Reads as documentation, not commands | Use `STEPS:` with numbered list |
 | Long inline style guides/conventions | Buries the actual instructions | Move to separate `@`-referenced file |
