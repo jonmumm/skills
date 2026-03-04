@@ -40,14 +40,53 @@ app.post('/checkout', async (req, res) => {
 });
 ```
 
-### Pattern: The Wide Event
+### Pattern: The Type-Safe Wide Event
 ```typescript
-// GOOD: Accumulate context and emit one dimensional event
+interface WideEvent {
+  // Core Routing & Identity
+  request_id: string;
+  timestamp: string;
+  method: string;
+  path: string;
+  service?: string;
+  deployment_id?: string;
+  
+  // Top-Level Outcomes
+  status_code?: number;
+  outcome?: 'success' | 'error';
+  duration_ms?: number;
+  
+  // Business Context Domains 
+  error?: {
+    type: string;
+    message: string;
+    code?: string;
+    retriable: boolean;
+    stripe_decline_code?: string;
+  };
+  user?: {
+    id: string;
+    subscription: string;
+    lifetime_value_cents: number;
+  };
+  feature_flags?: Record<string, boolean>;
+  cart?: {
+    item_count: number;
+    total_cents: number;
+  };
+  payment?: {
+    provider: string;
+    latency_ms: number;
+    attempt: number;
+  };
+}
+
+// GOOD: Accumulate context using explicit type contracts instead of "any"
 export async function wideEventMiddleware(ctx, next) {
   const startTime = Date.now();
   
-  // 1. Initialize the wide event with request context
-  const event: Record<string, any> = {
+  // 1. Initialize the wide event observing the type interface
+  const event: Partial<WideEvent> = {
     request_id: ctx.get('requestId'),
     timestamp: new Date().toISOString(),
     method: ctx.req.method,
@@ -86,7 +125,7 @@ As the request travels through your application, continually attach business con
 
 ```typescript
 app.post('/checkout', async (ctx) => {
-  const event = ctx.get('wideEvent');
+  const event = ctx.get('wideEvent') as Partial<WideEvent>;
   const user = ctx.get('user');
 
   // Add domain-specific context
