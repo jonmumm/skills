@@ -4,7 +4,7 @@ Personal AI agent skills. Install with the [Skills CLI](https://skills.dev).
 
 ## What's in this repo
 
-These eleven skills are installed when you add this repo (`npx skills add jonmumm/skills --all`):
+These twelve skills are installed when you add this repo (`npx skills add jonmumm/skills --all`):
 
 | Skill | Description |
 |-------|-------------|
@@ -19,6 +19,7 @@ These eleven skills are installed when you add this repo (`npx skills add jonmum
 | [offensive-typesafety](offensive-typesafety/) | Move faster by using strict, compiler-enforced constraints. Treat types as a development accelerator. Prefer tools like TanStack Router, Zod, and Drizzle to build end-to-end type safety. |
 | [grill-me](grill-me/) | Relentlessly interrogates an RFC or PRD plan. Walks down each branch of the design tree, resolving dependencies between decisions one-by-one until you reach a shared understanding. |
 | [wide-events-logging](wide-events-logging/) | Implement observability using the Wide Events (Canonical Log Lines) pattern. Accumulate high-cardinality context and emit a single, highly-dimensional structured event per service boundary. |
+| [dont-use-use-effect](dont-use-use-effect/) | Avoid unnecessary useEffect in React. Covers the 6 most common anti-patterns (derived state, event-driven logic, effect chains, data fetching, external subscriptions, prop-change resets) and their idiomatic alternatives. |
 
 ## Install
 
