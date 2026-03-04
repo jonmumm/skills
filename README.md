@@ -4,7 +4,7 @@ Personal AI agent skills. Install with the [Skills CLI](https://skills.dev).
 
 ## What's in this repo
 
-These nine skills are installed when you add this repo (`npx skills add jonmumm/skills --all`):
+These ten skills are installed when you add this repo (`npx skills add jonmumm/skills --all`):
 
 | Skill | Description |
 |-------|-------------|
@@ -17,6 +17,7 @@ These nine skills are installed when you add this repo (`npx skills add jonmumm/
 | [react-render-performance](react-render-performance/) | Minimize unnecessary React re-renders with selectors and useSyncExternalStore. Patterns for XState, Zustand, Redux, and context. |
 | [react-composable-components](react-composable-components/) | Write and refactor React components to be small, composable, and customizable, doing one thing well. Leverage compound components, prop spreading, and utility class merging. |
 | [offensive-typesafety](offensive-typesafety/) | Move faster by using strict, compiler-enforced constraints. Treat types as a development accelerator. Prefer tools like TanStack Router, Zod, and Drizzle to build end-to-end type safety. |
+| [grill-me](grill-me/) | Relentlessly interrogates an RFC or PRD plan. Walks down each branch of the design tree, resolving dependencies between decisions one-by-one until you reach a shared understanding. |
 
 ## Install
 
