@@ -4,7 +4,7 @@ Personal AI agent skills. Install with the [Skills CLI](https://skills.dev).
 
 ## What's in this repo
 
-These ten skills are installed when you add this repo (`npx skills add jonmumm/skills --all`):
+These eleven skills are installed when you add this repo (`npx skills add jonmumm/skills --all`):
 
 | Skill | Description |
 |-------|-------------|
@@ -18,6 +18,7 @@ These ten skills are installed when you add this repo (`npx skills add jonmumm/s
 | [react-composable-components](react-composable-components/) | Write and refactor React components to be small, composable, and customizable, doing one thing well. Leverage compound components, prop spreading, and utility class merging. |
 | [offensive-typesafety](offensive-typesafety/) | Move faster by using strict, compiler-enforced constraints. Treat types as a development accelerator. Prefer tools like TanStack Router, Zod, and Drizzle to build end-to-end type safety. |
 | [grill-me](grill-me/) | Relentlessly interrogates an RFC or PRD plan. Walks down each branch of the design tree, resolving dependencies between decisions one-by-one until you reach a shared understanding. |
+| [wide-events-logging](wide-events-logging/) | Implement observability using the Wide Events (Canonical Log Lines) pattern. Accumulate high-cardinality context and emit a single, highly-dimensional structured event per service boundary. |
 
 ## Install
 
