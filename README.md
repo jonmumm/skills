@@ -4,7 +4,7 @@ Personal AI agent skills. Install with the [Skills CLI](https://skills.dev).
 
 ## What's in this repo
 
-These seven skills are installed when you add this repo (`npx skills add jonmumm/skills --all`):
+These nine skills are installed when you add this repo (`npx skills add jonmumm/skills --all`):
 
 | Skill | Description |
 |-------|-------------|
@@ -15,6 +15,8 @@ These seven skills are installed when you add this repo (`npx skills add jonmumm
 | [create-agents-md](create-agents-md/) | Create minimal AGENTS.md (WHAT/WHY/HOW, feedback commands, .ralph/lessons). Ralph scripts prompt the agent to run this first when AGENTS.md is missing. |
 | [vsdd](vsdd/) | Verified Spec-Driven Development — rigorous spec → TDD → adversarial review → mutation testing pipeline. Three intensity levels (Full/Standard/Light). |
 | [react-render-performance](react-render-performance/) | Minimize unnecessary React re-renders with selectors and useSyncExternalStore. Patterns for XState, Zustand, Redux, and context. |
+| [react-composable-components](react-composable-components/) | Write and refactor React components to be small, composable, and customizable, doing one thing well. Leverage compound components, prop spreading, and utility class merging. |
+| [offensive-typesafety](offensive-typesafety/) | Move faster by using strict, compiler-enforced constraints. Treat types as a development accelerator. Prefer tools like TanStack Router, Zod, and Drizzle to build end-to-end type safety. |
 
 ## Install
 
