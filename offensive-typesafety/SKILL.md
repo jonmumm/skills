@@ -1,13 +1,17 @@
 ---
 name: offensive-typesafety
 description: >
-  Move faster by using strict, compiler-enforced constraints. Treat types as a development 
-  accelerator, not just a safety net. Prefer tools like TanStack Router, Zod, and Drizzle 
-  to build end-to-end type safety. This allows humans and AI agents to refactor fearlessly 
-  and generate correct code on the first try.
+  Invoke this skill when setting up new tech stacks, configuring project architecture, or replacing 
+  untyped boundaries with strict, compiler-enforced constraints. Treat types as a development 
+  accelerator. Prefer tools like TanStack Router, Zod, and Drizzle to build end-to-end type safety.
 ---
 
 # Offensive Typesafety
+
+**When to invoke this skill:**
+- When setting up or evaluating a new tech stack.
+- When designing API, URL state, or database boundaries.
+- When refactoring untyped string-based logic into strict, compiler-checked contracts.
 
 **Offensive Typesafety** is the practice of using strong, compiler-enforced types to accelerate development. Instead of using types defensively (just to catch bugs before production), use them offensively to establish strict boundaries that allow you—and AI code generators—to move blazingly fast without breaking things.
 
@@ -22,7 +26,7 @@ description: >
 
 Default to tools that enforce correctness at every layer.
 
-### 1. Type-Safe Routing (e.g., TanStack Router)
+### 1. Type-Safe Routing (e.g., TanStack Router, Expo Router)
 
 A surprising amount of app complexity lives in routes, path parameters, and navigation. String-based routing and filesystem-only navigation often silently fail at runtime when links break or params change.
 
@@ -43,9 +47,9 @@ A surprising amount of app complexity lives in routes, path parameters, and navi
 </Link>
 ```
 
-### 2. Validated Search Params (e.g., Zod)
+### 2. Validated External Inputs (e.g., Zod, Valibot, ArkType)
 
-URL state is real application state. It must be strictly typed and validated, not treated as untyped "string soup."
+URL state and API responses are real application state. They must be strictly typed and validated, not treated as untyped "string soup."
 
 **Avoid:** Parsing `window.location.search` manually or using unbound search param hooks.  
 **Prefer:** Defining schemas (e.g., via Zod) to validate and type search parameters before they enter the application logic.
@@ -71,12 +75,12 @@ function UserPage() {
 }
 ```
 
-### 3. Unified Server/Client Boundaries (e.g., TanStack Start, tRPC)
+### 3. Unified Server/Client Boundaries (e.g., TanStack Start, tRPC, Hono RPC)
 
-Your frontend and backend must speak the same type language. Manual API endpoints and manual type casting introduce dangerous gaps where the client expects one shape and the server returns another.
+Your frontend and backend must speak the same type language. Manual API endpoints and manual type casting introduce dangerous gaps where the client expects one shape and the server returns another. This is especially true for E2E testing, where type-safe clients (like `hc` from Hono) prevent test queries from becoming outdated.
 
 **Avoid:** Fetching data from manually constructed `fetch` endpoints and casting with `as MyType`.  
-**Prefer:** Server functions or RPC procedures that automatically infer their inputs and outputs across the network boundary.
+**Prefer:** Server functions or RPC procedures that automatically infer their inputs and outputs across the network boundary, ensuring both app requests and test suites stay synced.
 
 ```tsx
 import { createServerFn } from '@tanstack/start';
@@ -97,7 +101,7 @@ export const Route = createFileRoute('/users/$userId')({
 });
 ```
 
-### 4. End-to-End Database Types (e.g., Drizzle ORM)
+### 4. End-to-End Database Types (e.g., Drizzle ORM, Prisma, Kysely)
 
 Your database schema should drive the types for the rest of your application.
 
