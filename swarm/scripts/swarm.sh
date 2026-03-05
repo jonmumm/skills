@@ -237,7 +237,7 @@ run_agent() {
     # Run the agent
     local result
     if [[ "$AGENT_RUNTIME" == "claude" ]]; then
-      result="$(cd "$worktree" && claude -p --dangerously-skip-permissions "$prompt" 2>&1)" || true
+      result="$(cd "$worktree" && env -u CLAUDECODE claude -p --dangerously-skip-permissions "$prompt" 2>&1)" || true
     else
       result="$(cd "$worktree" && codex exec -C "$worktree" --dangerously-bypass-approvals-and-sandbox "$prompt" 2>&1)" || true
     fi
