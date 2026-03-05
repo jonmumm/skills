@@ -114,7 +114,7 @@ possible, confirm with the user, and fix anything missing.
 | 2 | Git state clean? | No uncommitted changes |
 | 3 | Working branch | Current branch (becomes integration target) |
 | 4 | Package manager | Detect from lockfile: `bun.lockb` → bun, `pnpm-lock.yaml` → pnpm, `yarn.lock` → yarn, else npm |
-| 5 | AGENTS.md exists? | If not, create using `create-agents-md` skill |
+| 5 | AGENTS.md exists? | If not, create using `create-agents-md` skill. Agents rely heavily on this. |
 
 ### Stage 2: Backlog
 
@@ -150,6 +150,8 @@ Detected commands (pnpm):
 
 Correct? Any changes?
 ```
+
+> **Note on Monorepos:** The Swarm orchestrator executes scripts from the **root** `package.json`. If working in a monorepo (like pnpm workspaces or Turborepo), ensure the root `package.json` contains proxy scripts (e.g., `"test": "pnpm --filter web test"`, `"test:mutate:incremental": "pnpm --filter web test:mutate:incremental"`) that delegate to the appropriate packages, or else the agents will fail to run verifications.
 
 ### Stage 4: Tooling Verification
 
@@ -245,11 +247,12 @@ chmod +x /path/to/skills/swarm/scripts/swarm.sh
 The script:
 1. Detects your package manager
 2. Creates timestamped run directory
-3. Creates Git worktrees for each agent
-4. Installs dependencies in each worktree
-5. Launches agents in parallel
-6. Generates `report.md` on exit (Ctrl+C or all agents done)
-7. Cleans up worktrees
+3. Ensures `.swarm/` is added to your project's `.gitignore`
+4. Creates Git worktrees for each agent
+5. Installs dependencies in each worktree
+6. Launches agents in parallel
+7. Generates `report.md` on exit (Ctrl+C or all agents done)
+8. Cleans up worktrees
 
 ## Conflict Resolution
 
