@@ -12,6 +12,7 @@ These twelve skills are installed when you add this repo (`npx skills add jonmum
 | [ralph-tdd](ralph-tdd/) | Autonomous TDD loop — agent picks tasks from a backlog, implements with TDD (uses mattpocock/skills@tdd), verifies with mutation testing, commits. AFK coding. |
 | [ralph-dogfooding](ralph-dogfooding/) | Autonomous dogfooding loop — explores core routes with Playwright MCP, captures evidence, dedupes in Linear via the linear-cli skill, logs progress per iteration. |
 | [mutation-testing](mutation-testing/) | Stryker mutation testing — setup, run incremental, kill survivors, reach ≥95% score. Used by ralph-tdd's quality gate. |
+| [swarm](swarm/) | Launch parallel AI agents (Feature, CRAP, Mutate, Accept) in Git worktrees to automate both coding and continuous codebase hardening. |
 | [create-agents-md](create-agents-md/) | Create minimal AGENTS.md (WHAT/WHY/HOW, feedback commands, .ralph/lessons). Ralph scripts prompt the agent to run this first when AGENTS.md is missing. |
 | [vsdd](vsdd/) | Verified Spec-Driven Development — rigorous spec → TDD → adversarial review → mutation testing pipeline. Three intensity levels (Full/Standard/Light). |
 | [react-render-performance](react-render-performance/) | Minimize unnecessary React re-renders with selectors and useSyncExternalStore. Patterns for XState, Zustand, Redux, and context. |
