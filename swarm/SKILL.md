@@ -161,17 +161,18 @@ Correct? Any changes?
 | 16 | Stryker configured? | Set up using `mutation-testing` skill |
 | 17 | Pre-commit hooks (Husky)? | Set up using `setup-pre-commit` skill |
 | 18 | Smoke test | Run test + typecheck + lint once to verify clean baseline |
+| 19 | Sub-agent smoke test | Run `env -u CLAUDECODE claude --version` to verify sub-agents can be spawned |
 
 ### Stage 5: Launch Configuration
 
 | # | Setting | Default |
 |---|---------|---------|
-| 19 | Which agents? | Feature + CRAP + Mutation |
-| 20 | Include Acceptance agent? | Yes if E2E command detected |
-| 21 | Agent runtime | Claude |
-| 22 | Feature iterations | 10 |
-| 23 | Quality iterations | 10 |
-| 24 | Auto-merge to main? | Yes |
+| 20 | Which agents? | Feature + CRAP + Mutation |
+| 21 | Include Acceptance agent? | Yes if E2E command detected |
+| 22 | Agent runtime | Claude |
+| 23 | Feature iterations | 10 |
+| 24 | Quality iterations | 10 |
+| 25 | Auto-merge to main? | Yes |
 
 ### Stage 6: Confirm and Launch
 
@@ -234,10 +235,13 @@ every agent commit passes typecheck + lint + tests before landing.
 
 ## Running the Swarm
 
+**The preferred UX:** Do all planning interactively inside the *current* Claude Code session, and then have Claude launch the swarm directly from this same session (using the shell execution tool). Do NOT ask the user to open a separate terminal.
+
 ```bash
 chmod +x /path/to/skills/swarm/scripts/swarm.sh
 
-/path/to/skills/swarm/scripts/swarm.sh \
+# Prefix with 'env -u CLAUDECODE' so that sub-agents can spawn properly!
+env -u CLAUDECODE /path/to/skills/swarm/scripts/swarm.sh \
   --project /abs/path/to/your-repo \
   --agents feature,crap,mutate \
   --iterations 10 \
