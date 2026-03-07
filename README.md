@@ -21,9 +21,6 @@ Personal AI agent skills. Install with the [Skills CLI](https://skills.dev).
 | [wide-events-logging](wide-events-logging/) | Implement observability using the Wide Events (Canonical Log Lines) pattern. Accumulate high-cardinality context and emit a single, highly-dimensional structured event per service boundary. |
 | [expo-testing](expo-testing/) | Build, install, and test Expo/React Native apps on simulators and physical devices. Detox E2E, local xcodebuild, EAS cloud builds, screenshot capture. |
 | [deploy-verify](deploy-verify/) | Deploy Cloudflare Workers and verify changes work by inferring what to test from recent git diff. Flags issues without auto-rolling back. |
-| [ralph-tdd](ralph-tdd/) | Single-agent autonomous TDD loop — picks tasks from a backlog, implements with TDD, verifies, commits. |
-| [ralph-dogfooding](ralph-dogfooding/) | Single-agent dogfooding loop — explores routes with Playwright MCP, captures evidence, dedupes in Linear. |
-| [ralph-creator](ralph-creator/) | Generate autonomous loop scripts for any task. Creates a working directory with loop script, backlog, and progress tracking. |
 
 ## Install
 
@@ -49,11 +46,11 @@ git clone https://github.com/jonmumm/skills.git && cd skills && ./scripts/instal
 **What it installs:**
 
 1. **CLIs** — Offers to install **Linear CLI** (`lin`), **Codex CLI**, **Claude Code CLI** if missing
-2. **Playwright MCP** — Adds to `~/.codex/config.toml` (needed for dogfooding/browser automation)
-3. **This repo's skills** — All 18 skills listed above
+2. **Playwright MCP** — Adds to `~/.codex/config.toml` (provides browser automation)
+3. **This repo's skills** — All 15 skills listed above
 4. **TDD & Testing companions** — TDD, Vitest, E2E patterns (see table below)
 5. **Knowledge Infrastructure** — Gherkin writing, ADR writing (powers `create-agents-md`'s docs/ structure)
-6. **Linear CLI skill** — Always installed (needed for dogfooding)
+6. **Linear CLI skill** — Always installed (handy for generating backlogs)
 
 ### This repo's skills only
 
