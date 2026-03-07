@@ -4,45 +4,40 @@ Personal AI agent skills. Install with the [Skills CLI](https://skills.dev).
 
 ## What's in this repo
 
-These twelve skills are installed when you add this repo (`npx skills add jonmumm/skills --all`):
-
 | Skill | Description |
 |-------|-------------|
-| [ralph-creator](ralph-creator/) | Create AFK Ralph loop scripts for any task. Generates a complete .ralph/ directory with loop script, backlog, progress tracking, and lessons file. Use when you want to create a custom ralph script for doing something on a long-running loop. |
-| [ralph-tdd](ralph-tdd/) | Autonomous TDD loop — agent picks tasks from a backlog, implements with TDD (uses mattpocock/skills@tdd), verifies with mutation testing, commits. AFK coding. |
-| [ralph-dogfooding](ralph-dogfooding/) | Autonomous dogfooding loop — explores core routes with Playwright MCP, captures evidence, dedupes in Linear via the linear-cli skill, logs progress per iteration. |
-| [mutation-testing](mutation-testing/) | Stryker mutation testing — setup, run incremental, kill survivors, reach ≥95% score. Used by ralph-tdd's quality gate. |
-| [swarm](swarm/) | Launch parallel AI agents (Feature, CRAP, Mutate, Accept) in Git worktrees to automate both coding and continuous codebase hardening. |
-| [create-agents-md](create-agents-md/) | Create minimal AGENTS.md (WHAT/WHY/HOW, feedback commands, .ralph/lessons). Ralph scripts prompt the agent to run this first when AGENTS.md is missing. |
+| [swarm](swarm/) | Launch parallel AI agents (Feature, CRAP, Mutate, Accept) in Git worktrees to automate both coding and continuous codebase hardening. **The primary workflow.** |
+| [create-agents-md](create-agents-md/) | Bootstrap AGENTS.md as a table-of-contents + structured docs/ directory (architecture, product specs, acceptance tests, ADRs, lessons, exec plans, quality grades). |
+| [adr-keeper](adr-keeper/) | Create and maintain Architectural Decision Records with date-named files sorted like migrations. Captures the WHY behind structural decisions. |
 | [vsdd](vsdd/) | Verified Spec-Driven Development — rigorous spec → TDD → adversarial review → mutation testing pipeline. Three intensity levels (Full/Standard/Light). |
+| [mutation-testing](mutation-testing/) | Stryker mutation testing — setup, run incremental, kill survivors, reach ≥95% score. Used by swarm's Mutation Agent. |
+| [grill-me](grill-me/) | Relentlessly interrogates an RFC or PRD plan. Walks down each branch of the design tree, resolving dependencies between decisions one-by-one. |
+| [design-principle-enforcer](design-principle-enforcer/) | Relentlessly critiques code against classic software engineering principles (SOLID, separation of concerns) to prevent spaghetti architecture. |
+| [seam-tester](seam-tester/) | Focuses exclusively on writing robust integration tests at system boundaries (seams) rather than writing brittle, shallow unit tests. |
+| [offensive-typesafety](offensive-typesafety/) | Move faster by using strict, compiler-enforced constraints. Treat types as a development accelerator. Prefer tools like TanStack Router, Zod, and Drizzle to build end-to-end type safety. |
 | [react-render-performance](react-render-performance/) | Minimize unnecessary React re-renders with selectors and useSyncExternalStore. Patterns for XState, Zustand, Redux, and context. |
 | [react-composable-components](react-composable-components/) | Write and refactor React components to be small, composable, and customizable, doing one thing well. Leverage compound components, prop spreading, and utility class merging. |
-| [offensive-typesafety](offensive-typesafety/) | Move faster by using strict, compiler-enforced constraints. Treat types as a development accelerator. Prefer tools like TanStack Router, Zod, and Drizzle to build end-to-end type safety. |
-| [grill-me](grill-me/) | Relentlessly interrogates an RFC or PRD plan. Walks down each branch of the design tree, resolving dependencies between decisions one-by-one until you reach a shared understanding. |
+| [dont-use-use-effect](dont-use-use-effect/) | Avoid unnecessary useEffect in React. Covers the 6 most common anti-patterns and their idiomatic alternatives. |
 | [wide-events-logging](wide-events-logging/) | Implement observability using the Wide Events (Canonical Log Lines) pattern. Accumulate high-cardinality context and emit a single, highly-dimensional structured event per service boundary. |
-| [dont-use-use-effect](dont-use-use-effect/) | Avoid unnecessary useEffect in React. Covers the 6 most common anti-patterns (derived state, event-driven logic, effect chains, data fetching, external subscriptions, prop-change resets) and their idiomatic alternatives. |
+| [expo-testing](expo-testing/) | Build, install, and test Expo/React Native apps on simulators and physical devices. Detox E2E, local xcodebuild, EAS cloud builds, screenshot capture. |
+| [deploy-verify](deploy-verify/) | Deploy Cloudflare Workers and verify changes work by inferring what to test from recent git diff. Flags issues without auto-rolling back. |
+| [ralph-tdd](ralph-tdd/) | Single-agent autonomous TDD loop — picks tasks from a backlog, implements with TDD, verifies, commits. |
+| [ralph-dogfooding](ralph-dogfooding/) | Single-agent dogfooding loop — explores routes with Playwright MCP, captures evidence, dedupes in Linear. |
+| [ralph-creator](ralph-creator/) | Generate autonomous loop scripts for any task. Creates a working directory with loop script, backlog, and progress tracking. |
 
 ## Install
 
-**Ralph stack (recommended)**
+### Full stack (recommended)
 
-[scripts/install-ralph-stack.sh](scripts/install-ralph-stack.sh) does the following in order. Flags: `-g` / `--global` (default), `-p` / `--project` (project-scoped), `-f` / `--full` (extra skills), `-y` / `--yes` (non-interactive).
+[scripts/install-ralph-stack.sh](scripts/install-ralph-stack.sh) installs everything: CLIs, Playwright MCP, all skills from this repo, and curated companion skills.
 
-1. **CLIs** — Offers to install **Linear CLI** (`lin`/`linear`), **Codex CLI**, **Claude Code CLI** if missing.
-2. **Playwright MCP** — Adds Playwright MCP to `~/.codex/config.toml` so Codex can drive the browser (ralph-dogfooding uses it).
-3. **This repo's skills** — Runs `npx skills add jonmumm/skills --all` (installs all skills above).
-4. **Companion skills** — Always installs **linear-cli** (schpet/linear-cli; required for ralph-dogfooding). Then asks for each optional skill (tdd, vitest, e2e-testing-patterns; see table below). Use `-y` to accept defaults (install recommended companions, skip CLI install prompts). Use `-p` to install skills for the current project instead of globally.
+Flags: `-g` / `--global` (default), `-p` / `--project` (project-scoped), `-f` / `--full` (extra skills), `-y` / `--yes` (non-interactive).
 
 ```bash
-./scripts/install-ralph-stack.sh --global
-./scripts/install-ralph-stack.sh -g -y   # non-interactive (recommended companions, skip CLI prompts)
-./scripts/install-ralph-stack.sh -p      # project-scoped install
-```
-
-With `--full`, the script also offers **react-best-practices** and **skill-creator**:
-
-```bash
-./scripts/install-ralph-stack.sh -g --full
+./scripts/install-ralph-stack.sh -g          # interactive (recommended)
+./scripts/install-ralph-stack.sh -g -y       # non-interactive (install all recommended)
+./scripts/install-ralph-stack.sh -p          # project-scoped install
+./scripts/install-ralph-stack.sh -g --full   # also offer react/frontend extras
 ```
 
 From a clone:
@@ -51,53 +46,123 @@ From a clone:
 git clone https://github.com/jonmumm/skills.git && cd skills && ./scripts/install-ralph-stack.sh -g
 ```
 
-**This repo's skills only** (no CLIs, no MCP, no companions):
+**What it installs:**
+
+1. **CLIs** — Offers to install **Linear CLI** (`lin`), **Codex CLI**, **Claude Code CLI** if missing
+2. **Playwright MCP** — Adds to `~/.codex/config.toml` (needed for dogfooding/browser automation)
+3. **This repo's skills** — All 18 skills listed above
+4. **TDD & Testing companions** — TDD, Vitest, E2E patterns (see table below)
+5. **Knowledge Infrastructure** — Gherkin writing, ADR writing (powers `create-agents-md`'s docs/ structure)
+6. **Linear CLI skill** — Always installed (needed for dogfooding)
+
+### This repo's skills only
+
+No CLIs, no MCP, no companion skills:
 
 ```bash
 npx skills add jonmumm/skills --all -g -y
 ```
 
-Or use the script (global by default; use `-p` for project-scoped):
+Or use the script:
 
 ```bash
-./scripts/install-all-skills.sh        # global
-./scripts/install-all-skills.sh -p      # project only
+./scripts/install-all-skills.sh        # global (default)
+./scripts/install-all-skills.sh -p     # project only
 ```
 
-**Single skill:**
+### Single skill
 
 ```bash
-npx skills add jonmumm/skills@ralph-tdd -g -y
-npx skills add jonmumm/skills@ralph-dogfooding -g -y
+npx skills add jonmumm/skills@swarm -g -y
+npx skills add jonmumm/skills@create-agents-md -g -y
+npx skills add jonmumm/skills@adr-keeper -g -y
 ```
 
-**List skills in this repo:**
+### List available skills
 
 ```bash
 npx skills add jonmumm/skills --list
 ```
 
-## Companion skills (install script)
+## Scripts
 
-The script optionally installs these from other repos. ralph-tdd and ralph-dogfooding expect the recommended ones to be present.
+| Script | What it does |
+|--------|-------------|
+| [scripts/install-ralph-stack.sh](scripts/install-ralph-stack.sh) | Full interactive installer: CLIs → MCP → skills → companions. The one-stop-shop. |
+| [scripts/install-all-skills.sh](scripts/install-all-skills.sh) | Installs only this repo's skills (no CLIs, no companions). |
 
-| Companion | Purpose |
-|-----------|--------|
-| **schpet/linear-cli** (linear-cli) | **Always installed.** Linear issue list/create/update/comment from CLI. ralph-dogfooding uses this. |
-| **mattpocock/skills@tdd** | TDD: vertical slices, red-green-refactor. ralph-tdd relies on this. |
-| **antfu/skills@vitest** | Vitest guidance for the TDD loop. |
-| **wshobson/agents@e2e-testing-patterns** | E2E/Playwright patterns for ralph-tdd. |
-| **Playwright MCP** | Added to Codex config by the script (not a skill). ralph-dogfooding uses it for browser automation. |
+## Companion skills
 
-With `--full` the script also offers and installs: **react-best-practices**, **skill-creator**, **vercel-composition-patterns** (component refactoring), **prd-creator** (PRD + task JSON), **frontend-code-review** (structured .tsx/.ts review), **frontend-testing** (Vitest + RTL). It tries `vercel-labs/agent-skills@<name>` for each; if a skill isn’t in that repo the install is skipped and the script continues.
+The install script optionally installs these from other repos.
 
-## Ralph working files in your project
+### TDD & Testing
 
-When you run the Ralph scripts with `--project /path/to/repo`, they write working files (progress, lessons, dogfood progress, screenshots) into **`.ralph/`** in that project. Both scripts ensure **`.ralph/`** is appended to the project’s `.gitignore` if it isn’t already there, so these files are not committed.
+| Companion | Source | Purpose |
+|-----------|--------|---------|
+| **tdd** | `mattpocock/skills` | TDD: vertical slices, red-green-refactor. Swarm's Feature Agent uses this. |
+| **vitest** | `antfu/skills` | Vitest guidance for the TDD loop. |
+| **e2e-testing-patterns** | `wshobson/agents` | E2E/Playwright patterns. |
+| **linear-cli** | `schpet/linear-cli` | **Always installed.** Linear issue list/create/update/comment from CLI. |
+| **Playwright MCP** | (added to Codex config) | Browser automation. |
+
+### Knowledge Infrastructure
+
+| Companion | Source | Purpose |
+|-----------|--------|---------|
+| **bdd-gherkin-specification** | `jzallen/fred_simulations` | Gherkin writing guidance. `create-agents-md` uses this for `docs/acceptance/` feature files. |
+| **adr-writing** | `existential-birds/beagle` | ADR writing guidance. `create-agents-md` uses this for `docs/adrs/` entries. |
+| **playwright-bdd-gherkin-syntax** | `thebushidocollective/han` | Gherkin → Playwright test generation. Optional, for web E2E projects. |
+
+### Extras (with `--full`)
+
+| Companion | Source | Purpose |
+|-----------|--------|---------|
+| **react-best-practices** | `vercel-labs/agent-skills` | React/Next.js performance. |
+| **skill-creator** | `vercel-labs/agent-skills` | Creating new skills. |
+| **vercel-composition-patterns** | `vercel-labs/agent-skills` | React component refactoring. |
+| **prd-creator** | `vercel-labs/agent-skills` | PRD + task JSON backlog. |
+| **frontend-code-review** | `vercel-labs/agent-skills` | Structured .tsx/.ts review. |
+| **frontend-testing** | `vercel-labs/agent-skills` | Vitest + RTL component/hook tests. |
+
+## Typical workflows
+
+### Swarm (recommended)
+
+Launch parallel agents that build features AND harden the codebase:
+
+```bash
+# 1. Bootstrap agent context (if AGENTS.md doesn't exist)
+#    → creates AGENTS.md + docs/ structure
+"create-agents-md"
+
+# 2. Plan and launch the swarm
+"swarm"
+#    → grill-me interrogates the plan
+#    → creates backlog from Linear/GitHub/local file
+#    → launches Feature + CRAP + Mutation agents in worktrees
+```
+
+### VSDD (rigorous verification)
+
+For correctness-critical work:
+
+```bash
+"vsdd"
+#    → spec crystallization → TDD → adversarial review → mutation testing
+```
+
+## Agent working files
+
+| Directory | Created by | Purpose |
+|-----------|-----------|---------|
+| `.swarm/` | swarm skill | Worktrees, run logs, tactical lessons (persists across runs) |
+| `.claude/` | Claude Code | Session state |
+
+Both are gitignored. The swarm script adds them to `.gitignore` automatically.
 
 ## Repo layout
 
-Skills live at repo root (one folder per skill, each with `SKILL.md`). Optional: `references/`, `scripts/` inside each skill. No `skills/` subfolder required for this repo; the CLI discovers root-level skill folders.
+Skills live at repo root (one folder per skill, each with `SKILL.md`). Optional: `references/`, `scripts/` inside each skill. No `skills/` subfolder required; the CLI discovers root-level skill folders.
 
 ## Adding a skill
 

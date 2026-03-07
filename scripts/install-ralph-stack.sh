@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# Install Ralph skills + curated companion skills. Ensures required CLIs (Linear, Codex, Claude Code)
-# and Playwright MCP in Codex config so Ralph loops work.
+# Install agent skills + curated companion skills. Ensures required CLIs
+# (Linear, Codex, Claude Code) and Playwright MCP in Codex config.
 #
 # Usage:
 #   ./scripts/install-ralph-stack.sh [--global] [--full] [--yes]
 #   --global (or -g): install skills to user global dir (default).
-#   --full (or -f):   also offer react-best-practices, skill-creator, vercel-composition-patterns, prd-creator, frontend-code-review, frontend-testing (install each; if not in vercel-labs/agent-skills, script suggests npx skills find).
+#   --project (or -p): install to current project only.
+#   --full (or -f):   also offer react-best-practices, skill-creator, etc.
 #   --yes (or -y):    non-interactive: use defaults (skip CLI installs, install recommended companions).
 set -euo pipefail
 
@@ -77,6 +78,7 @@ else
 fi
 
 # --- 2. Playwright MCP in Codex config ---
+echo ""
 echo "=== Playwright MCP (Codex) ==="
 CODEX_CONFIG="${CODEX_CONFIG:-$HOME/.codex/config.toml}"
 PLAYWRIGHT_MCP='[mcp_servers.playwright]
@@ -100,17 +102,19 @@ else
     echo "  Skip. Later: add [mcp_servers.playwright] with command = \"npx\", args = [\"-y\", \"@playwright/mcp@latest\"]"
   fi
 fi
+
+# --- 3. This repo's skills ---
 echo ""
-echo "=== Ralph skills (this repo) ==="
+echo "=== Core skills (this repo) ==="
 npx skills add jonmumm/skills --all "${GLOBAL[@]}"
 
+# --- 4. TDD & Testing Companions ---
 echo ""
-echo "=== Companion skills (optional) ==="
-echo "Install each? (recommended for TDD/dogfooding)"
+echo "=== TDD & Testing Companions ==="
 echo ""
 
 # TDD (vertical slices, red-green-refactor) — ralph-tdd relies on this
-if ask "mattpocock/skills@tdd (TDD: vertical slices, good tests; ralph-tdd uses this)? (y/n)" y; then
+if ask "mattpocock/skills@tdd (TDD: vertical slices, red-green-refactor)? (y/n)" y; then
   npx skills add mattpocock/skills@tdd "${GLOBAL[@]}"
 fi
 
@@ -120,16 +124,41 @@ if ask "antfu/skills@vitest (Vitest guidance for TDD loop)? (y/n)" y; then
 fi
 
 # E2E patterns
-if ask "wshobson/agents@e2e-testing-patterns (E2E/Playwright for ralph-tdd)? (y/n)" y; then
+if ask "wshobson/agents@e2e-testing-patterns (E2E/Playwright patterns)? (y/n)" y; then
   npx skills add wshobson/agents@e2e-testing-patterns "${GLOBAL[@]}"
 fi
 
-# Linear CLI skill — always install; ralph-dogfooding uses it for issue list/create/update/comment
-echo "=== Linear CLI skill (required for ralph-dogfooding) ==="
-npx skills add https://github.com/schpet/linear-cli --skill linear-cli "${GLOBAL[@]}"
+# --- 5. Knowledge Infrastructure (supports create-agents-md) ---
+echo ""
+echo "=== Knowledge Infrastructure (acceptance tests, ADRs) ==="
+echo "Powers the docs/ structure that create-agents-md generates."
 echo ""
 
+# Gherkin writing (for docs/acceptance/ feature files)
+if ask "jzallen/fred_simulations@bdd-gherkin-specification (Gherkin writing guidance; recommended)? (y/n)" y; then
+  npx skills add jzallen/fred_simulations@bdd-gherkin-specification "${GLOBAL[@]}"
+fi
+
+# ADR writing (for docs/adrs/ decision records)
+if ask "existential-birds/beagle@adr-writing (Architectural Decision Records; recommended)? (y/n)" y; then
+  npx skills add existential-birds/beagle@adr-writing "${GLOBAL[@]}"
+fi
+
+# Playwright BDD (for generating Playwright tests from Gherkin — web projects)
+if ask "thebushidocollective/han@playwright-bdd-gherkin-syntax (Gherkin → Playwright test generation)? (y/n)" n; then
+  npx skills add thebushidocollective/han@playwright-bdd-gherkin-syntax "${GLOBAL[@]}"
+fi
+
+# --- 6. Linear CLI skill (required for ralph-dogfooding) ---
+echo ""
+echo "=== Linear CLI skill ==="
+npx skills add https://github.com/schpet/linear-cli --skill linear-cli "${GLOBAL[@]}"
+
+# --- 7. Full extras ---
 if [[ "$FULL" == true ]]; then
+  echo ""
+  echo "=== Additional Skills (--full) ==="
+
   if ask "vercel-labs/agent-skills@react-best-practices (React/Next perf)? (y/n)" n; then
     npx skills add vercel-labs/agent-skills@react-best-practices "${GLOBAL[@]}"
   fi
@@ -152,4 +181,9 @@ fi
 
 echo ""
 echo "Done."
+echo ""
+echo "Next steps:"
+echo "  1. Run 'create-agents-md' in your project to bootstrap the knowledge structure"
+echo "  2. The skill will detect installed companions and wire them into AGENTS.md"
+echo "  3. Use 'swarm' to launch parallel agents, or 'ralph-tdd' for a single TDD loop"
 echo ""
