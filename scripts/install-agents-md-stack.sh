@@ -3,7 +3,7 @@
 # (Linear, Codex, Claude Code) and Playwright MCP in Codex config.
 #
 # Usage:
-#   ./scripts/install-ralph-stack.sh [--global] [--full] [--yes]
+#   ./scripts/install-agents-md-stack.sh [--global] [--full] [--yes]
 #   --global (or -g): install skills to user global dir (default).
 #   --project (or -p): install to current project only.
 #   --full (or -f):   also offer react-best-practices, skill-creator, etc.
@@ -113,7 +113,7 @@ echo ""
 echo "=== TDD & Testing Companions ==="
 echo ""
 
-# TDD (vertical slices, red-green-refactor) — ralph-tdd relies on this
+# TDD (vertical slices, red-green-refactor)
 if ask "mattpocock/skills@tdd (TDD: vertical slices, red-green-refactor)? (y/n)" y; then
   npx skills add mattpocock/skills@tdd "${GLOBAL[@]}"
 fi
@@ -149,7 +149,7 @@ if ask "thebushidocollective/han@playwright-bdd-gherkin-syntax (Gherkin → Play
   npx skills add thebushidocollective/han@playwright-bdd-gherkin-syntax "${GLOBAL[@]}"
 fi
 
-# --- 6. Linear CLI skill (required for ralph-dogfooding) ---
+# --- 6. Linear CLI skill (handy for many workflows) ---
 echo ""
 echo "=== Linear CLI skill ==="
 npx skills add https://github.com/schpet/linear-cli --skill linear-cli "${GLOBAL[@]}"
@@ -185,5 +185,5 @@ echo ""
 echo "Next steps:"
 echo "  1. Run 'create-agents-md' in your project to bootstrap the knowledge structure"
 echo "  2. The skill will detect installed companions and wire them into AGENTS.md"
-echo "  3. Use 'swarm' to launch parallel agents, or 'ralph-tdd' for a single TDD loop"
+echo "  3. Use 'swarm' to launch parallel agents for coding & hardening"
 echo ""

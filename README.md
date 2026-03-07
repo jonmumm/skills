@@ -29,21 +29,21 @@ Personal AI agent skills. Install with the [Skills CLI](https://skills.dev).
 
 ### Full stack (recommended)
 
-[scripts/install-ralph-stack.sh](scripts/install-ralph-stack.sh) installs everything: CLIs, Playwright MCP, all skills from this repo, and curated companion skills.
+[scripts/install-agents-md-stack.sh](scripts/install-agents-md-stack.sh) installs everything: CLIs, Playwright MCP, all skills from this repo, and curated companion skills.
 
 Flags: `-g` / `--global` (default), `-p` / `--project` (project-scoped), `-f` / `--full` (extra skills), `-y` / `--yes` (non-interactive).
 
 ```bash
-./scripts/install-ralph-stack.sh -g          # interactive (recommended)
-./scripts/install-ralph-stack.sh -g -y       # non-interactive (install all recommended)
-./scripts/install-ralph-stack.sh -p          # project-scoped install
-./scripts/install-ralph-stack.sh -g --full   # also offer react/frontend extras
+./scripts/install-agents-md-stack.sh -g          # interactive (recommended)
+./scripts/install-agents-md-stack.sh -g -y       # non-interactive (install all recommended)
+./scripts/install-agents-md-stack.sh -p          # project-scoped install
+./scripts/install-agents-md-stack.sh -g --full   # also offer react/frontend extras
 ```
 
 From a clone:
 
 ```bash
-git clone https://github.com/jonmumm/skills.git && cd skills && ./scripts/install-ralph-stack.sh -g
+git clone https://github.com/jonmumm/skills.git && cd skills && ./scripts/install-agents-md-stack.sh -g
 ```
 
 **What it installs:**
@@ -88,7 +88,7 @@ npx skills add jonmumm/skills --list
 
 | Script | What it does |
 |--------|-------------|
-| [scripts/install-ralph-stack.sh](scripts/install-ralph-stack.sh) | Full interactive installer: CLIs → MCP → skills → companions. The one-stop-shop. |
+| [scripts/install-agents-md-stack.sh](scripts/install-agents-md-stack.sh) | Full interactive installer: CLIs → MCP → skills → companions. The one-stop-shop. |
 | [scripts/install-all-skills.sh](scripts/install-all-skills.sh) | Installs only this repo's skills (no CLIs, no companions). |
 
 ## Companion skills
