@@ -16,6 +16,7 @@ Personal AI agent skills. Install with the [Skills CLI](https://skills.dev).
 | [grill-me](grill-me/) | Relentlessly interrogates an RFC or PRD plan. Walks down each branch of the design tree, resolving dependencies between decisions one-by-one. |
 | [mutation-testing](mutation-testing/) | Stryker mutation testing — setup, run incremental, kill survivors, reach ≥95% score. Used by swarm's Mutation Agent. |
 | [offensive-typesafety](offensive-typesafety/) | Move faster by using strict, compiler-enforced constraints. Treat types as a development accelerator. Prefer tools like TanStack Router, Zod, and Drizzle to build end-to-end type safety. |
+| [parse-at-boundary](parse-at-boundary/) | Enforce "parse, don't validate" at every system edge. Data crossing a trust boundary must be parsed through a schema before entering application logic. Language-agnostic — TypeScript, Python, Go, Swift, Kotlin. |
 | [react-composable-components](react-composable-components/) | Write and refactor React components to be small, composable, and customizable, doing one thing well. Leverage compound components, prop spreading, and utility class merging. |
 | [react-render-performance](react-render-performance/) | Minimize unnecessary React re-renders with selectors and useSyncExternalStore. Patterns for XState, Zustand, Redux, and context. |
 | [seam-tester](seam-tester/) | Focuses exclusively on writing robust integration tests at system boundaries (seams) rather than writing brittle, shallow unit tests. |
