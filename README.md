@@ -11,6 +11,7 @@ Personal AI agent skills. Install with the [Skills CLI](https://skills.dev).
 | [actorkit-tanstack-start](actorkit-tanstack-start/) | Integrate actor-kit with TanStack Start/Router for server-rendered, real-time stateful apps on Cloudflare Workers. Covers route loaders, server functions, SSR hydration, and WebSocket handoff. |
 | [adr-keeper](adr-keeper/) | Create and maintain Architectural Decision Records with date-named files sorted like migrations. Captures the WHY behind structural decisions. |
 | [autoresearch](autoresearch/) | Set up and run Karpathy's autoresearch — autonomous AI research loop that trains a small LLM overnight. Agent modifies train.py, runs 5-min experiments, keeps improvements, discards failures (~100 experiments/night). |
+| [cmux](cmux/) | Manage cmux terminal workspaces for parallel AI agent sessions. Create, switch, monitor, and communicate between named workspaces via CLI and socket API. Orchestrator pattern for /swarm and /nightshift. |
 | [chrome-cdp](chrome-cdp/) | Interact with local Chrome browser session. Lightweight CLI for DevTools Protocol: list tabs, take screenshots, navigate, and evaluate JS without Puppeteer. |
 | [create-agents-md](create-agents-md/) | Bootstrap AGENTS.md as a table-of-contents + structured docs/ directory (architecture, product specs, acceptance tests, ADRs, lessons, exec plans, quality grades). |
 | [deploy-verify](deploy-verify/) | Deploy Cloudflare Workers and verify changes work by inferring what to test from recent git diff. Flags issues without auto-rolling back. |
