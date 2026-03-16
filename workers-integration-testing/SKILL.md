@@ -397,6 +397,276 @@ Use these to test `webSocketMessage`, `webSocketClose`, and `webSocketError` han
 - [ ] Reconnection with checksum resumes without full state replay
 - [ ] Binary message support (if applicable)
 
+## Mocking outbound fetch
+
+When your Worker calls external APIs, use `fetchMock` from `cloudflare:test` (an `undici` `MockAgent`) to intercept outbound requests without hitting real services.
+
+```typescript
+import { fetchMock } from "cloudflare:test";
+import { beforeAll, afterEach, it, expect } from "vitest";
+
+beforeAll(() => {
+  fetchMock.activate();
+  fetchMock.disableNetConnect(); // throw if an outbound request isn't mocked
+});
+
+afterEach(() => fetchMock.assertNoPendingInterceptors());
+
+it("proxies to external API and transforms response", async () => {
+  fetchMock
+    .get("https://api.stripe.com")
+    .intercept({ path: "/v1/charges/ch_123" })
+    .reply(200, JSON.stringify({ id: "ch_123", amount: 2000, currency: "usd" }));
+
+  const res = await SELF.fetch("https://api.test/api/v1/charges/ch_123", { headers });
+  expect(res.status).toBe(200);
+
+  const body = (await res.json()) as { chargeId: string; amount: number };
+  expect(body.chargeId).toBe("ch_123");
+  expect(body.amount).toBe(2000);
+});
+
+it("handles external API errors gracefully", async () => {
+  fetchMock
+    .get("https://api.stripe.com")
+    .intercept({ path: "/v1/charges/ch_bad" })
+    .reply(500, "Internal Server Error");
+
+  const res = await SELF.fetch("https://api.test/api/v1/charges/ch_bad", { headers });
+  expect(res.status).toBe(502); // or whatever your error mapping returns
+});
+```
+
+Key rules:
+- Always call `fetchMock.activate()` in `beforeAll` and `fetchMock.assertNoPendingInterceptors()` in `afterEach`
+- `fetchMock.disableNetConnect()` ensures no unmocked requests leak through
+- This only mocks fetch in the test runner Worker — auxiliary Workers need Miniflare's `fetchMock`/`outboundService` options
+
+## Testing handler functions directly
+
+For lightweight tests that skip the HTTP layer, use `createExecutionContext` and `waitOnExecutionContext`:
+
+```typescript
+import { env, createExecutionContext, waitOnExecutionContext } from "cloudflare:test";
+import worker from "./index";
+
+it("calls fetch handler directly", async () => {
+  const request = new Request("https://example.com/api/health");
+  const ctx = createExecutionContext();
+  const response = await worker.fetch(request, env, ctx);
+  await waitOnExecutionContext(ctx); // waits for all ctx.waitUntil() promises
+  expect(response.status).toBe(200);
+});
+```
+
+## Testing scheduled handlers (Cron Triggers)
+
+```typescript
+import { env, createScheduledController, createExecutionContext, waitOnExecutionContext } from "cloudflare:test";
+import worker from "./index";
+
+it("runs scheduled cleanup job", async () => {
+  const ctrl = createScheduledController({
+    scheduledTime: new Date(1000),
+    cron: "0 0 * * *", // daily midnight
+  });
+  const ctx = createExecutionContext();
+  await worker.scheduled(ctrl, env, ctx);
+  await waitOnExecutionContext(ctx);
+
+  // Verify side effect — e.g. expired rows cleaned up
+  const remaining = await env.DB.prepare(
+    "SELECT count(*) as cnt FROM sessions WHERE expired = 1"
+  ).first<{ cnt: number }>();
+  expect(remaining?.cnt).toBe(0);
+});
+```
+
+## Testing Queue consumers
+
+```typescript
+import { env, createMessageBatch, createExecutionContext, getQueueResult } from "cloudflare:test";
+import worker from "./index";
+
+it("processes queue messages and acks", async () => {
+  const batch = createMessageBatch("my-queue", [
+    { id: "msg-1", timestamp: new Date(1000), body: { userId: "user-1", action: "signup" } },
+    { id: "msg-2", timestamp: new Date(2000), body: { userId: "user-2", action: "signup" } },
+  ]);
+  const ctx = createExecutionContext();
+  await worker.queue(batch, env, ctx);
+  const result = await getQueueResult(batch, ctx);
+
+  expect(result.ackAll).toBe(false);
+  expect(result.explicitAcks).toStrictEqual(["msg-1", "msg-2"]);
+  expect(result.retryMessages).toStrictEqual([]);
+});
+
+it("retries failed messages", async () => {
+  const batch = createMessageBatch("my-queue", [
+    { id: "msg-bad", timestamp: new Date(1000), body: { invalid: true } },
+  ]);
+  const ctx = createExecutionContext();
+  await worker.queue(batch, env, ctx);
+  const result = await getQueueResult(batch, ctx);
+
+  expect(result.retryMessages).toStrictEqual(["msg-bad"]);
+});
+```
+
+## Testing Durable Objects directly
+
+Use `runInDurableObject` to reach inside a DO instance for seeding, spying, or asserting on persisted state:
+
+```typescript
+import { env, runInDurableObject, runDurableObjectAlarm, listDurableObjectIds } from "cloudflare:test";
+import { Counter } from "./index";
+
+it("increments and persists count", async () => {
+  const id = env.COUNTER.newUniqueId();
+  const stub = env.COUNTER.get(id);
+
+  let response = await stub.fetch("https://example.com");
+  expect(await response.text()).toBe("1");
+
+  // Reach inside the DO to verify storage
+  response = await runInDurableObject(stub, async (instance: Counter, state) => {
+    expect(instance).toBeInstanceOf(Counter);
+    expect(await state.storage.get<number>("count")).toBe(1);
+    return instance.fetch(new Request("https://example.com"));
+  });
+  expect(await response.text()).toBe("2");
+});
+
+it("runs scheduled alarm", async () => {
+  const id = env.COUNTER.newUniqueId();
+  const stub = env.COUNTER.get(id);
+  await stub.fetch("https://example.com/schedule-cleanup");
+
+  const alarmRan = await runDurableObjectAlarm(stub);
+  expect(alarmRan).toBe(true);
+});
+
+it("lists created DO instances (respects isolatedStorage)", async () => {
+  const id = env.COUNTER.newUniqueId();
+  const stub = env.COUNTER.get(id);
+  await stub.fetch("https://example.com");
+
+  const ids = await listDurableObjectIds(env.COUNTER);
+  expect(ids.length).toBe(1);
+  expect(ids[0].equals(id)).toBe(true);
+});
+```
+
+## D1 migrations in tests
+
+Use `applyD1Migrations` with `readD1Migrations` for projects using D1's migration system:
+
+```typescript
+// vitest.config.ts
+import { defineWorkersConfig, readD1Migrations } from "@cloudflare/vitest-pool-workers/config";
+import path from "node:path";
+
+export default defineWorkersConfig({
+  test: {
+    setupFiles: ["./test/apply-migrations.ts"],
+    poolOptions: {
+      workers: {
+        miniflare: {
+          d1Databases: { DB: "test-db" },
+        },
+      },
+    },
+  },
+});
+```
+
+```typescript
+// test/apply-migrations.ts
+import { env, applyD1Migrations } from "cloudflare:test";
+import migrations from "../migrations"; // readD1Migrations output injected via config
+
+await applyD1Migrations(env.DB, migrations);
+```
+
+## Testing Workflows
+
+Use workflow introspectors to control timing, mock steps, and assert outcomes:
+
+```typescript
+import { env, introspectWorkflowInstance, SELF } from "cloudflare:test";
+
+it("completes approval workflow with mocked event", async () => {
+  await using instance = await introspectWorkflowInstance(env.MY_WORKFLOW, "wf-123");
+
+  await instance.modify(async (m) => {
+    await m.disableSleeps(); // all sleeps resolve instantly
+    await m.mockEvent({
+      type: "user-approval",
+      payload: { approved: true, approverId: "user-1" },
+    });
+  });
+
+  await env.MY_WORKFLOW.create({ id: "wf-123" });
+
+  await expect(instance.waitForStatus("complete")).resolves.not.toThrow();
+  const output = await instance.getOutput();
+  expect(output).toEqual({ success: true });
+  // dispose is automatic via `await using`
+});
+
+it("handles step failure with retry", async () => {
+  await using instance = await introspectWorkflowInstance(env.MY_WORKFLOW, "wf-456");
+
+  await instance.modify(async (m) => {
+    await m.disableSleeps();
+    // Fail payment step once, then succeed on retry
+    await m.mockStepError(
+      { name: "process-payment" },
+      new Error("Gateway timeout"),
+      1, // fail only first attempt
+    );
+    await m.mockEvent({ type: "user-approval", payload: { approved: true } });
+  });
+
+  await env.MY_WORKFLOW.create({ id: "wf-456" });
+  await expect(instance.waitForStatus("complete")).resolves.not.toThrow();
+});
+```
+
+For workflows where instance IDs are unknown (created inside the Worker):
+
+```typescript
+import { env, introspectWorkflow, SELF } from "cloudflare:test";
+
+it("captures all workflow instances triggered by fetch", async () => {
+  await using introspector = await introspectWorkflow(env.MY_WORKFLOW);
+
+  await introspector.modifyAll(async (m) => {
+    await m.disableSleeps();
+    await m.mockEvent({ type: "approval", payload: { approved: true } });
+  });
+
+  // Trigger workflow creation via HTTP
+  await SELF.fetch("https://api.test/api/v1/start-batch");
+
+  const instances = await introspector.get();
+  for (const instance of instances) {
+    await expect(instance.waitForStatus("complete")).resolves.not.toThrow();
+  }
+});
+```
+
+Workflow modifier methods:
+- `disableSleeps(steps?)` — resolve `step.sleep()` / `step.sleepUntil()` instantly
+- `mockStepResult(step, result)` — return value without running the step
+- `mockStepError(step, error, times?)` — force step to throw (N times or forever)
+- `forceStepTimeout(step, times?)` — simulate step timeout
+- `mockEvent(event)` — satisfy a `step.waitForEvent()`
+- `forceEventTimeout(step)` — simulate event timeout
+
+Always dispose introspectors (`await using` or explicit `.dispose()`) to prevent state leaking between tests with `isolatedStorage`.
+
 ## Hyperdrive (Postgres) variant
 
 When the Worker uses Hyperdrive instead of D1:
