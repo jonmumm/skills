@@ -6,8 +6,11 @@ Personal AI agent skills. Install with the [Skills CLI](https://skills.dev).
 
 | Skill | Description |
 |-------|-------------|
+| [actorkit-storybook-testing](actorkit-storybook-testing/) | Test actor-kit state machines in Storybook using mock clients and play functions. Covers static snapshots, interactive state transitions, event interception, and multi-actor nesting. |
+| [actorkit-tanstack-start](actorkit-tanstack-start/) | Integrate actor-kit with TanStack Start/Router for server-rendered, real-time stateful apps on Cloudflare Workers. Covers route loaders, server functions, SSR hydration, and WebSocket handoff. |
 | [adr-keeper](adr-keeper/) | Create and maintain Architectural Decision Records with date-named files sorted like migrations. Captures the WHY behind structural decisions. |
 | [autoresearch](autoresearch/) | Set up and run Karpathy's autoresearch — autonomous AI research loop that trains a small LLM overnight. Agent modifies train.py, runs 5-min experiments, keeps improvements, discards failures (~100 experiments/night). |
+| [chrome-cdp](chrome-cdp/) | Interact with local Chrome browser session. Lightweight CLI for DevTools Protocol: list tabs, take screenshots, navigate, and evaluate JS without Puppeteer. |
 | [create-agents-md](create-agents-md/) | Bootstrap AGENTS.md as a table-of-contents + structured docs/ directory (architecture, product specs, acceptance tests, ADRs, lessons, exec plans, quality grades). |
 | [deploy-verify](deploy-verify/) | Deploy Cloudflare Workers and verify changes work by inferring what to test from recent git diff. Flags issues without auto-rolling back. |
 | [design-principle-enforcer](design-principle-enforcer/) | Relentlessly critiques code against classic software engineering principles (SOLID, separation of concerns) to prevent spaghetti architecture. |
@@ -21,8 +24,10 @@ Personal AI agent skills. Install with the [Skills CLI](https://skills.dev).
 | [react-render-performance](react-render-performance/) | Minimize unnecessary React re-renders with selectors and useSyncExternalStore. Patterns for XState, Zustand, Redux, and context. |
 | [seam-tester](seam-tester/) | Focuses exclusively on writing robust integration tests at system boundaries (seams) rather than writing brittle, shallow unit tests. |
 | [swarm](swarm/) | Launch parallel AI agents (Feature, CRAP, Mutate, Accept) in Git worktrees to automate both coding and continuous codebase hardening. **The primary workflow.** |
+| [tlaplus](tlaplus/) | Formal verification of system designs using TLA+ and the TLC model checker. Models concurrent state machines, finds race conditions, deadlocks, and invariant violations before code is written. |
 | [vsdd](vsdd/) | Verified Spec-Driven Development — rigorous spec → TDD → adversarial review → mutation testing pipeline. Three intensity levels (Full/Standard/Light). |
 | [wide-events-logging](wide-events-logging/) | Implement observability using the Wide Events (Canonical Log Lines) pattern. Accumulate high-cardinality context and emit a single, highly-dimensional structured event per service boundary. |
+| [workers-integration-testing](workers-integration-testing/) | Integration tests for Cloudflare Workers using vitest-pool-workers and `SELF.fetch()`. Full HTTP cycle testing against real local bindings (D1, KV, R2, DO, Hyperdrive). Hooks into /nightshift, /swarm, and /ralph-tdd. |
 
 ## Install
 
@@ -49,7 +54,7 @@ git clone https://github.com/jonmumm/skills.git && cd skills && ./scripts/instal
 
 1. **CLIs** — Offers to install **Linear CLI** (`lin`), **Codex CLI**, **Claude Code CLI** if missing
 2. **Playwright MCP** — Adds to `~/.codex/config.toml` (provides browser automation)
-3. **This repo's skills** — All 15 skills listed above
+3. **This repo's skills** — All 20 skills listed above
 4. **TDD & Testing companions** — TDD, Vitest, E2E patterns (see table below)
 5. **Knowledge Infrastructure** — Gherkin writing, ADR writing (powers `create-agents-md`'s docs/ structure)
 6. **Linear CLI skill** — Always installed (handy for generating backlogs)
