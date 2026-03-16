@@ -281,6 +281,122 @@ it("returns 405 for unsupported method", async () => {
 });
 ```
 
+## WebSocket / Durable Object tests
+
+Workers that use Durable Objects with WebSocket hibernation need integration tests at both the HTTP upgrade seam and the message-handling seam.
+
+### WebSocket upgrade via Miniflare
+
+When using `@cloudflare/vitest-pool-workers` or Miniflare directly, test the full upgrade handshake:
+
+```typescript
+import { env, SELF } from "cloudflare:test";
+
+it("upgrades to WebSocket and receives initial state", async () => {
+  const res = await SELF.fetch("https://api.test/api/room/room-1", {
+    headers: {
+      Upgrade: "websocket",
+      Connection: "Upgrade",
+      Authorization: "Bearer test-token",
+    },
+  });
+
+  expect(res.status).toBe(101);
+  const ws = res.webSocket!;
+  ws.accept();
+
+  // Collect messages
+  const messages: string[] = [];
+  ws.addEventListener("message", (event: { data: unknown }) => {
+    if (typeof event.data === "string") messages.push(event.data);
+  });
+
+  // Send an event to the DO
+  ws.send(JSON.stringify({ type: "JOIN", userId: "user-1" }));
+
+  // Give the DO time to process
+  await new Promise((r) => setTimeout(r, 50));
+
+  // Verify server sent state update
+  expect(messages.length).toBeGreaterThan(0);
+  const update = JSON.parse(messages[0]);
+  expect(update).toHaveProperty("type");
+
+  ws.close();
+});
+```
+
+### Testing multiple concurrent clients
+
+```typescript
+it("broadcasts state changes to all connected clients", async () => {
+  // Connect two clients
+  const [ws1, ws2] = await Promise.all([
+    connectWebSocket("room-1", "user-1"),
+    connectWebSocket("room-1", "user-2"),
+  ]);
+
+  const ws2Messages: string[] = [];
+  ws2.addEventListener("message", (e: { data: unknown }) => {
+    if (typeof e.data === "string") ws2Messages.push(e.data);
+  });
+
+  // Client 1 sends action
+  ws1.send(JSON.stringify({ type: "INCREMENT" }));
+  await new Promise((r) => setTimeout(r, 50));
+
+  // Client 2 should receive the state update
+  expect(ws2Messages.length).toBeGreaterThan(0);
+
+  ws1.close();
+  ws2.close();
+});
+
+async function connectWebSocket(roomId: string, userId: string) {
+  const res = await SELF.fetch(`https://api.test/api/room/${roomId}`, {
+    headers: {
+      Upgrade: "websocket",
+      Connection: "Upgrade",
+      Authorization: `Bearer token-${userId}`,
+    },
+  });
+  expect(res.status).toBe(101);
+  const ws = res.webSocket!;
+  ws.accept();
+  return ws;
+}
+```
+
+### FakeWebSocket for unit-testing DO handlers
+
+When you need faster tests that skip the network layer and test DO logic directly:
+
+```typescript
+class FakeWebSocket {
+  sent: string[] = [];
+  closeCalls: Array<{ code: number; reason: string }> = [];
+  private attachment: unknown;
+
+  send(payload: string) { this.sent.push(payload); }
+  close(code: number, reason: string) { this.closeCalls.push({ code, reason }); }
+  serializeAttachment(value: unknown) { this.attachment = value; }
+  deserializeAttachment() { return this.attachment; }
+}
+```
+
+Use these to test `webSocketMessage`, `webSocketClose`, and `webSocketError` handlers on the DO class without Miniflare overhead. Combine with a fake `DurableObjectStorage` (in-memory Map) for state persistence tests.
+
+### WebSocket checklist
+
+- [ ] Upgrade returns 101 with valid auth
+- [ ] Upgrade returns 401 without auth
+- [ ] Client receives initial state after connect
+- [ ] Client sends event → server processes → state updates
+- [ ] Multiple clients receive broadcasts
+- [ ] Client disconnect triggers cleanup (webSocketClose)
+- [ ] Reconnection with checksum resumes without full state replay
+- [ ] Binary message support (if applicable)
+
 ## Hyperdrive (Postgres) variant
 
 When the Worker uses Hyperdrive instead of D1:
