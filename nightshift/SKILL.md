@@ -102,6 +102,14 @@ then confirms green. Without a working test harness, the loop will block.
 
 The agent auto-detects which framework to use based on the project.
 
+## Git rules
+
+**NEVER commit `.nightshift/` to git.** It is local working state, not project documentation.
+During prep, ensure `.nightshift/` is in the project's `.gitignore`. If no `.gitignore` exists,
+create one. All deliverables (docs, ADRs, code, tests) go in `docs/` and `src/` — not `.nightshift/`.
+
+When committing nightshift results, only stage: `src/`, `docs/`, project config files, and `.gitignore`.
+
 ## Workflow
 
 ```
@@ -109,6 +117,7 @@ Phase 1: PREP (interactive, ~2 minutes)
   ├── Discover spec locations from CLAUDE.md + docs/ structure
   ├── Detect platform + test framework
   ├── Confirm feedback commands (test, typecheck, lint, e2e)
+  ├── Ensure .nightshift/ is in .gitignore
   ├── Optional: user provides duration estimate
   └── User confirms → agent takes over
 
