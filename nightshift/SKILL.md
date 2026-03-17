@@ -31,6 +31,32 @@ They compose well: run Nightshift to ship features, then Swarm to harden.
 
 ## Prerequisites
 
+### Configuration (optional)
+
+Nightshift can persist project-specific settings in a config file so you don't have to answer the same setup questions every run.
+
+**Location:** `${CLAUDE_PLUGIN_DATA}/nightshift/config.json` (stable across skill upgrades)
+
+```json
+{
+  "defaultBranch": "main",
+  "backlogPath": "docs/BUGS.md",
+  "specPath": "docs/product-specs/",
+  "duration": "8 hours",
+  "testFramework": "playwright",
+  "simulatorDevice": "iPhone 16",
+  "deployAfterMerge": false,
+  "feedbackCommands": {
+    "test": "pnpm test",
+    "typecheck": "pnpm typecheck",
+    "lint": "pnpm lint",
+    "e2e": "pnpm test:e2e"
+  }
+}
+```
+
+If the config file doesn't exist, the skill runs the interactive setup (Phase 1) and offers to save the answers. On subsequent runs, it loads the config and confirms: "Using saved config — press Enter to continue or type 'reset' to reconfigure."
+
 ### Project documentation structure
 
 Nightshift follows your existing docs/ convention. It discovers specs using the
@@ -110,6 +136,43 @@ create one. All deliverables (docs, ADRs, code, tests) go in `docs/` and `src/` 
 
 When committing nightshift results, only stage: `src/`, `docs/`, project config files, and `.gitignore`.
 
+## Gotchas
+
+- **Never commit `.nightshift/` to git.** It is local working state. Ensure it's in `.gitignore` before starting.
+- **Verify E2E tests actually EXECUTE, not just compile.** A common failure mode: Detox tests are written but never ran in a simulator. The agent must boot the simulator and run the tests — not just check that the test files parse.
+- **Check the deployed URL after merging.** Code merged to main doesn't mean it's deployed. Verify CI/CD actually ran the deploy step.
+- **Don't assume test pass = feature works.** If tests don't cover the actual user flow end-to-end, they can pass while the feature is broken. Prefer Playwright/Detox acceptance tests over unit tests for verification.
+- **Simulator conflicts with parallel runs.** If running nightshift while a swarm is also using simulators, they'll fight over the default simulator. Use named simulators (see expo-testing skill).
+- **Duration estimates are just estimates.** Don't start a large spec 30 minutes before the estimated return. Reserve wrap-up time for the morning briefing.
+- **Read `lessons.md` before starting.** Previous runs captured failure patterns. Ignoring them means repeating mistakes.
+
+## On-Demand Hooks
+
+Nightshift registers session-scoped hooks that activate when the skill is invoked and last for the duration of the session. These prevent common AFK mistakes.
+
+### Registered hooks
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "command": "echo \"$TOOL_INPUT\" | grep -qE '(rm -rf|git push --force|git reset --hard|DROP TABLE|kubectl delete)' && echo 'BLOCK: Destructive command blocked during nightshift. Use explicit confirmation.' || true"
+      },
+      {
+        "matcher": "Bash",
+        "command": "echo \"$TOOL_INPUT\" | grep -qE 'git add \\.' && echo 'BLOCK: Use specific file paths instead of git add . during nightshift to avoid committing .nightshift/ files.' || true"
+      }
+    ]
+  }
+}
+```
+
+These hooks:
+- **Block destructive commands** (rm -rf, force-push, hard reset, DROP TABLE) during unattended runs
+- **Block `git add .`** to prevent accidentally committing `.nightshift/` working state
+
 ## Workflow
 
 ```
@@ -131,7 +194,7 @@ Phase 2: LOOP (AFK, autonomous)
   ├── 6. Write unit/integration tests for key logic
   ├── 7. Implement (TDD red-green-refactor for units, then acceptance green)
   ├── 8. Run all feedback commands (test, typecheck, lint)
-  ├── 9. Run review personas (sub-agents critique the diff)
+  ├── 9. Run review personas in PARALLEL (5 sub-agents critique the diff simultaneously)
   ├── 10. Fix issues from review, re-run feedback commands
   ├── 11. Run full test suite (regression check)
   ├── 12. Commit with detailed message for human review
@@ -272,6 +335,49 @@ Completed 3 tasks. 1 bug fix, 2 features. All tests green.
 - Typecheck: clean
 - Lint: clean
 ```
+
+## Post-AFK Recovery
+
+When a new session starts in a project that has a `.nightshift/` directory with a recent `MORNING.md`, automatically present the briefing.
+
+### Auto-detection
+
+At session start, check:
+1. Does `.nightshift/MORNING.md` exist?
+2. Was it written within the last 24 hours? (check file mtime)
+3. Has the user already seen it in this session?
+
+If yes to 1 and 2, and no to 3, present the briefing immediately:
+
+```
+Good morning! Nightshift ran last night. Here's the briefing:
+
+[contents of MORNING.md]
+
+Ready to review commits? Run `git log --oneline -10` to see what was done.
+```
+
+### Recovery commands
+
+When the user asks "where are we?" or "how did it go?", check these in order:
+
+1. `.nightshift/MORNING.md` — the human-readable summary
+2. `.nightshift/runs/<latest>/progress.md` — detailed task-by-task log
+3. `.nightshift/NOTICED.md` — unrelated issues observed
+4. `.nightshift/CHANGELOG.md` — cumulative changelog
+5. `git log --oneline -20` — what was committed
+6. `git diff HEAD~5..HEAD --stat` — scope of changes
+
+Present the morning briefing first, then offer to dive deeper into any area.
+
+### What to preserve during compaction
+
+If the context window is being compacted mid-recovery, preserve:
+- File paths being discussed
+- Test results (pass/fail counts)
+- Any failed or blocked tasks
+- Architecture decisions made during the run
+- Contents of progress.md
 
 ## Launching
 

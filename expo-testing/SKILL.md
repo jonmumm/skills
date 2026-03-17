@@ -187,3 +187,15 @@ xcrun simctl delete <UDID>
 | Detox timeout | Increase timeout in `.detoxrc.js`, check for missing `testID` |
 | EAS build queue slow | Use local builds for simulator testing, EAS for device sharing |
 | `xcrun simctl install` fails | Check the .app path — Debug vs Release, simulator vs device |
+
+## Gotchas
+
+- **Detox needs a dev build, NOT Expo Go.** Expo Go doesn't support native modules or custom dev client configurations that Detox requires. Always use `npx expo prebuild` + `xcodebuild` for Detox testing.
+- **iPad vs iPhone simulator sizing matters.** Detox tests that pass on iPhone may fail on iPad due to different layout (split view, larger screens). Always test with the same simulator type you'll target in production.
+- **EAS builds are slow — trigger early.** Cloud builds can take 10-20 minutes. Trigger the EAS build in parallel with other work, don't wait for CI to complete first.
+- **QR codes from EAS expire.** If you share a preview build QR code on a PR, it expires after the build artifact is cleaned up. Post fresh QR codes if the build is more than a few days old.
+- **`npx expo run:ios --device` requires a tethered device.** The device must be physically connected via USB and trusted. Wireless debugging is not reliable for initial installs.
+- **Detox tests that "pass" without a running simulator didn't actually test anything.** Always verify the simulator is booted and the app is installed before trusting Detox results. Check for "No simulators found" in logs.
+- **Audio/media features don't work in simulators.** Microphone, speaker, and some media APIs behave differently or don't work at all in simulators. Test these on physical devices.
+- **Parallel swarms need isolated simulators.** Two agents using `booted` will fight over the same simulator. Create named simulators per agent (see Parallel Simulator Isolation section above).
+- **Local builds vs EAS builds have different signing.** A local build installed via `xcrun simctl install` uses simulator signing. An EAS preview build uses ad-hoc signing with your provisioning profile. Don't confuse the two — they have different device requirements.

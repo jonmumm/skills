@@ -165,3 +165,12 @@ Secrets don't copy between environments. A common gotcha after adding a new env.
 | Old code still serving | Worker may be cached — wait 30s or check `wrangler deployments list` |
 | Route not matching | Verify route patterns in wrangler.toml match the URL you're hitting |
 | CORS errors | Check if the Worker sets appropriate CORS headers for the origin |
+
+## Gotchas
+
+- **Always verify the deployed version matches your expected commit.** Run `wrangler deployments list` to confirm your code actually deployed. Cached old versions are a common false trail.
+- **Don't strip `console.log` in production builds.** You need logs for debugging — if you can't see what's happening, you can't fix what's broken. Keep logging in production, especially during early development.
+- **Secrets don't copy between environments.** Adding a secret to production doesn't add it to staging. After creating a new environment, run `wrangler secret list --env <env>` to verify ALL required secrets are set.
+- **Check both `.dev.vars` AND GitHub Actions secrets.** They are independent — a secret in `.dev.vars` only works locally. GH Actions needs its own secrets configured.
+- **Deployed URL might not match what you expect.** If using custom domains, verify the route pattern in `wrangler.toml` matches the URL you're testing. Preview deployments use different URLs than production.
+- **After deploy, wait 30 seconds before testing.** Workers edge cache can serve stale responses briefly. If you see old behavior, wait and retry before debugging.

@@ -738,6 +738,15 @@ src/
         items.test.ts
 ```
 
+## Gotchas
+
+- **Check `.dev.vars` AND GitHub Actions secrets independently.** A test that passes locally with `.dev.vars` can fail in CI if GH Actions doesn't have the same secrets configured.
+- **`isolatedStorage: true` means each test starts clean.** If you seed data in `beforeEach`, it only exists for that test. Don't rely on data from a previous test.
+- **Miniflare bindings are real but local.** They behave like production bindings but data doesn't persist between test runs. Don't confuse Miniflare state with production state.
+- **`wrangler.toml` vs `wrangler.jsonc`** — the vitest config must point to whichever config file your project actually uses. A mismatch means no bindings in tests.
+- **Hyperdrive tests need a running Postgres.** Unlike D1 (which is SQLite-backed locally), Hyperdrive tests need pgmock or a real Postgres instance. The `globalSetup` file must start it before tests run.
+- **`fetchMock` only mocks fetch in the test Worker.** If your Worker delegates to auxiliary Workers, those Workers' fetch calls are NOT mocked. Use Miniflare's `outboundService` for auxiliary Worker mocking.
+
 ## Checklist for each endpoint
 
 - [ ] Happy path (correct input → expected output + binding state)

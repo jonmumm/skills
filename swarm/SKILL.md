@@ -192,6 +192,35 @@ Launch swarm?
 
 Only launch after user confirms.
 
+### Configuration (optional)
+
+Swarm can persist project-specific settings so you don't repeat pre-flight every time.
+
+**Location:** `${CLAUDE_PLUGIN_DATA}/swarm/config.json` (stable across skill upgrades)
+
+```json
+{
+  "defaultBranch": "main",
+  "backlogSource": "linear",
+  "linearTeam": "TEAM-KEY",
+  "agents": ["feature", "crap", "mutate"],
+  "featureIterations": 10,
+  "qualityIterations": 10,
+  "autoMerge": true,
+  "simulatorDevice": "iPhone 16",
+  "feedbackCommands": {
+    "test": "pnpm test",
+    "typecheck": "pnpm typecheck",
+    "lint": "pnpm lint",
+    "coverage": "pnpm test:coverage",
+    "mutate": "pnpm test:mutate:incremental",
+    "e2e": "pnpm test:e2e"
+  }
+}
+```
+
+If config exists, pre-flight loads it and shows a summary for confirmation instead of asking each question. Use 'reset' to reconfigure from scratch.
+
 ## Setup
 
 ### Coverage (required for CRAP agent)
@@ -269,6 +298,17 @@ When an agent rebases from main and encounters a merge conflict:
 5. Run the full test suite to verify the resolution
 6. If tests pass, continue. If tests fail, abort the rebase and retry next iteration.
 
+## Gotchas
+
+- **Never commit `.swarm/` to git.** It is local working state. The script adds it to `.gitignore` automatically, but verify.
+- **Always check backlog is prioritized before launching.** An unprioritized backlog means the Feature Agent picks tasks randomly, potentially wasting overnight cycles on low-impact work.
+- **Simulator conflicts with multiple agents.** If both the Feature Agent and Acceptance Agent need simulators, they'll conflict. Use named simulators with unique UDIDs (see expo-testing skill's parallel isolation section).
+- **Verify tests actually ran, not just that they were written.** A test file that compiles is not the same as a test that executed against a running app/simulator. Check progress.md for actual execution evidence.
+- **Monorepo proxy scripts are required.** The swarm orchestrator runs scripts from the root `package.json`. If working in a monorepo, ensure root scripts delegate to the right package (e.g., `"test": "pnpm --filter web test"`).
+- **Stryker incremental JSON must persist.** `.stryker-incremental.json` saves mutation state across runs. If it gets deleted, the Mutation Agent restarts from scratch, wasting hours.
+- **Read `lessons.md` from previous runs.** It contains cross-run learnings. Agents should read it at startup to avoid repeating mistakes.
+- **Don't start a swarm with failing tests.** The pre-flight smoke test exists for a reason. Fix baseline failures before launching — agents will waste cycles trying to fix pre-existing issues.
+
 ## Progress Tracking
 
 All agents append to `.swarm/runs/<ts>/progress.md` using a structured format:
@@ -313,6 +353,33 @@ The CRAP agent picks the worst function (score > 30) and either:
 - **Both** — split the function AND test the pieces
 
 See [scripts/crap4ts.mjs](scripts/crap4ts.mjs) for the calculator.
+
+## On-Demand Hooks
+
+Swarm registers session-scoped hooks that activate when the skill is invoked. These prevent common issues during unattended multi-agent runs.
+
+### Registered hooks
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "command": "echo \"$TOOL_INPUT\" | grep -qE '(rm -rf|git push --force|git reset --hard|DROP TABLE)' && echo 'BLOCK: Destructive command blocked during swarm. Agents should not run destructive operations.' || true"
+      },
+      {
+        "matcher": "Bash",
+        "command": "echo \"$TOOL_INPUT\" | grep -qE 'git add \\.' && echo 'BLOCK: Use specific file paths instead of git add . during swarm to avoid committing .swarm/ files.' || true"
+      }
+    ]
+  }
+}
+```
+
+These hooks:
+- **Block destructive commands** during unattended multi-agent runs
+- **Block `git add .`** to prevent accidentally committing `.swarm/` working state
 
 ## References
 
