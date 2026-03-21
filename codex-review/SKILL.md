@@ -153,8 +153,8 @@ codex review --base main \
 
 Valid reasoning efforts: `none`, `minimal`, `low`, `medium`, `high`, `xhigh`.
 
-Higher-capability models with `xhigh` reasoning give the most thorough reviews
-but take longer. `medium` is fine for quick passes.
+Prefer `xhigh` reasoning effort for reviews — thoroughness matters more than speed
+when reviewing code. Use `medium` only for quick sanity checks.
 
 ### Sandbox permissions
 

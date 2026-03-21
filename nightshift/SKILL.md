@@ -300,7 +300,8 @@ After implementation, the agent runs ALL reviewers in parallel:
 
 ### Running Codex review
 
-Launch `codex review` in parallel with the 5 persona sub-agents:
+Launch `codex review` in parallel with the 5 persona sub-agents.
+Prefer `xhigh` reasoning effort for reviews — thorough analysis matters more than speed here:
 
 ```bash
 codex review --uncommitted \
