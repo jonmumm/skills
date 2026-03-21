@@ -194,8 +194,8 @@ Phase 2: LOOP (AFK, autonomous)
   ├── 6. Write unit/integration tests for key logic
   ├── 7. Implement (TDD red-green-refactor for units, then acceptance green)
   ├── 8. Run all feedback commands (test, typecheck, lint)
-  ├── 9. Run review personas in PARALLEL (5 sub-agents critique the diff simultaneously)
-  ├── 10. Fix issues from review, re-run feedback commands
+  ├── 9. Run review in PARALLEL (5 persona sub-agents + codex review)
+  ├── 10. Fix issues from ALL reviewers, re-run feedback commands
   ├── 11. Run full test suite (regression check)
   ├── 12. Commit with detailed message for human review
   ├── 13. Capture unrelated observations → NOTICED.md
@@ -282,25 +282,48 @@ it('should start a voice session when Play is tapped', async () => {
 The agent reads the spec to understand what the user should experience, then
 writes tests that verify exactly that. Implementation follows the tests.
 
-## Review Personas
+## Review Personas + Codex Review
 
-After implementation, the agent spawns sub-agents as reviewers. Each persona
-critiques the diff from their own perspective and owns specific documentation.
+After implementation, the agent runs ALL reviewers in parallel:
 
-| Persona | Focus | Owns |
-|---------|-------|------|
+- 5 Claude persona sub-agents (each critiques the diff from their perspective)
+- 1 Codex review (cross-agent review from a different model)
+
+| Reviewer | Focus | Owns |
+|----------|-------|------|
 | **User Advocate** | "Does this actually work from a user's perspective?" | Specs, acceptance tests |
 | **Architect** | "Does this fit the system? Any coupling concerns?" | Architecture docs, AGENTS.md |
 | **Domain Expert** | "Is the domain logic correct? Edge cases?" | Domain-specific docs |
 | **Code Quality** | "Is this clean, simple, well-tested?" | CLAUDE.md conventions |
 | **Platform Expert** | "Any platform-specific gotchas?" | Platform docs, gotchas |
+| **Codex (cross-agent)** | Fresh-eyes review from a different model | Correctness, security, missed edge cases |
 
-Each reviewer returns: APPROVE, REQUEST_CHANGES (with specifics), or FLAG
+### Running Codex review
+
+Launch `codex review` in parallel with the 5 persona sub-agents:
+
+```bash
+codex review --uncommitted \
+  -c model="gpt-5.4" \
+  -c model_reasoning_effort="xhigh" \
+  2>&1 | tee .nightshift/codex-review.md
+```
+
+After all 6 reviewers return, read `.nightshift/codex-review.md` and synthesize
+findings alongside the persona results. Codex findings follow the same triage:
+fix real issues, note false positives (Codex lacks CLAUDE.md context), flag
+anything needing human input.
+
+### Convergence
+
+Each persona returns: APPROVE, REQUEST_CHANGES (with specifics), or FLAG
 (noticed something worth mentioning but not blocking). The agent iterates
-until all reviewers approve.
+until all persona reviewers approve. Codex findings are addressed but don't
+block — they're treated as an additional signal, not a gate.
 
 See [references/review-personas.md](references/review-personas.md) for full
-persona prompts.
+persona prompts. See the [codex-review skill](../codex-review/SKILL.md) for
+CLI details and gotchas.
 
 ## Morning Briefing
 
