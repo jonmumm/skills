@@ -13,6 +13,7 @@ Personal AI agent skills. Install with the [Skills CLI](https://skills.dev).
 | [autoresearch](autoresearch/) | Set up and run Karpathy's autoresearch — autonomous AI research loop that trains a small LLM overnight. Agent modifies train.py, runs 5-min experiments, keeps improvements, discards failures (~100 experiments/night). |
 | [babysit-pr](babysit-pr/) | Monitor a PR through CI, diagnose and fix failures, resolve merge conflicts, post QR codes for mobile preview builds, and auto-merge when ready. Includes monitoring script. |
 | [cmux](cmux/) | Manage cmux terminal workspaces for parallel AI agent sessions. Create, switch, monitor, and communicate between named workspaces via CLI and socket API. Orchestrator pattern for /swarm and /nightshift. |
+| [codex-review](codex-review/) | Cross-agent code review: run OpenAI Codex to review changes, then address findings. Fresh-eyes review from a different model catches what self-review misses. |
 | [chrome-cdp](chrome-cdp/) | Interact with local Chrome browser session. Lightweight CLI for DevTools Protocol: list tabs, take screenshots, navigate, and evaluate JS without Puppeteer. |
 | [create-agents-md](create-agents-md/) | Bootstrap AGENTS.md as a table-of-contents + structured docs/ directory (architecture, product specs, acceptance tests, ADRs, lessons, exec plans, quality grades). |
 | [debug-runbook](debug-runbook/) | Structured debugging for production and staging issues. Maps symptoms to tools and queries (Sentry, PostHog, wrangler logs, simulator logs, CI). Symptom-first investigation workflow. |
