@@ -43,34 +43,24 @@ Ask the user or infer from context:
 
 ## Step 2: Build Review Prompt
 
-Codex review accepts custom instructions. Combine the project's CLAUDE.md conventions
-with specific review focus areas:
+**Important CLI constraints for `codex review`:**
+- `--base` and `--commit` cannot be combined with a custom prompt argument
+- `codex review` does not support `-o`, `-m`, or `--json` flags (those are `codex exec` only)
+- Model and reasoning effort are set via `-c` config overrides
+
+For a simple diff review, just use the flags alone:
 
 ```bash
-codex review --base main "$(cat <<'PROMPT'
-Review this diff with these priorities:
+codex review --base main
+codex review --uncommitted
+codex review --commit abc123
+```
 
-1. Correctness — does the logic do what it claims?
-2. Test coverage — are there untested paths or weak assertions?
-3. Security — injection, auth bypass, data exposure?
-4. API contract — does this break any existing behavior?
-5. Simplicity — is anything over-engineered?
+For custom review instructions (without `--base`/`--commit`), pass a prompt directly.
+Codex will review the current repo state:
 
-Project conventions:
-- TDD: every feature should have tests written first
-- Parse at boundary: external data must be validated with Zod/Codable
-- No `any` types, no `as` casting
-- Integration tests at seams, not unit mocks
-- Never modify existing tests to make new code pass
-
-Be specific. Reference file paths and line numbers. For each finding, state:
-- SEVERITY: critical / warning / nit
-- FILE: path
-- LINE: number or range
-- ISSUE: what's wrong
-- FIX: what to do about it
-PROMPT
-)"
+```bash
+codex review "Review for correctness, test coverage, and security. Reference file paths and line numbers."
 ```
 
 ### Adding project-specific context
@@ -81,17 +71,21 @@ to give Codex the same context Claude Code has.
 
 ## Step 3: Run Review and Capture Output
 
-```bash
-# Capture to file for parsing
-codex review --base main \
-  -o .codex-review-output.md \
-  "Review this diff for correctness, test coverage, and security."
+`codex review` outputs to stdout. Capture it with `tee`:
 
-# Or capture stdout
-codex review --base main "..." 2>/dev/null | tee .codex-review-output.md
+```bash
+# Capture review output to a file
+codex review --base main \
+  -c model_reasoning_effort="xhigh" \
+  2>&1 | tee .codex-review-output.md
+
+# Or for uncommitted changes
+codex review --uncommitted \
+  -c model_reasoning_effort="xhigh" \
+  2>&1 | tee .codex-review-output.md
 ```
 
-The `-o` flag writes the last message to a file. This is the structured review output.
+The agent then reads `.codex-review-output.md` to parse findings.
 
 ## Step 4: Parse and Address Findings
 
@@ -146,15 +140,21 @@ codex review --uncommitted "Re-review: I addressed the following findings from a
 
 ## Configuration
 
-### Model selection
+### Model and reasoning effort
 
-By default, Codex uses the model from `~/.codex/config.toml`. Override for reviews:
+By default, Codex uses the model from `~/.codex/config.toml`. Override via `-c`:
 
 ```bash
-codex review --base main -m o3 "Review for correctness..."
+# Use a specific model with max reasoning
+codex review --base main \
+  -c model="gpt-5.4" \
+  -c model_reasoning_effort="xhigh"
 ```
 
-Higher-capability models (o3, gpt-5.4) give better reviews for complex logic.
+Valid reasoning efforts: `none`, `minimal`, `low`, `medium`, `high`, `xhigh`.
+
+Higher-capability models with `xhigh` reasoning give the most thorough reviews
+but take longer. `medium` is fine for quick passes.
 
 ### Sandbox permissions
 
@@ -167,5 +167,6 @@ No sandbox configuration needed.
 - **Review output varies by model.** o3 gives more thorough reviews but takes longer. gpt-5.4 is fast and good for quick passes.
 - **False positives are normal.** Codex may flag patterns that are intentional in your project. Don't blindly fix everything — use judgment.
 - **Don't loop reviews forever.** One review + fixes + optional re-review is enough. Diminishing returns after that.
-- **The `-o` flag captures only the final message.** If you need the full conversation, use `--json` to get JSONL output.
+- **`codex review` has fewer flags than `codex exec`.** No `-o`, `-m`, or `--json`. Use `-c model="..."` for model overrides and `| tee` for output capture.
+- **`--base` and `--commit` can't combine with a prompt argument.** Use one or the other. For custom instructions without a diff scope, use the prompt argument alone.
 - **Codex review is read-only.** It won't modify your code. Claude Code handles all the fixes.

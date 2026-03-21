@@ -58,17 +58,21 @@ echo "Poll interval: ${POLL_INTERVAL}s"
 echo "=========================="
 
 # Post QR code if requested
+EAS_BUILD_ID=""
 if [[ "$QR" == true ]]; then
   echo ""
   echo "[QR] Triggering EAS preview build..."
   if command -v eas &>/dev/null; then
-    (
-      cd "$PROJECT"
-      eas build --profile preview --platform ios --non-interactive &
-      EAS_PID=$!
-      echo "[QR] EAS build triggered (PID: ${EAS_PID}). Build will complete in background."
-      echo "[QR] Run 'eas build:list --limit 1 --json' to check status."
-    )
+    # Capture the build ID so we track THIS build, not any random latest build
+    eas_output=$(cd "$PROJECT" && eas build --profile preview --platform ios --non-interactive --json 2>/dev/null) || true
+    if [[ -n "$eas_output" ]]; then
+      EAS_BUILD_ID=$(echo "$eas_output" | jq -r '.[0].id // empty' 2>/dev/null) || true
+    fi
+    if [[ -n "$EAS_BUILD_ID" ]]; then
+      echo "[QR] EAS build triggered (ID: ${EAS_BUILD_ID})."
+    else
+      echo "[QR] EAS build triggered but could not capture build ID. Will use latest build."
+    fi
   else
     echo "[QR] Warning: eas CLI not found. Install with: pnpm add -g eas-cli"
   fi
@@ -107,12 +111,20 @@ while true; do
       # Post QR code result if EAS build was triggered
       if [[ "$QR" == true ]] && command -v eas &>/dev/null; then
         echo "[QR] Checking for completed EAS build..."
-        build_info=$(cd "$PROJECT" && eas build:list --limit 1 --json 2>/dev/null) || true
-        if [[ -n "$build_info" ]]; then
-          build_url=$(echo "$build_info" | jq -r '.[0].artifacts.buildUrl // empty')
-          if [[ -n "$build_url" ]]; then
-            qr_url="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${build_url}"
-            gh pr comment "$PR" --body "$(cat <<EOF
+        # Use tracked build ID if available, otherwise fall back to latest
+        if [[ -n "$EAS_BUILD_ID" ]]; then
+          build_info=$(cd "$PROJECT" && eas build:view "$EAS_BUILD_ID" --json 2>/dev/null) || true
+          build_url=$(echo "$build_info" | jq -r '.artifacts.buildUrl // empty' 2>/dev/null) || true
+          build_status=$(echo "$build_info" | jq -r '.status // empty' 2>/dev/null) || true
+        else
+          build_info=$(cd "$PROJECT" && eas build:list --limit 1 --json 2>/dev/null) || true
+          build_url=$(echo "$build_info" | jq -r '.[0].artifacts.buildUrl // empty' 2>/dev/null) || true
+          build_status=$(echo "$build_info" | jq -r '.[0].status // empty' 2>/dev/null) || true
+        fi
+
+        if [[ -n "$build_url" ]]; then
+          qr_url="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${build_url}"
+          gh pr comment "$PR" --body "$(cat <<EOF
 ## Mobile Preview Build
 
 ![QR Code](${qr_url})
@@ -122,10 +134,15 @@ while true; do
 > Scan with your device camera to install.
 EOF
 )"
-            echo "[QR] Posted QR code to PR #${PR}"
-          else
-            echo "[QR] Build not yet complete or no artifact URL available."
-          fi
+          echo "[QR] Posted QR code to PR #${PR}"
+        elif [[ "$build_status" == "in-progress" || "$build_status" == "in-queue" ]]; then
+          echo "[QR] EAS build still in progress. Will keep polling..."
+          # Don't exit yet — continue the monitoring loop to post QR when ready
+          last_status="$status"
+          sleep "$POLL_INTERVAL"
+          continue
+        else
+          echo "[QR] No artifact URL available (build status: ${build_status:-unknown})."
         fi
       fi
 
