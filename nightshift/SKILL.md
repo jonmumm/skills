@@ -194,16 +194,17 @@ Phase 2: LOOP (AFK, autonomous)
   ├── 6. Write unit/integration tests for key logic
   ├── 7. Implement (TDD red-green-refactor for units, then acceptance green)
   ├── 8. Run all feedback commands (test, typecheck, lint)
-  ├── 9. Run review in PARALLEL (5 persona sub-agents + codex review)
+  ├── 9. Review gate: trivial? skip to 12. Otherwise run review in PARALLEL
   ├── 10. Fix issues from ALL reviewers, re-run feedback commands
   ├── 11. Run full test suite (regression check)
   ├── 12. Commit with detailed message for human review
   ├── 13. Capture unrelated observations → NOTICED.md
   ├── 14. Loop to step 2 for next task
-  └── 15. Write morning briefing when done or time's up
+  └── 15. Write morning briefing + workflow feedback when done or time's up
 
 Phase 3: HANDOFF (waiting for human)
-  └── Morning briefing in .nightshift/MORNING.md
+  ├── Morning briefing in .nightshift/MORNING.md
+  └── Workflow feedback in .nightshift/WORKFLOW_FEEDBACK.md
 ```
 
 ## Duration Awareness
@@ -282,9 +283,32 @@ it('should start a voice session when Play is tapped', async () => {
 The agent reads the spec to understand what the user should experience, then
 writes tests that verify exactly that. Implementation follows the tests.
 
+## Review Gate
+
+Before launching the full review, assess whether the change warrants it.
+
+**Skip full review when ALL of these are true:**
+- Diff is small (roughly under 20 lines changed)
+- Change is mechanical — typo fix, formatting, one-liner display tweak, config change
+- No logic, control flow, or data model changes
+- No new public API surface
+
+When skipping, go straight to commit (Step 12). The implementation itself served
+as the review since understanding the code was required to make the change.
+
+**Always run full review when ANY of these are true:**
+- New feature or behavioral change
+- Touches auth, security, or data persistence
+- Changes test assertions or removes tests
+- Diff spans multiple files or modules
+- You're uncertain about the change's correctness
+
+This saves significant time on trivial fixes during AFK runs without sacrificing
+quality on changes that matter.
+
 ## Review Personas + Codex Review
 
-After implementation, the agent runs ALL reviewers in parallel:
+After implementation (when the review gate passes), the agent runs ALL reviewers in parallel:
 
 - 5 Claude persona sub-agents (each critiques the diff from their perspective)
 - 1 Codex review (cross-agent review from a different model)
@@ -359,6 +383,40 @@ Completed 3 tasks. 1 bug fix, 2 features. All tests green.
 - Typecheck: clean
 - Lint: clean
 ```
+
+## Workflow Feedback
+
+At the end of each run, write `.nightshift/WORKFLOW_FEEDBACK.md` — meta-feedback
+about how the *workflow itself* performed, not the code. This helps the human
+improve the nightshift process over time.
+
+```markdown
+# Workflow Feedback — 2026-03-15
+
+## What worked well
+- Explore agent was effective for understanding unfamiliar subsystems
+- Acceptance-test-first caught a regression that unit tests missed
+
+## What felt wasteful
+- Full peer review on 3 one-line display fixes added ~15 min with no findings
+- Codex review flagged the same false positive on every task (project convention)
+
+## Suggestions
+- Consider adding "skip known false positive" config for codex review
+- The spec for push-notifications was vague on error states — needed to guess
+
+## Stats
+- Tasks completed: 7
+- Review skipped (trivial): 3
+- Review findings addressed: 4
+- False positives: 2
+- Time estimate accuracy: estimated 6 hours, finished in 4.5
+```
+
+This file is separate from `MORNING.md` (which is about the code) and `lessons.md`
+(which persists across runs for the agent). Workflow feedback is for the human
+to tune the nightshift process — adjust the review gate, improve specs, update
+gotchas, or refine the skill itself.
 
 ## Post-AFK Recovery
 
