@@ -2,14 +2,14 @@
 name: task-planner
 description: >
   Pull all Jira tickets assigned to me that aren't done and help create
-  copy-pasteable prompts to kick them off in other Claude Code sessions.
+  copy-pasteable prompts to kick them off in other Claude Code or Cursor sessions.
   Use when asked to "plan my tasks", "what should I work on", "task planner",
   "generate prompts for my tickets", or "kick off my Jira tickets".
 ---
 
 # Task Planner
 
-Fetch the user's open Jira tickets and generate ready-to-paste Claude Code prompts for each one.
+Fetch the user's open Jira tickets and generate ready-to-paste prompts for kicking off work in Claude Code or Cursor sessions.
 
 ## Step 1: Fetch Open Tickets
 
@@ -51,7 +51,9 @@ For each selected ticket, use `mcp__mcp-atlassian__jira_get_issue` to get the fu
 
 ## Step 5: Generate Copy-Paste Prompts
 
-For each selected ticket, generate a self-contained prompt block inside a fenced code block that the user can copy and paste into a fresh Claude Code session. The prompt should follow this template:
+For each selected ticket, generate a self-contained prompt block inside a fenced code block that the user can copy and paste into a fresh Claude Code or Cursor session.
+
+The prompt should follow this template:
 
 ~~~
 ```
@@ -59,6 +61,7 @@ For each selected ticket, generate a self-contained prompt block inside a fenced
 
 ## Context
 Brief description of what this ticket is about, drawn from the Jira description.
+If this ticket has a parent epic, describe the epic's goal here for broader context.
 
 ## Acceptance Criteria
 - Criteria extracted from the ticket description or comments
@@ -67,12 +70,16 @@ Brief description of what this ticket is about, drawn from the Jira description.
 ## Requirements
 Detailed requirements from the ticket description, reformatted for clarity.
 
-## Instructions
-1. Read the project's CLAUDE.md to understand conventions and structure
-2. Explore the relevant codebase area before making changes
-3. Implement the changes described above
-4. Run the project's feedback commands (typecheck, lint, test) before committing
-5. Create a commit with message format: [TICKET-KEY] type: description
+## Getting Started
+1. Read the project's CLAUDE.md (or AGENTS.md) to understand conventions and structure
+2. Start by running /grill-me to ask clarifying questions about ambiguous requirements
+   before writing any code — resolve unknowns first
+3. Create a new worktree branch off main for this work:
+   `claude --worktree` or `git worktree add ../TICKET-KEY -b TICKET-KEY origin/main`
+4. Explore the relevant codebase area before making changes
+5. Implement the changes described above
+6. Run the project's feedback commands (typecheck, lint, test) before committing
+7. Create a commit with message format: [TICKET-KEY] type: description
 
 ## Jira
 Ticket: TICKET-KEY
@@ -86,9 +93,11 @@ Link: https://forhims.atlassian.net/browse/TICKET-KEY
 - **Include parent/epic context**: If the ticket has a parent epic, mention it so the agent understands the bigger picture.
 - **Preserve technical details**: Don't lose specific technical requirements, API contracts, file paths, or implementation hints from the description or comments.
 - **Add the Jira link**: Always include the browseable link so the agent can reference it.
-- **Keep it self-contained**: The prompt should work in a fresh session with no prior context.
+- **Keep it self-contained**: The prompt should work in a fresh session with no prior context — in Claude Code, Cursor, or any AI coding tool.
 - **Don't over-prescribe implementation**: Give the "what" not the "how" — let the agent figure out the best approach.
-- **Flag ambiguity**: If the ticket description is vague or missing acceptance criteria, call it out in the prompt so the agent knows to ask questions or use /grill-me before diving in.
+- **Always suggest /grill-me first**: Every prompt should tell the agent to run `/grill-me` (or equivalent clarification step in Cursor) before diving into code, especially when acceptance criteria are vague or missing.
+- **Always suggest worktrees**: Every prompt should instruct the agent to create a new branch off main in a worktree so work is isolated and doesn't conflict with other parallel sessions.
+- **Flag ambiguity**: If the ticket description is vague or missing acceptance criteria, explicitly call it out and make /grill-me the mandatory first step.
 
 ## Step 6: Offer Batch Output
 
@@ -100,5 +109,6 @@ After generating prompts, offer to:
 
 - Some tickets may have empty descriptions — flag these and suggest the user flesh them out before kicking off work.
 - Subtasks should reference their parent ticket for context.
-- If a ticket is "In Progress", note that work may already be started — the prompt should mention checking for existing branches.
+- If a ticket is "In Progress", note that work may already be started — the prompt should mention checking for existing branches with `git branch -a | grep TICKET-KEY`.
 - Respect the user's PR conventions from their CLAUDE.md (e.g., PR title format, Jira link in PR body).
+- **Cursor compatibility**: The prompts work in any AI coding tool. For Cursor, /grill-me won't be available as a slash command — instead phrase it as "ask clarifying questions about ambiguous requirements before starting implementation".
