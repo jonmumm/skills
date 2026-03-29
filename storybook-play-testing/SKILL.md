@@ -23,211 +23,63 @@ Integration tests that render real components in a real browser. No mocks of wha
 
 ## The Problem: TanStack Start + Storybook
 
-TanStack Start has SSR, server functions (`createServerFn`), Cloudflare Workers entry points, and a generated route tree — all of which crash in Storybook's browser-only preview. The solution is a three-layer mock strategy:
-
-1. **Vite plugin** — intercepts module resolution at build time
-2. **Resolve aliases** — redirects server imports to stub files
-3. **Decorators** — provides Router, Query, and Theme context
+TanStack Start has SSR, server functions (`createServerFn`), Cloudflare Workers entry points, and a generated route tree — all of which crash in Storybook's browser-only preview.
 
 ## Setup
 
-### 1. Storybook Config (`.storybook/main.ts`)
+### Using the published addon (recommended)
 
-Block all server-side code from loading:
+```bash
+pnpm add -D storybook-addon-tanstack-start
+```
+
+This single package handles everything: server-side import stubbing, TanStack/Nitro plugin stripping, router context, route params, search params, and loader data.
 
 ```typescript
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
-import type { StorybookConfig } from '@storybook/react-vite'
+// .storybook/main.ts
+import { tanstackStartPlugin } from 'storybook-addon-tanstack-start/plugin'
 import { mergeConfig } from 'vite'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-
-const config: StorybookConfig = {
+const config = {
   stories: ['../src/**/*.stories.@(js|jsx|mjs|ts|tsx)'],
-  staticDirs: ['../public'],
   addons: [
-    '@storybook/addon-vitest',        // Play functions as vitest tests
-    '@storybook/addon-a11y',          // Accessibility audit panel
-    '@storybook/addon-docs',          // Auto-generated docs
-    '@storybook/addon-themes',        // Light/dark mode switcher
-    'storybook/viewport',             // Viewport toolbar
+    '@storybook/addon-vitest',
+    '@storybook/addon-a11y',
+    '@storybook/addon-docs',
+    '@storybook/addon-themes',
   ],
-  framework: {
-    name: '@storybook/react-vite',
-    options: {},
-  },
-  core: {
-    builder: {
-      name: '@storybook/builder-vite',
-      options: {
-        viteConfigPath: path.resolve(__dirname, 'vite.config.ts'),
-      },
-    },
-  },
+  framework: { name: '@storybook/react-vite', options: {} },
   async viteFinal(config) {
     return mergeConfig(config, {
-      plugins: [
-        {
-          name: 'storybook-mock-router',
-          enforce: 'pre',
-          resolveId(id: string, importer: string | undefined) {
-            // Block Cloudflare worker/server entry points
-            if (
-              id.includes('virtual:cloudflare') ||
-              id.includes('server-entry') ||
-              id.includes('worker-entry')
-            )
-              return path.resolve(__dirname, 'mocks/router.tsx')
-
-            // Block all TanStack Start server-side code
-            if (
-              id.includes('@tanstack/react-start') ||
-              id.includes('@tanstack/start-server-core') ||
-              id.includes('@tanstack/start')
-            )
-              return path.resolve(__dirname, 'mocks/router.tsx')
-
-            // Skip Storybook internals
-            if (importer?.includes('@storybook') || importer?.includes('vite-app'))
-              return null
-
-            // Mock app's router.tsx and routeTree.gen
-            if (id.includes('routeTree.gen') || id.includes('router.tsx') || id.includes('router.ts')) {
-              if (!id.includes('node_modules') && !id.includes('@tanstack'))
-                return path.resolve(__dirname, 'mocks/router.tsx')
-            }
-
-            return null
-          },
-        },
-      ],
-      resolve: {
-        alias: {
-          // App router and route tree
-          '~/router': path.resolve(__dirname, 'mocks/router.tsx'),
-          './routeTree.gen': path.resolve(__dirname, 'mocks/router.tsx'),
-          // TanStack Start server code
-          '@tanstack/react-start/server-entry': path.resolve(__dirname, 'mocks/router.tsx'),
-          '@tanstack/react-start': path.resolve(__dirname, 'mocks/router.tsx'),
-          '@tanstack/start-server-core': path.resolve(__dirname, 'mocks/router.tsx'),
-          // App-specific server modules (add your own here)
-          // '~/lib/auth/server': path.resolve(__dirname, 'mocks/auth-server.ts'),
-        },
-      },
-      optimizeDeps: {
-        exclude: ['@tanstack/react-start', '@tanstack/start-server-core', '@tanstack/react-router'],
-      },
+      plugins: [tanstackStartPlugin({
+        // Stub your app's server modules too
+        additionalServerModules: ['~/lib/auth/server', '~/lib/billing/server'],
+      })],
     })
   },
 }
 export default config
 ```
 
-**Why both plugin AND aliases?** The Vite `resolveId` plugin catches dynamic/computed imports that aliases miss. Aliases catch static imports that fire before plugins. Belt and suspenders.
-
-### 2. Router Mock (`.storybook/mocks/router.tsx`)
-
-Stub every TanStack Start/Router export that app code might import:
-
 ```typescript
-import React from 'react'
-
-// Router creation — no-ops
-export const createRouter = (config?: any) => ({
-  navigate: () => {},
-  buildLocation: () => ({}),
-  matchRoute: () => ({}),
-  resolvePath: () => '',
-  state: { location: { pathname: '/', search: '', hash: '' } },
-} as any)
-
-export const createRootRoute = (config: any) => ({
-  ...config, id: '__root__', path: '/', fullPath: '/', component: () => null, init: () => ({}),
-})
-
-export const createFileRoute = (path: string) => (config: any) => ({
-  ...config, id: path, path, fullPath: path,
-  component: config.component || (() => null),
-  validateSearch: config.validateSearch || (() => ({})),
-  init: () => ({}),
-})
-
-// Hooks — return safe defaults
-export const useNavigate = () => (options: any) => console.log('[Storybook] Navigate:', options)
-export const useSearch = () => ({})
-
-// Components — render-safe stubs
-export const Link = ({ to, children, ...props }: any) => React.createElement('a', { href: to, ...props }, children)
-export const Outlet = () => null
-export const HeadContent = () => null
-export const Scripts = () => null
-export const Navigate = () => null
-export const notFound = () => { throw new Error('Not found') }
-
-// Route tree stub
-export const routeTree = { id: '__root__', path: '/', fullPath: '/', init: () => ({}) } as any
-export const getRouter = () => createRouter({ routeTree, scrollRestoration: true, defaultPreloadStaleTime: 0 })
-
-// TanStack Start server function stub
-export const createServerFn = () => {
-  const builder = {
-    validator: () => builder,
-    inputValidator: () => builder,
-    handler: () => async () => { throw new Error('createServerFn handler is not mocked for this story') },
-  }
-  return builder
-}
-
-// Cookie helpers (if auth server functions use them)
-const cookieStore = new Map<string, string>()
-export const setCookie = (name: string, value: string) => { cookieStore.set(name, value) }
-export const getCookie = (name: string) => cookieStore.get(name)
-export const deleteCookie = (name: string) => { cookieStore.delete(name) }
-
-// TanStack Start server entry stub
-export const createStart = () => ({})
-export const fetch = async () => new Response('Storybook Mock', { status: 200 })
-export default { fetch }
+// .storybook/preview.ts — router decorator auto-applied
+export { decorators } from 'storybook-addon-tanstack-start/preview'
 ```
 
-### 3. Router Decorator (`.storybook/decorators/RouterDecorator.tsx`)
-
-Provides real `@tanstack/react-router` context via memory history:
+For app-specific server modules, alias them to mock files:
 
 ```typescript
-import type { Decorator } from '@storybook/react'
-import {
-  createMemoryHistory, createRootRoute, createRoute,
-  createRouter, Outlet, RouterProvider,
-} from '@tanstack/react-router'
-import React from 'react'
-
-export const withRouter: Decorator = (Story, context) => {
-  const initialRoute = context.parameters?.router?.initialRoute || '/'
-
-  const rootRoute = createRootRoute({
-    component: Outlet,
-    errorComponent: ({ error }) => (
-      <div className="p-4 text-red-500">
-        Route Error: {error instanceof Error ? error.message : String(error)}
-      </div>
-    ),
-  })
-
-  const storyRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: '/',
-    component: () => <Story />,
-  })
-
-  const router = createRouter({
-    routeTree: rootRoute.addChildren([storyRoute]),
-    history: createMemoryHistory({ initialEntries: [initialRoute] }),
-  })
-
-  return <RouterProvider router={router} />
+// .storybook/mocks/auth-server.ts
+export async function loginWithPassword({ data }: LoginInput) {
+  if (data.email === 'test@example.com' && data.password === 'password123')
+    return { ok: true as const, role: 'parent' as const }
+  return { ok: false as const, error: 'Invalid email or password' }
 }
+```
+
+```typescript
+// in .storybook/main.ts resolve.alias:
+'~/lib/auth/server': path.resolve(__dirname, 'mocks/auth-server.ts'),
 ```
 
 ### 4. Query Decorator (`.storybook/decorators/QueryDecorator.tsx`)
@@ -275,13 +127,14 @@ export const withQuery: Decorator = (Story, context) => {
 
 ### 5. Preview (`.storybook/preview.ts`)
 
-Wire decorators in correct order — outermost first:
+Wire decorators in correct order — outermost first. The router decorator comes
+from the addon; the Query decorator is custom (if your app uses React Query):
 
 ```typescript
 import { withThemeByClassName } from '@storybook/addon-themes'
 import type { Preview } from '@storybook/react'
+import { decorators as routerDecorators } from 'storybook-addon-tanstack-start/preview'
 import { withQuery } from './decorators/QueryDecorator'
-import { withRouter } from './decorators/RouterDecorator'
 import '../src/styles.css'
 
 const preview: Preview = {
@@ -289,8 +142,8 @@ const preview: Preview = {
     viewport: { value: 'desktop', isRotated: false },
   },
   decorators: [
-    withQuery,   // Outermost: React Query context
-    withRouter,  // Middle: Router context
+    withQuery,           // Outermost: React Query context
+    ...routerDecorators, // Middle: Router context (from addon)
     withThemeByClassName({
       themes: { light: 'light', dark: 'dark' },
       defaultTheme: 'light',
@@ -348,7 +201,8 @@ export default defineConfig({
 ### Dependencies
 
 ```bash
-pnpm add -D @storybook/react @storybook/react-vite @storybook/builder-vite \
+pnpm add -D storybook-addon-tanstack-start \
+  @storybook/react @storybook/react-vite @storybook/builder-vite \
   @storybook/addon-vitest @storybook/addon-a11y @storybook/addon-docs \
   @storybook/addon-themes storybook \
   @vitest/browser playwright
@@ -660,15 +514,9 @@ Pages/Admin/Settings          — Route-level pages
 
 ## Mocking Server Functions in Stories
 
-When a component calls a server function internally, you can't pass it as a prop. Instead, alias the server module to a mock:
-
-```typescript
-// .storybook/main.ts — in resolve.alias
-'~/lib/auth/server': path.resolve(__dirname, 'mocks/auth-server.ts'),
-'~/lib/billing/server': path.resolve(__dirname, 'mocks/billing-server.ts'),
-```
-
-Each mock file exports the same function signatures with hardcoded return values:
+The addon stubs `createServerFn` generically. For your app's own server modules,
+use `additionalServerModules` in the plugin config to redirect them to stubs,
+then create mock files with the same function signatures:
 
 ```typescript
 // .storybook/mocks/auth-server.ts
@@ -681,6 +529,17 @@ export async function loginWithPassword({ data }: LoginInput) {
 export async function startOAuthLogin({ data }: OAuthStartInput) {
   return { ok: true as const, redirectUrl: `https://oauth.example.com/${data.provider}` }
 }
+```
+
+Then alias in `.storybook/main.ts`:
+
+```typescript
+resolve: {
+  alias: {
+    '~/lib/auth/server': path.resolve(__dirname, 'mocks/auth-server.ts'),
+    '~/lib/billing/server': path.resolve(__dirname, 'mocks/billing-server.ts'),
+  },
+},
 ```
 
 ## Checklist
@@ -717,7 +576,7 @@ build work), then add MCP on top. For team-wide access, publish via Chromatic:
   "mcpServers": {
     "storybook-mcp": {
       "type": "http",
-      "url": "https://main--<appid>.chromatic.com"
+      "url": "https://main--<appid>.chromatic.com/mcp"
     }
   }
 }

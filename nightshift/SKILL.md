@@ -137,6 +137,26 @@ create one. All deliverables (docs, ADRs, code, tests) go in `docs/` and `src/` 
 
 When committing nightshift results, only stage: `src/`, `docs/`, project config files, and `.gitignore`.
 
+## Monitoring Progress
+
+While nightshift runs, monitor it with:
+
+```bash
+# Live heartbeat — updates every ~30 seconds
+watch cat .nightshift/HEARTBEAT
+
+# Current iteration progress
+cat .nightshift/runs/*/progress.md | tail -20
+
+# Recent commits
+git log --oneline -5
+
+# Test status
+pnpm test 2>&1 | tail -5
+```
+
+The HEARTBEAT file shows a single line with the current spec, step, and test count. The dispatcher also prints a summary between iterations.
+
 ## Gotchas
 
 - **Never commit `.nightshift/` to git.** It is local working state. Ensure it's in `.gitignore` before starting.
@@ -240,6 +260,7 @@ Duration is optional. Without it, the agent works until the backlog is empty.
 
 ```
 .nightshift/
+  HEARTBEAT               ← Single-line live status (watch this file for progress)
   MORNING.md              ← Morning briefing for human review
   NOTICED.md              ← Unrelated issues the agent observed
   CHANGELOG.md            ← Cumulative changelog entries

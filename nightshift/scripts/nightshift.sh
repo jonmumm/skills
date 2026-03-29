@@ -169,6 +169,9 @@ Duration hint: ${DURATION:-none}
 
 EOF
 
+# Initialize heartbeat file
+echo "$(date '+%H:%M:%S') | STARTING | waiting for first task | TESTS: pending" > "$NIGHTSHIFT_DIR/HEARTBEAT"
+
 # ─── Ensure .nightshift/ in .gitignore ────────────────────────────────────────
 
 GITIGNORE="$PROJECT_ROOT/.gitignore"
@@ -286,6 +289,34 @@ COMMANDS:
 LESSONS FROM PRIOR RUNS: Read $NIGHTSHIFT_DIR/lessons.md before starting.
 EVAL SURFACE: Check $NIGHTSHIFT_DIR/eval-surface/ for judge prompts and criteria.
 EVAL GAPS: Check $NIGHTSHIFT_DIR/eval-gaps.md for known gaps to address.
+
+===================================================================
+HEARTBEAT (CRITICAL — DO THIS THROUGHOUT)
+===================================================================
+
+You MUST write to $NIGHTSHIFT_DIR/HEARTBEAT after EVERY significant action.
+This is how the human monitors your progress. Write a single line:
+
+  echo "TIMESTAMP | SPEC: name | STEP: description | TESTS: pass/total" > $NIGHTSHIFT_DIR/HEARTBEAT
+
+Examples:
+  echo "$(date '+%H:%M:%S') | SPEC: match-session-websocket | STEP: reading spec | TESTS: 49/52" > $NIGHTSHIFT_DIR/HEARTBEAT
+  echo "$(date '+%H:%M:%S') | SPEC: match-session-websocket | STEP: writing integration tests | TESTS: 49/52" > $NIGHTSHIFT_DIR/HEARTBEAT
+  echo "$(date '+%H:%M:%S') | SPEC: match-session-websocket | STEP: implementing WebSocket handler | TESTS: 49/52" > $NIGHTSHIFT_DIR/HEARTBEAT
+  echo "$(date '+%H:%M:%S') | SPEC: match-session-websocket | STEP: running eval stack | TESTS: 55/58" > $NIGHTSHIFT_DIR/HEARTBEAT
+  echo "$(date '+%H:%M:%S') | SPEC: match-session-websocket | STEP: committing | TESTS: 58/58" > $NIGHTSHIFT_DIR/HEARTBEAT
+
+Update the heartbeat at LEAST every 5 tool calls. If you forget, the human
+will think you're stuck. This is the #1 most important visibility mechanism.
+
+Also update $RUN_DIR/progress.md IMMEDIATELY when you start a spec (not just
+when you finish it):
+
+  ## [NIGHTSHIFT] HH:MM — SPEC: name (IN PROGRESS)
+  Step 1: Reading spec... done
+  Step 2: Writing tests...
+
+Then update each step as you complete it. Mark "(DONE)" when finished.
 
 ===================================================================
 STEP 0: PREP
@@ -649,7 +680,23 @@ while [[ "$ITERATION" -lt "$MAX_ITERATIONS" ]]; do
   fi
   rm -f "$PROMPT_FILE"
 
-  echo "$OUTPUT" | tee -a "$RUN_DIR/logs/nightshift.log"
+  echo "$OUTPUT" >> "$RUN_DIR/logs/nightshift.log"
+
+  # Show iteration summary from progress.md and heartbeat
+  echo ""
+  if [[ -f "$NIGHTSHIFT_DIR/HEARTBEAT" ]]; then
+    echo "  HEARTBEAT: $(cat "$NIGHTSHIFT_DIR/HEARTBEAT")"
+  fi
+  # Show last progress entry (the latest ## header and its content)
+  if [[ -f "$RUN_DIR/progress.md" ]]; then
+    local last_entry
+    last_entry="$(awk '/^## \[NIGHTSHIFT\]/{found=$0; content=""} found{content=content"\n"$0} END{print content}' "$RUN_DIR/progress.md" | tail -5)"
+    if [[ -n "$last_entry" ]]; then
+      echo "  PROGRESS:"
+      echo "$last_entry" | sed 's/^/    /'
+    fi
+  fi
+  echo ""
 
   # Check signals
   if echo "$OUTPUT" | grep -qF "$SIGIL_COMPLETE"; then

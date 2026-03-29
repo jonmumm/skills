@@ -8,9 +8,29 @@ the specific docs that persona owns.
 
 ## How to invoke
 
-For each persona, spawn a sub-agent (using `claude -p`) with the persona prompt
-below, injecting the diff and relevant file contents. Collect all verdicts.
-If any reviewer returns REQUEST_CHANGES, fix the issues and re-run all reviewers.
+**Launch all 5 personas in parallel.** Each persona reviews the same diff independently —
+there are no dependencies between them. Use a single message with 5 Agent tool calls
+to maximize parallelism:
+
+```
+# Single message with 5 parallel Agent tool calls:
+Agent(description="Review: User Advocate", prompt="[persona prompt + diff + spec]")
+Agent(description="Review: Architect", prompt="[persona prompt + diff + arch docs]")
+Agent(description="Review: Domain Expert", prompt="[persona prompt + diff + domain docs]")
+Agent(description="Review: Code Quality", prompt="[persona prompt + diff + CLAUDE.md]")
+Agent(description="Review: Platform Expert", prompt="[persona prompt + diff + platform docs]")
+```
+
+Each agent gets the git diff, the spec being implemented, and the specific docs
+that persona owns. All 5 run simultaneously and return verdicts independently.
+
+**After all 5 return**, synthesize the results:
+- If ALL return APPROVE → proceed to commit
+- If ANY returns REQUEST_CHANGES → fix the issues, then re-run ALL reviewers in parallel again
+- FLAG items are noted but don't block
+
+This parallel pattern saves 4-5x wall-clock time compared to sequential review,
+which matters during AFK loops where every minute counts.
 
 ---
 
