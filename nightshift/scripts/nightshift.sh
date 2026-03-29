@@ -4,11 +4,11 @@ set -uo pipefail
 
 # ─── nightshift.sh ────────────────────────────────────────────────────────────
 # Autonomous sequential development loop. Works through specs/bugs one at a
-# time with acceptance-test-first development.
+# time with testing-trophy TDD, progressive commits, and a layered eval stack.
 #
 # Usage:
 #   nightshift.sh --project /path/to/repo [--duration "4 hours"] \
-#                 [--iterations 20] [--agent claude]
+#                 [--iterations 20] [--agent claude] [--skip-grill] [--exploratory]
 # ──────────────────────────────────────────────────────────────────────────────
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -19,25 +19,29 @@ DURATION=""
 MAX_ITERATIONS="${MAX_ITERATIONS:-20}"
 AGENT_RUNTIME="${AGENT_RUNTIME:-claude}"
 CODEX_REVIEWER="${CODEX_REVIEWER:-false}"
+SKIP_GRILL="${SKIP_GRILL:-false}"
+EXPLORATORY="${EXPLORATORY:-false}"
 
 # ─── Parse Arguments ──────────────────────────────────────────────────────────
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --project)     PROJECT_ROOT="$2"; shift 2 ;;
-    --duration)    DURATION="$2"; shift 2 ;;
-    --iterations)  MAX_ITERATIONS="$2"; shift 2 ;;
-    --agent)       AGENT_RUNTIME="$2"; shift 2 ;;
-    --with-codex)  CODEX_REVIEWER="true"; shift ;;
+    --project)      PROJECT_ROOT="$2"; shift 2 ;;
+    --duration)     DURATION="$2"; shift 2 ;;
+    --iterations)   MAX_ITERATIONS="$2"; shift 2 ;;
+    --agent)        AGENT_RUNTIME="$2"; shift 2 ;;
+    --with-codex)   CODEX_REVIEWER="true"; shift ;;
+    --skip-grill)   SKIP_GRILL="true"; shift ;;
+    --exploratory)  EXPLORATORY="true"; shift ;;
     *)
-      echo "Usage: $0 --project /path [--duration '4 hours'] [--iterations N] [--agent claude] [--with-codex]"
+      echo "Usage: $0 --project /path [--duration '4 hours'] [--iterations N] [--agent claude] [--skip-grill] [--exploratory]"
       exit 1
       ;;
   esac
 done
 
 if [[ -z "$PROJECT_ROOT" ]]; then
-  echo "Usage: $0 --project /path [--duration '4 hours'] [--iterations N] [--agent claude] [--with-codex]"
+  echo "Usage: $0 --project /path [--duration '4 hours'] [--iterations N] [--agent claude] [--skip-grill] [--exploratory]"
   exit 1
 fi
 
@@ -116,9 +120,11 @@ detect_platform() {
 
 PLATFORM="$(detect_platform)"
 
-# ─── Setup Directories ───────────────────────────────────────────────────────
+# ─── Setup Directories ──────────────────────────────────────────────��────────
 
 mkdir -p "$RUN_DIR/logs"
+mkdir -p "$NIGHTSHIFT_DIR/eval-surface/judges"
+mkdir -p "$NIGHTSHIFT_DIR/captures"
 
 # Create lessons.md if it doesn't exist (persists across runs)
 if [[ ! -f "$NIGHTSHIFT_DIR/lessons.md" ]]; then
@@ -138,6 +144,18 @@ if [[ ! -f "$NIGHTSHIFT_DIR/NOTICED.md" ]]; then
 
 Unrelated issues observed during nightshift runs. Human should review and
 either fix these or file tickets.
+
+EOF
+fi
+
+# Create eval-gaps.md if it doesn't exist
+if [[ ! -f "$NIGHTSHIFT_DIR/eval-gaps.md" ]]; then
+  cat > "$NIGHTSHIFT_DIR/eval-gaps.md" <<'EOF'
+# Eval Gaps
+
+Gaps discovered by codex review or LLM judges that existing evals didn't catch.
+Each entry recommends whether to add a hook, test, or judge.
+Review these during preflight to iterate on the eval surface.
 
 EOF
 fi
@@ -162,14 +180,14 @@ elif [[ ! -f "$GITIGNORE" ]]; then
   echo ".nightshift/" > "$GITIGNORE"
 fi
 
-# ─── Codex Reviewer ──────────────────────────────────────────────────────────
+# ─── Codex Reviewer (legacy — kept for --with-codex backward compat) ─��──────
 
 start_codex_reviewer() {
   if [[ "$CODEX_REVIEWER" != "true" ]]; then
     return
   fi
 
-  echo "Starting Codex reviewer agent..."
+  echo "Starting Codex reviewer agent (legacy background mode)..."
 
   local codex_prompt
   codex_prompt="$(cat <<'CODEX_PROMPT'
@@ -225,18 +243,37 @@ stop_codex_reviewer() {
 
 build_prompt() {
   local acceptance_ref="$SKILL_DIR/references/acceptance-testing.md"
-  local personas_ref="$SKILL_DIR/references/review-personas.md"
+
+  # Build exploratory section
+  local exploratory_section=""
+  if [[ "$EXPLORATORY" == "true" ]]; then
+    exploratory_section="EXPLORATORY MODE IS ON. After the eval stack passes, do a freeform
+smoke test by driving the live application:
+
+  Web:          Use Chrome MCP to navigate the app, poke around
+  iOS:          Use xcrun simctl to screenshot and inspect
+  React Native: Use simulator/device for freeform navigation
+
+This is unstructured — look for visual glitches, broken images,
+layout issues, flows that feel wrong. Log findings to NOTICED.md."
+  else
+    exploratory_section="EXPLORATORY MODE IS OFF. Skip this step.
+To enable: re-run with --exploratory flag."
+  fi
 
   cat <<PROMPT
 @CLAUDE.md
 
 You are the Nightshift agent. You work autonomously through the project's
-specs and bugs backlog, one task at a time, with acceptance-test-first development.
+specs and bugs backlog, one task at a time. You follow the testing trophy
+(integration-heavy), use progressive commits, and run a layered eval stack.
 
 PLATFORM: $PLATFORM
 PACKAGE MANAGER: $PM
 DURATION: ${DURATION:-unlimited (work until backlog is empty)}
 RUN DIRECTORY: $RUN_DIR
+SKIP GRILL: $SKIP_GRILL
+EXPLORATORY: $EXPLORATORY
 
 COMMANDS:
   Test:      ${TEST_CMD:-not detected}
@@ -247,32 +284,32 @@ COMMANDS:
   Coverage:  ${COVERAGE_CMD:-not detected}
 
 LESSONS FROM PRIOR RUNS: Read $NIGHTSHIFT_DIR/lessons.md before starting.
+EVAL SURFACE: Check $NIGHTSHIFT_DIR/eval-surface/ for judge prompts and criteria.
+EVAL GAPS: Check $NIGHTSHIFT_DIR/eval-gaps.md for known gaps to address.
 
-$(if [[ "$CODEX_REVIEWER" == "true" ]]; then
-  echo "CODEX REVIEWER: Another agent is reviewing your commits. Check"
-  echo "$NIGHTSHIFT_DIR/CODEX_REVIEW.md periodically for feedback and"
-  echo "incorporate it into subsequent work."
-fi)
-
-═══════════════════════════════════════════════════════════════════════
+===================================================================
 STEP 0: PREP
-═══════════════════════════════════════════════════════════════════════
+===================================================================
 
 1. Read $NIGHTSHIFT_DIR/lessons.md for context from prior runs.
-2. Check for uncommitted changes:
+2. Read $NIGHTSHIFT_DIR/eval-surface/ for existing judge prompts and eval criteria.
+   If empty, note that eval surface needs to be built during first task.
+3. Read $NIGHTSHIFT_DIR/eval-gaps.md for gaps from prior runs. If any are
+   actionable, create the recommended hooks/tests/judges before starting.
+4. Check for uncommitted changes:
    - If there are changes that look like work-in-progress, commit them:
      "wip: save uncommitted work before nightshift"
    - If there are changes that look accidental, stash them:
      git stash push -m "nightshift-prep-$RUN_ID"
-3. Run the full test suite (${TEST_CMD:-skip if no test command}).
+5. Run the full test suite (${TEST_CMD:-skip if no test command}).
    Fix any failures before proceeding. If you cannot fix a failure,
    log it to $RUN_DIR/progress.md and continue.
-4. Run E2E tests if available (${E2E_CMD:-skip if no e2e command}).
+6. Run E2E tests if available (${E2E_CMD:-skip if no e2e command}).
    Fix any failures. Log any you cannot fix.
 
-═══════════════════════════════════════════════════════════════════════
+===================================================================
 STEP 1: PICK TASK
-═══════════════════════════════════════════════════════════════════════
+===================================================================
 
 Priority order:
 1. BUGS FIRST. Check for a bugs file in this order:
@@ -303,9 +340,9 @@ When picking a task, consider the DURATION hint. If there's limited
 time remaining, pick a smaller task. Reserve ~15 minutes at the end
 for the morning briefing.
 
-═══════════════════════════════════════════════════════════════════════
+===================================================================
 STEP 2: LOAD CONTEXT
-═══════════════════════════════════════════════════════════════════════
+===================================================================
 
 1. Read the spec/bug description thoroughly.
 2. Read CLAUDE.md's knowledge base table — load docs relevant to this task.
@@ -315,138 +352,170 @@ STEP 2: LOAD CONTEXT
 4. Check AGENTS.md (if it exists) for additional documentation pointers.
 5. Read relevant source code and existing tests.
 6. Read $RUN_DIR/progress.md for what's been done this run.
+7. Read judge prompts from $NIGHTSHIFT_DIR/eval-surface/judges/ for this task's
+   subjective criteria (visual quality, UX copy, spec compliance, etc.).
 
-═══════════════════════════════════════════════════════════════════════
-STEP 3: WRITE ACCEPTANCE TESTS (MOST IMPORTANT STEP)
-═══════════════════════════════════════════════════════════════════════
+===================================================================
+STEP 3: WRITE TESTS (TESTING TROPHY)
+===================================================================
 
-This is the most critical step. Read the acceptance testing reference:
-$acceptance_ref
+Follow the testing trophy: integration-heavy, not E2E-heavy.
+Read $acceptance_ref for E2E patterns.
 
-1. Extract every user-visible behavior from the spec.
-2. Write one acceptance test per behavior using the project's E2E framework:
-   - Web: Playwright (semantic selectors, real user flows)
-   - iOS Swift: XCUITest (accessibility identifiers, waitForExistence)
-   - React Native: Detox (testID props, waitFor with timeout)
-3. Run the acceptance tests. They MUST fail (red). If any pass, the
-   feature already exists or the test is wrong.
-4. If the test framework isn't set up, set it up. This is a blocking
-   requirement — do not skip acceptance tests.
+1. INTEGRATION TESTS FIRST (~70% of test effort):
+   - Web: Storybook play functions (real components, real DOM, real interactions)
+   - Workers: vitest-pool-workers with real D1/KV/R2 bindings
+   - iOS: XCTest UI tests (real app, real navigation)
+   - React Native: Detox (real device/simulator interaction)
+   Write tests that exercise real behavior through real boundaries.
+   Don't mock what you own. Mock only external services (Stripe, push providers).
 
-═══════════════════════════════════════════════════════════════════════
-STEP 4: WRITE UNIT/INTEGRATION TESTS
-═══════════════════════════════════════════════════════════════════════
+2. UNIT TESTS for complex pure logic (~15%):
+   - Scoring functions, parsers, state machine transitions, algorithms
+   - Only when the logic is genuinely complex
+   - If tempted to mock your own modules, write an integration test instead
 
-For key business logic in the spec, write unit tests (TDD style):
-1. Write failing test (red)
-2. Implement minimal code (green)
-3. Refactor
+3. E2E TESTS for critical user journeys (~15%):
+   - Only the 1-3 most important user flows per spec
+   - MUST include screenshot capture at key checkpoints:
+     Web:    page.screenshot({ path: '$NIGHTSHIFT_DIR/captures/<task>/<checkpoint>.png' })
+     iOS:    XCTAttachment(screenshot: app.screenshot())
+     Detox:  device.takeScreenshot('<checkpoint>')
+   - These screenshots feed the LLM judges in Step 5
 
-These complement acceptance tests. Acceptance tests prove the feature
-works for users. Unit tests prove the logic is correct.
+4. Run all tests. They MUST fail (red). If any pass, the feature already
+   exists or the test is wrong.
 
-═══════════════════════════════════════════════════════════════════════
-STEP 5: IMPLEMENT
-═══════════════════════════════════════════════════════════════════════
+===================================================================
+STEP 4: IMPLEMENT WITH PROGRESSIVE COMMITS
+===================================================================
 
 1. Implement the feature to make all tests pass.
 2. Follow the project's conventions (read CLAUDE.md).
 3. Keep it simple. Don't over-engineer.
 4. All interactive UI elements must have testID/accessibilityIdentifier.
 
-═══════════════════════════════════════════════════════════════════════
-STEP 6: VERIFY
-═══════════════════════════════════════════════════════════════════════
+PROGRESSIVE COMMITS: Don't wait until the end to commit. Commit each
+compiling milestone as you go:
+  wip(scope): add data model and schema
+  wip(scope): implement core logic, integration tests green
+  wip(scope): wire up UI, storybook play functions green
+  wip(scope): e2e journey passing with screenshots
 
-Run ALL feedback commands and fix any issues:
+This reduces blast radius if an iteration crashes mid-task. Each wip
+commit should compile and have some tests passing.
 
-1. ${TEST_CMD:-skip} (unit tests — must pass)
-2. ${TYPECHECK_CMD:-skip} (type safety — must be clean)
-3. ${LINT_CMD:-skip} (code style — must be clean)
-4. ${E2E_CMD:-skip} (acceptance + regression — must pass)
+TDD within each slice: red -> green -> refactor -> commit.
 
-ALL must be green before proceeding. Iterate until they are.
+===================================================================
+STEP 5: RUN EVAL STACK
+===================================================================
 
-═══════════════════════════════════════════════════════════════════════
-STEP 7: REVIEW (sub-agents)
-═══════════════════════════════════════════════════════════════════════
+Run the eval stack in tier order. ALL blocking tiers must pass.
 
-Read $personas_ref for the full persona prompts.
+TIER 1 — STATIC (fast, blocking):
+  ${LINT_CMD:-skip} (code style)
+  ${TYPECHECK_CMD:-skip} (type safety)
+  Fix any issues before proceeding.
 
-Spawn 5 sub-agent reviewers. Pass each:
-- The git diff (git diff HEAD~1)
-- The spec being implemented
-- The docs they own
+TIER 2 — INTEGRATION TESTS (medium, blocking):
+  ${TEST_CMD:-skip}
+  These are the bulk of your tests. All must pass.
 
-Reviewers:
-1. User Advocate — does this match the spec from the user's perspective?
-2. Architect — does this fit the system?
-3. Domain Expert — is the domain logic correct?
-4. Code Quality — is this clean and well-tested?
-5. Platform Expert — any platform-specific gotchas?
+TIER 3 — E2E TESTS + SCREENSHOT CAPTURE (slow, blocking):
+  ${E2E_CMD:-skip}
+  Verify screenshots were saved to $NIGHTSHIFT_DIR/captures/
+  All must pass. Screenshots are consumed by Tier 4.
 
-If any reviewer returns REQUEST_CHANGES:
-- Fix the issues
-- Re-run feedback commands (Step 6)
-- Re-run ALL reviewers
-- Loop until all approve
+TIER 4 — LLM JUDGES (slow, blocking):
+  Read judge prompts from $NIGHTSHIFT_DIR/eval-surface/judges/.
+  If no judge prompts exist, evaluate against the spec directly.
+  For each judge, spawn a sub-agent with:
+    - The judge prompt (criteria to evaluate)
+    - Screenshots from $NIGHTSHIFT_DIR/captures/<task>/
+    - The spec being implemented
+    - The git diff
 
-═══════════════════════════════════════════════════════════════════════
-STEP 8: FULL REGRESSION
-═══════════════════════════════════════════════════════════════════════
+  Launch all judges in parallel:
+    Agent("Judge: Visual Quality", "[prompt + screenshots + spec]")
+    Agent("Judge: UX Copy", "[prompt + screenshots + spec]")
+    Agent("Judge: Spec Compliance", "[prompt + screenshots + spec]")
 
-Run the ENTIRE test suite one final time:
-- ${TEST_CMD:-skip}
-- ${E2E_CMD:-skip}
+  Each judge returns:
+    <eval>PASS</eval>           — criterion met
+    <eval>FAIL: reason</eval>   — must fix before proceeding
+    <eval>SCORE: N</eval>       �� numeric (threshold in judge prompt)
 
-This catches any regressions from the implementation. Fix any failures.
+  If any judge returns FAIL: fix the issue, re-run from Tier 1.
 
-═══════════════════════════════════════════════════════════════════════
-STEP 9: HARDEN (if time allows)
-═══════════════════════════════════════════════════════════════════════
+TIER 5 — CODEX REVIEW (advisory):
+  Run codex as a cross-model audit: "what did our evals miss?"
+
+  codex review --uncommitted \
+    -c model="gpt-5.4" \
+    -c model_reasoning_effort="xhigh" \
+    2>&1 | tee $RUN_DIR/codex-review.md
+
+  Fix real issues. Note false positives. Log legitimate eval gaps to
+  $NIGHTSHIFT_DIR/eval-gaps.md for iteration during handoff.
+
+REVIEW GATE — skip Tiers 4-5 when ALL of these are true:
+  - Diff is small (under ~20 lines)
+  - Change is mechanical (typo, config, formatting)
+  - No logic, control flow, or UI changes
+
+===================================================================
+STEP 6: EXPLORATORY SMOKE TEST (optional)
+===================================================================
+
+$exploratory_section
+
+===================================================================
+STEP 7: HARDEN (if time allows)
+===================================================================
 
 If mutation testing is available and time allows:
 1. Run ${MUTATE_CMD:-skip} on files touched by this task
 2. Kill survivors by adding targeted tests
-3. Target: ≥ 95% mutation score on touched files
+3. Target: >= 95% mutation score on touched files
 
 If coverage tooling is available:
 1. Run ${COVERAGE_CMD:-skip}
 2. Check CRAP scores on modified functions
 3. Refactor any function with CRAP > 30
 
-These are valuable but NEVER skip acceptance tests to do mutation testing.
+These are valuable but NEVER skip integration tests to do mutation testing.
 
-═══════════════════════════════════════════════════════════════════════
-STEP 10: COMMIT
-═══════════════════════════════════════════════════════════════════════
+===================================================================
+STEP 8: FINAL COMMIT
+===================================================================
 
-Commit with a detailed message designed for human review:
+Create a final commit with a detailed message for human review.
+(Progressive wip commits from Step 4 are already in history.)
 
 Subject: feat|fix(scope): short description
 Body:
 - What was implemented and why
 - What spec/bug this addresses
 - Key design decisions
-- What the acceptance tests verify
+- Test distribution: N integration, N unit, N E2E
+- Eval results: judges passed/failed, codex findings
 - Anything the reviewer should pay attention to
 
 Mark the task as done:
 - If from BUGS.md: check it off (- [x])
 - If a spec file: add a "Status: DONE — nightshift $RUN_ID" line at the top
 
-Update docs if the project has a "Keeping docs current" section in CLAUDE.md:
-- If you changed a feature's behavior → update the relevant product spec
-- If you added a feature → add/update the .feature file in docs/acceptance/
-- If you made a structural decision → note it for a future ADR
+Update docs if the project has a "Keeping docs current" section in CLAUDE.md.
 
-═══════════════════════════════════════════════════════════════════════
-STEP 11: LOG
-═══════════════════════════════════════════════════════════════════════
+===================================================================
+STEP 9: LOG
+===================================================================
 
 1. Append to $RUN_DIR/progress.md:
-   ## [NIGHTSHIFT] HH:MM — SPEC/BUG: title ✅
-   Files: [files] · Acceptance: +N · Unit: +N · Commit: [sha]
+   ## [NIGHTSHIFT] HH:MM — SPEC/BUG: title
+   Files: [files] | Integration: +N | Unit: +N | E2E: +N | Commits: [shas]
+   Eval: static ok | tests ok | judges ok | codex: N findings
 
 2. If you noticed anything unrelated (bugs, code smells, broken things),
    append to $NIGHTSHIFT_DIR/NOTICED.md with details.
@@ -454,19 +523,28 @@ STEP 11: LOG
 3. If you learned something useful for future runs, append to
    $NIGHTSHIFT_DIR/lessons.md.
 
-═══════════════════════════════════════════════════════════════════════
-STEP 12: NEXT TASK OR WRAP UP
-═══════════════════════════════════════════════════════════════════════
+4. If codex review found eval gaps, append to $NIGHTSHIFT_DIR/eval-gaps.md:
+   ## <task-name> — <date>
+   - <gap description> — recommended: <hook|test|judge>
+
+===================================================================
+STEP 10: NEXT TASK OR WRAP UP
+===================================================================
 
 If there are more tasks AND time remains: loop back to STEP 1.
-If backlog is empty OR time is up: proceed to STEP 13.
+If backlog is empty OR time is up: proceed to STEP 11.
 
-═══════════════════════════════════════════════════════════════════════
-STEP 13: MORNING BRIEFING
-═══════════════════════════════════════════════════════════════════════
+===================================================================
+STEP 11: MORNING BRIEFING
+===================================================================
 
 Write $NIGHTSHIFT_DIR/MORNING.md following the template in:
 $SKILL_DIR/references/morning-briefing.md
+
+Include in the briefing:
+- Eval results per task (which tiers passed/failed, judge scores)
+- Eval gaps discovered (from $NIGHTSHIFT_DIR/eval-gaps.md)
+- Recommended eval surface improvements for next run
 
 Also append to $NIGHTSHIFT_DIR/CHANGELOG.md:
 
@@ -475,9 +553,9 @@ Also append to $NIGHTSHIFT_DIR/CHANGELOG.md:
 
 Then output: <promise>COMPLETE</promise>
 
-═══════════════════════════════════════════════════════════════════════
+===================================================================
 SIGNALS
-═══════════════════════════════════════════════════════════════════════
+===================================================================
 
 - All tasks done: <promise>COMPLETE</promise>
 - Cannot proceed: <promise>BLOCKED:reason</promise>
@@ -491,9 +569,9 @@ AGENT_PROMPT="$(build_prompt)"
 
 cleanup() {
   echo ""
-  echo "════════════════════════════════════════════════════"
+  echo "========================================================"
   echo "  Nightshift ending..."
-  echo "════════════════════════════════════════════════════"
+  echo "========================================================"
 
   stop_codex_reviewer
 
@@ -508,9 +586,8 @@ cleanup() {
   echo "  Progress:         $RUN_DIR/progress.md"
   echo "  Noticed:          $NIGHTSHIFT_DIR/NOTICED.md"
   echo "  Lessons:          $NIGHTSHIFT_DIR/lessons.md"
-  if [[ "$CODEX_REVIEWER" == "true" ]]; then
-    echo "  Codex reviews:    $NIGHTSHIFT_DIR/CODEX_REVIEW.md"
-  fi
+  echo "  Eval gaps:        $NIGHTSHIFT_DIR/eval-gaps.md"
+  echo "  Captures:         $NIGHTSHIFT_DIR/captures/"
 }
 trap cleanup EXIT
 
@@ -526,7 +603,8 @@ echo "║  Pkg Manager: $PM"
 echo "║  Duration:    ${DURATION:-unlimited}"
 echo "║  Iterations:  $MAX_ITERATIONS"
 echo "║  Run ID:      $RUN_ID"
-echo "║  Codex:       $CODEX_REVIEWER"
+echo "║  Skip Grill:  $SKIP_GRILL"
+echo "║  Exploratory: $EXPLORATORY"
 echo "╚══════════════════════════════════════════════════════╝"
 echo ""
 echo "Commands detected:"
@@ -538,7 +616,7 @@ echo "Commands detected:"
 [[ -n "$COVERAGE_CMD" ]] && echo "  Coverage:  $COVERAGE_CMD"
 echo ""
 
-# Start Codex reviewer if requested
+# Start legacy Codex reviewer if requested (deprecated — codex is now in eval stack)
 start_codex_reviewer
 
 # ─── Main Loop ────────────────────────────────────────────────────────────────

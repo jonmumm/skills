@@ -15,7 +15,26 @@ Started: {{START_TIME}} · Ended: {{END_TIME}} · Tasks completed: {{N}}
 
 {{For each completed task, in order:}}
 {{N}}. **{{BUG or SPEC}}: {{Title}}** — {{One sentence what was done}}.
-   Tests: {{N new acceptance + N new unit}}. Commit: {{short sha}}.
+   Tests: {{N integration + N unit + N E2E}}. Commits: {{short shas}}.
+
+## Eval results
+
+- Static: {{clean or N errors}}
+- Integration: {{N}} passing {{(+N new)}}
+- Unit: {{N}} passing {{(+N new)}}
+- E2E: {{N}} passing {{(+N new)}}
+{{If LLM judges ran:}}
+- LLM judges: {{all PASS or list failures}}
+{{If codex review ran:}}
+- Codex review: {{N findings addressed, N false positives}}
+{{If mutation testing ran:}}
+- Mutation: {{score}}% {{(files tested)}}
+
+## Eval gaps (improve for next run)
+
+{{Gaps found by codex review or judges that existing evals didn't catch.
+Each entry recommends whether to add a hook, test, or judge.}}
+- {{Gap description}} — recommended: {{hook|test|judge}}
 
 ## What needs your attention
 
@@ -28,12 +47,13 @@ Started: {{START_TIME}} · Ended: {{END_TIME}} · Tasks completed: {{N}}
 - {{Observation}}
 
 ## Test results
+
+- Static: {{clean or N errors}}
+- Integration: {{N}} passing {{(+N new)}}
 - Unit: {{N}} passing {{(+N new)}}
 - E2E: {{N}} passing {{(+N new)}}
 - Typecheck: {{clean or N errors}}
 - Lint: {{clean or N warnings}}
-{{If mutation testing ran:}}
-- Mutation: {{score}}% {{(files tested)}}
 
 ## Review this
 
@@ -60,3 +80,7 @@ git show {{SHA2}}  # {{title}}
    not "noticed some UI issues."
 5. **Include the git commands.** The human will review commit by commit.
    Make it easy to start.
+6. **Eval gaps are actionable.** Each gap should say what to add (hook, test,
+   or judge) so the human can improve the eval surface for the next run.
+7. **Progressive commits mean multiple SHAs per task.** List them all so the
+   human can review the implementation progression, not just the final state.

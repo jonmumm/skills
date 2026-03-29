@@ -2,18 +2,19 @@
 name: nightshift
 description: >
   Autonomous AFK development loop. Sequentially works through a specs/bugs backlog:
-  prep → pick task → load spec → acceptance-test-first → implement → review personas →
-  commit → morning briefing. Emphasis on real user-facing tests (Playwright, XCUITest,
-  Detox). Use when going AFK — lunch, gym, overnight, weekend. Optionally provide
-  duration so the agent can scope work accordingly.
+  grill-me preflight → evals-first surface → pick task → testing-trophy TDD →
+  progressive commits → eval stack (hooks → integration → e2e + screenshots →
+  LLM judges → codex review) → commit → morning briefing. Use when going AFK —
+  lunch, gym, overnight, weekend. Optionally provide duration so the agent can
+  scope work accordingly.
 ---
 
 # Nightshift
 
 Autonomous sequential development loop for AFK sessions. Works through your
 specs and bugs backlog one task at a time, fully completing each before moving
-on. Prioritizes acceptance testing — every feature must be verified from the
-user's perspective before it ships.
+on. Uses the testing trophy (integration-heavy) for test strategy, evals-first
+for quality gates, and progressive commits to reduce blast radius.
 
 ## When to use Nightshift vs Swarm
 
@@ -21,8 +22,8 @@ user's perspective before it ships.
 |---|---|---|
 | **Goal** | Ship spec'd features, fix bugs | Harden codebase quality |
 | **Agents** | 1 sequential, no worktrees | 4 parallel in worktrees |
-| **Testing focus** | Acceptance-first (E2E) | Coverage + mutation + CRAP |
-| **Review** | Persona-based critique | Metric-driven quality agents |
+| **Testing focus** | Testing trophy (integration-heavy) + LLM judges | Coverage + mutation + CRAP |
+| **Review** | Eval stack (hooks → tests → judges → codex) | Metric-driven quality agents |
 | **Best for** | "Build these features while I'm away" | "Make the codebase healthier" |
 
 Use **Nightshift** when you have specs ready and want features shipped.
@@ -176,7 +177,13 @@ These hooks:
 ## Workflow
 
 ```
-Phase 1: PREP (interactive, ~2 minutes)
+Phase 1: PREFLIGHT (interactive, human present)
+  ├── /grill-me — interrogate spec backlog for gaps and contradictions
+  ├── /evals-first — define eval surface per project:
+  │     ├── Hooks: lint, typecheck, custom domain rules (block commits)
+  │     ├── Tests: testing-trophy distribution (70% integration, 15% unit, 15% e2e)
+  │     ├── LLM judges: judge prompts for subjective criteria (design, UX, spec match)
+  │     └── Classify each spec criterion into the strongest enforcement tier
   ├── Discover spec locations from CLAUDE.md + docs/ structure
   ├── Detect platform + test framework
   ├── Confirm feedback commands (test, typecheck, lint, e2e)
@@ -188,23 +195,33 @@ Phase 2: LOOP (AFK, autonomous)
   ├── 0. Clean working tree (stash or commit uncommitted work)
   ├── 1. Run full test suite — fix any failures before starting new work
   ├── 2. Pick next task: BUGS.md first, then oldest non-draft spec from docs/
-  ├── 3. Load spec + relevant project docs
-  ├── 4. Write acceptance tests FIRST (Playwright/XCUITest/Detox)
-  ├── 5. Run acceptance tests → confirm RED
-  ├── 6. Write unit/integration tests for key logic
-  ├── 7. Implement (TDD red-green-refactor for units, then acceptance green)
-  ├── 8. Run all feedback commands (test, typecheck, lint)
-  ├── 9. Review gate: trivial? skip to 12. Otherwise run review in PARALLEL
-  ├── 10. Fix issues from ALL reviewers, re-run feedback commands
-  ├── 11. Run full test suite (regression check)
-  ├── 12. Commit with detailed message for human review
-  ├── 13. Capture unrelated observations → NOTICED.md
-  ├── 14. Loop to step 2 for next task
-  └── 15. Write morning briefing + workflow feedback when done or time's up
+  ├── 3. Load spec + relevant project docs + eval surface for this task
+  ├── 4. Write tests (testing trophy):
+  │     ├── Integration tests FIRST (~70%) — Storybook play, vitest-pool-workers, XCTest UI
+  │     ├── Unit tests for complex pure logic (~15%)
+  │     └── E2E tests for critical user journeys (~15%) — with screenshot capture
+  ├── 5. Run tests → confirm RED
+  ├── 6. Implement with progressive commits:
+  │     ├── Commit each compiling milestone: wip(scope): description
+  │     └── TDD red-green-refactor for each test slice
+  ├── 7. Run eval stack:
+  │     ├── Static: lint, typecheck, custom hooks (fast, blocking)
+  │     ├── Integration tests (medium, blocking)
+  │     ├── Unit tests (fast, blocking)
+  │     ├── E2E tests + screenshot capture to .nightshift/captures/ (slow, blocking)
+  │     ├── LLM judges: sub-agents evaluate screenshots + code vs spec (blocking)
+  │     └── Codex review: cross-model "what did our evals miss?" (advisory)
+  ├── 8. Fix issues, re-run eval stack until all blocking tiers pass
+  ├── 9. Optional: exploratory Chrome MCP / simulator smoke test (advisory)
+  ├── 10. Final commit with detailed message for human review
+  ├── 11. Log: progress.md, NOTICED.md, lessons.md, eval gap log
+  ├── 12. Loop to step 2 for next task
+  └── 13. Write morning briefing + workflow feedback + eval iteration notes
 
 Phase 3: HANDOFF (waiting for human)
   ├── Morning briefing in .nightshift/MORNING.md
-  └── Workflow feedback in .nightshift/WORKFLOW_FEEDBACK.md
+  ├── Workflow feedback in .nightshift/WORKFLOW_FEEDBACK.md
+  └── Eval iteration notes: recommended new hooks/tests/judges based on gaps
 ```
 
 ## Duration Awareness
@@ -227,105 +244,214 @@ Duration is optional. Without it, the agent works until the backlog is empty.
   NOTICED.md              ← Unrelated issues the agent observed
   CHANGELOG.md            ← Cumulative changelog entries
   lessons.md              ← Persists across runs (agent-written)
+  eval-gaps.md            ← Gaps found by codex review (feeds eval iteration)
+  eval-surface/
+    judges/               ← LLM judge prompts (from /evals-first preflight)
+  captures/
+    <task-name>/
+      <checkpoint>.png    ← Screenshots from E2E tests for LLM judges
   runs/
     2026-03-15T22-00/
       progress.md         ← Task-by-task log for this run
+      codex-review.md     ← Codex review output for this run
       logs/
         nightshift.log    ← Full agent output
 ```
 
-## Acceptance Testing Strategy
+## Testing Strategy: Testing Trophy
 
-The agent writes acceptance tests BEFORE implementation. These tests exercise
-the feature from the user's perspective — not unit-level mocks.
+Follow the testing trophy distribution. **Integration tests are the default.**
+Only write E2E for critical user journeys. Only write unit tests for complex pure logic.
 
-### Web (Playwright)
+```
+        🏆
+      E2E Tests (~15%)      ← Few critical journeys + screenshot capture
+    Integration Tests (~70%) ← MOST tests here — real behavior, real boundaries
+   Unit Tests (~15%)         ← Complex pure logic only
+ Static Analysis             ← TypeScript, ESLint, custom hooks (always on)
+```
+
+### Integration tests (the bulk of your work)
+
+**Web — Storybook play functions:**
+```typescript
+export const ShowsCastAvailable: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const button = await canvas.findByRole('button', { name: /cast/i });
+    await userEvent.click(button);
+    await expect(canvas.getByText(/available/i)).toBeVisible();
+  },
+};
+```
+
+**Workers — vitest-pool-workers with real D1:**
+```typescript
+it("registers device end-to-end", async () => {
+  const res = await SELF.fetch("https://api.test/api/v1/devices/register", {
+    method: "POST",
+    body: JSON.stringify({ ogsDeviceId: "device-1", platform: "ios" }),
+  });
+  expect(res.status).toBe(200);
+  const row = await env.DB.prepare("SELECT * FROM devices WHERE ...").first();
+  expect(row.push_token).toBeTruthy();
+});
+```
+
+**iOS — XCTest UI tests:**
+```swift
+func testCastButtonShowsDevicePicker() throws {
+  app.buttons["Create Game"].tap()
+  app.buttons["Cast to TV"].tap()
+  let picker = app.sheets["Select a device"]
+  XCTAssertTrue(picker.waitForExistence(timeout: 3))
+}
+```
+
+**React Native — Detox:**
+```typescript
+it('should start a voice session when Play is tapped', async () => {
+  await element(by.id('play-button')).tap();
+  await expect(element(by.id('session-screen'))).toBeVisible();
+});
+```
+
+### E2E tests (~15%) — critical journeys + screenshot capture
+
+E2E tests cover the few critical user journeys AND capture screenshots for
+LLM judges. Add `page.screenshot()` at key checkpoints:
 
 ```typescript
-// specs says: "user can reset password via email link"
+// Web (Playwright) — E2E with screenshot capture
 test('password reset flow', async ({ page }) => {
   await page.goto('/login');
   await page.click('text=Forgot password?');
+  await page.screenshot({ path: '.nightshift/captures/password-reset/forgot-link.png' });
+
   await page.fill('[name=email]', 'user@example.com');
   await page.click('text=Send reset link');
+  await page.screenshot({ path: '.nightshift/captures/password-reset/confirmation.png' });
+
   await expect(page.locator('.success-message')).toContainText('Check your email');
 });
 ```
 
-### iOS (XCUITest)
-
 ```swift
-// specs says: "user can add item to cart from product detail"
+// iOS — XCUITest with screenshot capture
 func testAddToCartFromProductDetail() throws {
   let app = XCUIApplication()
   app.launch()
   app.cells["product-hiking-boots"].tap()
+  let screenshot1 = app.screenshot()
+  let attachment1 = XCTAttachment(screenshot: screenshot1)
+  attachment1.name = "product-detail"
+  add(attachment1)
+
   app.buttons["Add to Cart"].tap()
   XCTAssertTrue(app.badges["cart-badge"].exists)
-  XCTAssertEqual(app.badges["cart-badge"].label, "1")
+  let screenshot2 = app.screenshot()
+  let attachment2 = XCTAttachment(screenshot: screenshot2)
+  attachment2.name = "cart-added"
+  add(attachment2)
 }
 ```
 
-### React Native (Detox)
-
 ```typescript
-// specs says: "child can tap Play and hear the character speak"
-it('should start a voice session when Play is tapped', async () => {
+// React Native (Detox) — with screenshot capture
+it('should show session screen after tapping Play', async () => {
   await element(by.id('play-button')).tap();
   await expect(element(by.id('session-screen'))).toBeVisible();
-  await expect(element(by.id('character-avatar'))).toBeVisible();
-  await waitFor(element(by.id('debug-state-overlay')))
-    .toHaveText(expect.stringContaining('state:greeting'))
-    .withTimeout(5000);
+  await device.takeScreenshot('session-started');
 });
 ```
 
-The agent reads the spec to understand what the user should experience, then
-writes tests that verify exactly that. Implementation follows the tests.
+### Unit tests (~15%) — pure logic only
 
-## Review Gate
+Only for complex algorithms, parsers, scoring functions, state machine transitions.
+**Don't mock what you own.** If you're tempted to mock a module you wrote, write
+an integration test instead.
 
-Before launching the full review, assess whether the change warrants it.
+### Anti-patterns
 
-**Skip full review when ALL of these are true:**
-- Diff is small (roughly under 20 lines changed)
-- Change is mechanical — typo fix, formatting, one-liner display tweak, config change
-- No logic, control flow, or data model changes
-- No new public API surface
+- **Don't mock your own modules.** Mock external services (Stripe, Expo Push), not your code.
+- **Don't write E2E for everything.** E2E is slow and brittle. Reserve for critical journeys.
+- **Don't test implementation details.** Assert on what the user sees, not internal dispatch calls.
+- **Don't snapshot entire components.** Targeted snapshots of specific states only.
 
-When skipping, go straight to commit (Step 12). The implementation itself served
-as the review since understanding the code was required to make the change.
+## Eval Stack
 
-**Always run full review when ANY of these are true:**
-- New feature or behavioral change
-- Touches auth, security, or data persistence
-- Changes test assertions or removes tests
-- Diff spans multiple files or modules
-- You're uncertain about the change's correctness
+After implementation, run the eval stack in order. Each tier must pass before
+proceeding to the next. This replaces the previous persona-based review.
 
-This saves significant time on trivial fixes during AFK runs without sacrificing
-quality on changes that matter.
+```
+Tier 1: Static (fast, blocking)
+  └── lint, typecheck, custom hooks
 
-## Review Personas + Codex Review
+Tier 2: Integration tests (medium, blocking)
+  └── Storybook play functions, vitest-pool-workers, XCTest UI, Detox
 
-After implementation (when the review gate passes), the agent runs ALL reviewers in parallel:
+Tier 3: Unit tests (fast, blocking)
+  └── Complex pure logic only
 
-- 5 Claude persona sub-agents (each critiques the diff from their perspective)
-- 1 Codex review (cross-agent review from a different model)
+Tier 4: E2E tests + screenshot capture (slow, blocking)
+  └── Critical user journeys
+  └── Screenshots saved to .nightshift/captures/<task-name>/<checkpoint>.png
 
-| Reviewer | Focus | Owns |
-|----------|-------|------|
-| **User Advocate** | "Does this actually work from a user's perspective?" | Specs, acceptance tests |
-| **Architect** | "Does this fit the system? Any coupling concerns?" | Architecture docs, AGENTS.md |
-| **Domain Expert** | "Is the domain logic correct? Edge cases?" | Domain-specific docs |
-| **Code Quality** | "Is this clean, simple, well-tested?" | CLAUDE.md conventions |
-| **Platform Expert** | "Any platform-specific gotchas?" | Platform docs, gotchas |
-| **Codex (cross-agent)** | Fresh-eyes review from a different model | Correctness, security, missed edge cases |
+Tier 5: LLM judges (slow, blocking)
+  └── Sub-agents evaluate screenshots + code against spec and judge prompts
+  └── Each judge returns: PASS, FAIL (with reason), or SCORE
 
-### Running Codex review
+Tier 6: Codex review (advisory)
+  └── Cross-model audit: "what did our evals miss?"
+  └── Findings are addressed but don't block
 
-Launch `codex review` in parallel with the 5 persona sub-agents.
-Prefer `xhigh` reasoning effort for reviews — thorough analysis matters more than speed here:
+Tier 7: Exploratory smoke test (optional, advisory)
+  └── Web: Chrome MCP — navigate live app, freeform exploration
+  └── iOS: Simulator — xcrun simctl screenshot, visual inspection
+  └── React Native: Simulator/device screenshot capture
+  └── Only runs if --exploratory flag is set
+```
+
+### LLM judges
+
+LLM judges evaluate subjective criteria that code-based tests can't check:
+visual quality, UX copy clarity, spec compliance, design hierarchy, etc.
+
+Judge prompts are defined during preflight (`/evals-first` Phase 2-3) and
+stored in `.nightshift/eval-surface/judges/`. Each judge is a sub-agent that
+receives:
+- Screenshots from `.nightshift/captures/` (captured during E2E tests)
+- The spec being implemented
+- The judge prompt (criteria to evaluate against)
+
+**Platform-routed screenshot sources:**
+
+| Platform | E2E captures screenshots via | Judge receives |
+|---|---|---|
+| Web (Playwright) | `page.screenshot({ path: '.nightshift/captures/...' })` | PNG files |
+| iOS (XCUITest) | `XCTAttachment(screenshot: app.screenshot())` | Test attachments |
+| React Native (Detox) | `device.takeScreenshot('name')` | Device screenshots |
+
+Launch all judges in parallel (same pattern as the old persona approach):
+```
+Agent(description="Judge: Visual Quality", prompt="[judge prompt + screenshots + spec]")
+Agent(description="Judge: UX Copy", prompt="[judge prompt + screenshots + spec]")
+Agent(description="Judge: Spec Compliance", prompt="[judge prompt + screenshots + spec]")
+```
+
+Each judge returns a structured verdict:
+```
+<eval>PASS</eval>              — criterion met
+<eval>FAIL: reason</eval>      — criterion failed, must fix
+<eval>SCORE: 87</eval>         — numeric score (threshold in judge prompt)
+```
+
+If any blocking judge returns FAIL: fix the issue, re-run the full eval stack.
+
+### Codex review
+
+After all blocking tiers pass, run Codex as a cross-model audit. The specific
+question is: **"what did our evals miss?"**
 
 ```bash
 codex review --uncommitted \
@@ -334,21 +460,35 @@ codex review --uncommitted \
   2>&1 | tee .nightshift/codex-review.md
 ```
 
-After all 6 reviewers return, read `.nightshift/codex-review.md` and synthesize
-findings alongside the persona results. Codex findings follow the same triage:
-fix real issues, note false positives (Codex lacks CLAUDE.md context), flag
-anything needing human input.
+Codex findings are advisory. Fix real issues, note false positives (Codex lacks
+CLAUDE.md context). Log any legitimate gaps in `.nightshift/eval-gaps.md` —
+these feed back into eval surface iteration during handoff.
 
-### Convergence
+See the [codex-review skill](../codex-review/SKILL.md) for CLI details.
 
-Each persona returns: APPROVE, REQUEST_CHANGES (with specifics), or FLAG
-(noticed something worth mentioning but not blocking). The agent iterates
-until all persona reviewers approve. Codex findings are addressed but don't
-block — they're treated as an additional signal, not a gate.
+### Exploratory smoke test (optional)
 
-See [references/review-personas.md](references/review-personas.md) for full
-persona prompts. See the [codex-review skill](../codex-review/SKILL.md) for
-CLI details and gotchas.
+When `--exploratory` is set, after the eval stack passes, run an unstructured
+smoke test by driving the live application:
+
+- **Web**: Chrome MCP — navigate the app, poke around, look for visual issues
+- **iOS**: iOS Simulator — use `xcrun simctl` + screenshot, inspect UI
+- **React Native**: Detox device or simulator, freeform navigation
+
+This is a `/dogfood`-style check, not a structured eval. It catches things
+that structured tests miss: broken images, layout glitches on odd viewports,
+flows that "feel wrong." Findings go to NOTICED.md, not the eval gate.
+
+### Review gate (when to skip eval tiers 5-7)
+
+**Skip LLM judges + codex + exploratory when ALL of these are true:**
+- Diff is small (roughly under 20 lines changed)
+- Change is mechanical — typo fix, formatting, config change
+- No logic, control flow, or data model changes
+- No new UI surface
+
+Static analysis + tests (tiers 1-4) always run. The subjective tiers (5-7)
+are skipped only for trivial changes.
 
 ## Morning Briefing
 
@@ -359,29 +499,34 @@ read in 2 minutes over coffee:
 # Morning Briefing — 2026-03-15
 
 ## Summary
-Completed 3 tasks. 1 bug fix, 2 features. All tests green.
+Completed 3 tasks. 1 bug fix, 2 features. All eval tiers green.
 
 ## What was done
 1. **BUG: Push notification plays twice** — Fixed race condition in
-   notification handler. Added Detox test. Commit: a1b2c3d
+   notification handler. Added integration test. Commit: a1b2c3d
 2. **SPEC: User login flow** — Email/password login with validation.
-   Playwright tests cover happy path + error states. Commit: e4f5g6h
-3. **SPEC: Password reset** — Email-based reset flow. Playwright tests
-   cover full flow. Commit: i7j8k9l
+   Integration tests (Storybook play) + 1 E2E journey. Commits: e4f5g6h, i7j8k9l
+3. **SPEC: Password reset** — Email-based reset flow. Integration tests +
+   E2E with screenshot capture. Commits: m1n2o3p, q4r5s6t
+
+## Eval results
+- Static: clean (lint + typecheck)
+- Integration: 38 passing (+12 new)
+- Unit: 142 passing (+3 new)
+- E2E: 28 passing (+3 new)
+- LLM judges: all PASS (visual quality, UX copy, spec compliance)
+- Codex review: 1 finding addressed, 1 false positive noted
+
+## Eval gaps (improve for next run)
+- Codex found missing error state for expired reset links — add judge criterion
+- No integration test for concurrent login sessions — add to eval surface
 
 ## What needs your attention
 - Password reset email template is placeholder — needs real copy
-- Login error messages may need UX review (currently generic)
 
 ## What I noticed (unrelated)
 - The checkout page has a broken image on mobile (see NOTICED.md)
 - `utils/format.ts` has a function with CRAP score 45
-
-## Test results
-- Unit: 142 passing
-- E2E: 28 passing (3 new)
-- Typecheck: clean
-- Lint: clean
 ```
 
 ## Workflow Feedback
@@ -468,11 +613,13 @@ If the context window is being compacted mid-recovery, preserve:
 Tell Claude Code: "Let's set up nightshift" or "/nightshift"
 
 The skill will:
-1. Read CLAUDE.md to discover docs structure and spec locations
-2. Detect platform and test framework
-3. Confirm feedback commands
-4. Ask for duration estimate (optional)
-5. Launch the loop
+1. Run `/grill-me` to interrogate the spec backlog (unless `--skip-grill`)
+2. Run `/evals-first` Phase 1-3 to define the eval surface
+3. Read CLAUDE.md to discover docs structure and spec locations
+4. Detect platform and test framework
+5. Confirm feedback commands
+6. Ask for duration estimate (optional)
+7. Launch the loop
 
 ### Direct script execution
 
@@ -483,13 +630,24 @@ env -u CLAUDECODE ~/src/skills/nightshift/scripts/nightshift.sh \
   --project /path/to/your-repo \
   [--duration "4 hours"] \
   [--iterations 15] \
-  [--agent claude]
+  [--agent claude] \
+  [--skip-grill] \
+  [--exploratory]
 ```
+
+| Flag | Purpose |
+|---|---|
+| `--skip-grill` | Skip `/grill-me` preflight (for re-runs where specs are already vetted) |
+| `--exploratory` | Enable Chrome MCP / simulator exploratory smoke test after eval stack |
+| `--with-codex` | (Deprecated — codex review is now always part of the eval stack) |
 
 ## References
 
 | Topic | Source | Load When |
 |-------|--------|-----------|
-| **Review personas** | [references/review-personas.md](references/review-personas.md) | Step 9 — reviewing implementation |
-| **Acceptance patterns** | [references/acceptance-testing.md](references/acceptance-testing.md) | Step 4 — writing acceptance tests |
-| **Morning briefing template** | [references/morning-briefing.md](references/morning-briefing.md) | Step 15 — writing handoff |
+| **Testing trophy** | [/testing-trophy skill](../testing-trophy/SKILL.md) | Step 4 — writing tests (integration-first) |
+| **Evals-first** | [/evals-first skill](../evals-first/SKILL.md) | Phase 1 — building eval surface |
+| **Acceptance patterns** | [references/acceptance-testing.md](references/acceptance-testing.md) | Step 4 — writing E2E tests with screenshot capture |
+| **Morning briefing template** | [references/morning-briefing.md](references/morning-briefing.md) | Step 13 — writing handoff |
+| **Codex review** | [/codex-review skill](../codex-review/SKILL.md) | Step 7 — cross-model eval audit |
+| **Review personas (legacy)** | [references/review-personas.md](references/review-personas.md) | Optional fallback if no eval surface is defined |
