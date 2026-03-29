@@ -6,6 +6,9 @@ description: >
   SSR hydration, WebSocket handoff, middleware, and E2E testing with Playwright.
   Use when building a TanStack Start app with actor-kit, setting up actor-kit
   server functions, or configuring the SSR-to-WebSocket hydration flow.
+dependsOn:
+  - jonmumm/skills@offensive-typesafety
+  - jonmumm/skills@parse-at-boundary
 ---
 
 # Actor-Kit + TanStack Start

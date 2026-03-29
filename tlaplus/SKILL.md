@@ -9,6 +9,9 @@ description: >
   "state space", "verify concurrency", "find bugs", "verify algorithm", or when working
   on systems with shared mutable state, offline sync, queues, distributed coordination,
   multi-agent orchestration, or complex pure functions with subtle invariants.
+dependsOn:
+  - jonmumm/skills@grill-me
+  - mattpocock/skills@tdd
 ---
 
 # TLA+ Formal Verification

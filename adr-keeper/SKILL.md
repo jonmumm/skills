@@ -5,6 +5,8 @@ description: >
   files sorted like migrations. Use when making structural decisions (new deps,
   pattern changes, tech choices), when asked to "record a decision",
   "create an ADR", "log an architecture choice", or "why did we do it this way".
+dependsOn:
+  - jonmumm/skills@create-claude-md
 ---
 
 # ADR Keeper
@@ -22,7 +24,7 @@ and sorted chronologically like database migrations.
 
 ## File Location & Naming
 
-ADRs live in `docs/adrs/` (created by `create-agents-md`, or create manually).
+ADRs live in `docs/adrs/` (created by `create-claude-md`, or create manually).
 
 **Naming:** `YYYY-MM-DD-short-kebab-description.md`
 
@@ -100,14 +102,14 @@ After every ADR change, update `docs/adrs/index.md`:
   decisions that may justify or contradict the approach
 - **After making structural decisions**: Create an ADR so the next agent
   (or human) understands why
-- ADRs referenced from AGENTS.md Knowledge Base table (set up by `create-agents-md`)
+- ADRs referenced from CLAUDE.md Knowledge Base table (set up by `create-claude-md`)
 
 ## Seeding ADRs from Existing Projects
 
 When bootstrapping ADRs for a project that already has undocumented decisions
-(common when running `create-agents-md` for the first time):
+(common when running `create-claude-md` for the first time):
 
-1. Look for "Key Decisions" sections in existing AGENTS.md or CLAUDE.md
+1. Look for "Key Decisions" sections in existing CLAUDE.md or AGENTS.md
 2. Look for inline comments explaining WHY something was done
 3. Look for TODO/HACK/FIXME comments that hint at trade-offs
 4. Create one ADR per decision, all dated today

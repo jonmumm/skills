@@ -6,6 +6,10 @@ description: >
   via TDD, while CRAP, Mutation, and Acceptance agents continuously harden the codebase
   using deterministic metrics. Use when the user says "swarm", "run the swarm",
   "kick off a swarm", or wants to plan and then execute a long-running multi-agent run.
+dependsOn:
+  - jonmumm/skills@grill-me
+  - jonmumm/skills@mutation-testing
+  - mattpocock/skills@tdd
 ---
 
 # Swarm
@@ -114,7 +118,7 @@ possible, confirm with the user, and fix anything missing.
 | 2 | Git state clean? | No uncommitted changes |
 | 3 | Working branch | Current branch (becomes integration target) |
 | 4 | Package manager | Detect from lockfile: `bun.lockb` → bun, `pnpm-lock.yaml` → pnpm, `yarn.lock` → yarn, else npm |
-| 5 | AGENTS.md exists? | If not, create using `create-agents-md` skill. Agents rely heavily on this. |
+| 5 | CLAUDE.md exists? | If not, create using `create-claude-md` skill. Agents rely heavily on this. |
 
 ### Stage 2: Backlog
 
@@ -389,6 +393,6 @@ These hooks:
 | **TDD discipline** | `mattpocock/skills@tdd` | Feature Agent red-green-refactor |
 | **Mutation setup** | `mutation-testing` skill | Pre-flight or Mutation Agent |
 | **Pre-commit hooks** | `setup-pre-commit` skill | Pre-flight Stage 4 |
-| **AGENTS.md** | `create-agents-md` skill | Pre-flight Stage 1 |
+| **CLAUDE.md** | `create-claude-md` skill | Pre-flight Stage 1 |
 | **Agent prompts** | [references/agent-prompts.md](references/agent-prompts.md) | Phase 2 launch |
 | **Worktree lifecycle** | [references/worktree-coordination.md](references/worktree-coordination.md) | Phase 2 launch |

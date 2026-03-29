@@ -6,6 +6,9 @@ description: >
   multi-actor nesting. Especially suited for game UIs with complex state progressions.
   Use when building Storybook stories for actor-kit components, testing game states,
   or setting up play function interactions with mock actor clients.
+dependsOn:
+  - jonmumm/skills@react-composable-components
+  - jonmumm/skills@storybook-play-testing
 ---
 
 # Actor-Kit Storybook Testing

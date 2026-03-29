@@ -5,6 +5,9 @@ description: >
   post QR codes for mobile preview builds, and auto-merge when ready. Use when asked
   to "babysit", "monitor this PR", "watch CI", "fix CI", "post QR code", "make sure
   CI passes", or "merge when green".
+dependsOn:
+  - jonmumm/skills@codex-review
+  - jonmumm/skills@deploy-verify
 ---
 
 # babysit-pr

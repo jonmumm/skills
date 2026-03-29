@@ -7,6 +7,9 @@ description: >
   quantitative metrics. Use when going AFK on design polish, when asked to "autodesign",
   "design loop", "polish loop", "iterate on the design", or "make it look good while
   I'm away".
+dependsOn:
+  - jonmumm/skills@evals-first
+  - jonmumm/skills@codex-review
 ---
 
 # Autodesign

@@ -1,6 +1,10 @@
 ---
 name: testing-trophy
 description: "Kent C. Dodds' Testing Trophy: write more integration tests, fewer unit tests, confidence over coverage. Covers React (Storybook + play functions), Cloudflare Workers (vitest-pool-workers + D1), and Swift (XCTest UI + snapshot). Use when deciding test strategy, writing new tests, or reviewing test quality."
+dependsOn:
+  - jonmumm/skills@workers-integration-testing
+  - jonmumm/skills@storybook-play-testing
+  - jonmumm/skills@expo-testing
 ---
 
 # Testing Trophy

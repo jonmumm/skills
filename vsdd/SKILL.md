@@ -8,6 +8,10 @@ description: >
   "build this properly with specs", or wants a rigorous spec → test → implement → verify
   workflow. Also use when asked for formal verification, mutation testing workflows, or
   adversarial code review as part of a development process.
+dependsOn:
+  - jonmumm/skills@mutation-testing
+  - jonmumm/skills@tlaplus
+  - mattpocock/skills@tdd
 ---
 
 # Verified Spec-Driven Development (VSDD)

@@ -1,6 +1,8 @@
 ---
 name: seam-tester
 description: Focuses exclusively on writing robust integration tests at system boundaries (seams) rather than writing brittle, shallow unit tests. Use when adding test coverage to an existing system, or testing an integration between two distinct modules.
+dependsOn:
+  - jonmumm/skills@testing-trophy
 ---
 
 # Seam Tester

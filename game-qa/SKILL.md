@@ -6,6 +6,10 @@ description: >
   structured logging, and bug-finding loops. Use when asked to "QA the game",
   "test the game visually", "find bugs", "set up game testing", "visual regression",
   "playwright for webgl", "game test harness", or "game logging".
+dependsOn:
+  - jonmumm/skills@actorkit-storybook-testing
+  - jonmumm/skills@testing-trophy
+  - jonmumm/skills@storybook-play-testing
 ---
 
 # Game QA

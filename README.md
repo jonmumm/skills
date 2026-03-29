@@ -1,6 +1,6 @@
 # Skills
 
-Personal AI agent skills. Install with the [Skills CLI](https://skills.dev).
+Personal AI agent skills. Install with [skpm](https://skpm.sh) — dependencies are resolved automatically.
 
 ## What's in this repo
 
@@ -15,7 +15,7 @@ Personal AI agent skills. Install with the [Skills CLI](https://skills.dev).
 | [cmux](cmux/) | Manage cmux terminal workspaces for parallel AI agent sessions. Create, switch, monitor, and communicate between named workspaces via CLI and socket API. Orchestrator pattern for /swarm and /nightshift. |
 | [codex-review](codex-review/) | Cross-agent code review: run OpenAI Codex to review changes, then address findings. Fresh-eyes review from a different model catches what self-review misses. |
 | [chrome-cdp](chrome-cdp/) | Interact with local Chrome browser session. Lightweight CLI for DevTools Protocol: list tabs, take screenshots, navigate, and evaluate JS without Puppeteer. |
-| [create-agents-md](create-agents-md/) | Bootstrap AGENTS.md as a table-of-contents + structured docs/ directory (architecture, product specs, acceptance tests, ADRs, lessons, exec plans, quality grades). |
+| [create-claude-md](create-claude-md/) | Bootstrap CLAUDE.md as a table-of-contents + structured docs/ directory (agent guidance, architecture, product specs, acceptance tests, ADRs, lessons, exec plans, quality grades). |
 | [debug-runbook](debug-runbook/) | Structured debugging for production and staging issues. Maps symptoms to tools and queries (Sentry, PostHog, wrangler logs, simulator logs, CI). Symptom-first investigation workflow. |
 | [deploy-verify](deploy-verify/) | Deploy Cloudflare Workers and verify changes work by inferring what to test from recent git diff. Flags issues without auto-rolling back. |
 | [design-principle-enforcer](design-principle-enforcer/) | Relentlessly critiques code against classic software engineering principles (SOLID, separation of concerns) to prevent spaghetti architecture. |
@@ -37,102 +37,42 @@ Personal AI agent skills. Install with the [Skills CLI](https://skills.dev).
 
 ## Install
 
-### Full stack (recommended)
-
-[scripts/install-agents-md-stack.sh](scripts/install-agents-md-stack.sh) installs everything: CLIs, Playwright MCP, all skills from this repo, and curated companion skills.
-
-Flags: `-g` / `--global` (default), `-p` / `--project` (project-scoped), `-f` / `--full` (extra skills), `-y` / `--yes` (non-interactive).
+### Single skill (dependencies auto-resolved)
 
 ```bash
-./scripts/install-agents-md-stack.sh -g          # interactive (recommended)
-./scripts/install-agents-md-stack.sh -g -y       # non-interactive (install all recommended)
-./scripts/install-agents-md-stack.sh -p          # project-scoped install
-./scripts/install-agents-md-stack.sh -g --full   # also offer react/frontend extras
+npx skpm-cli add jonmumm/skills@swarm -g
+# → automatically installs grill-me, mutation-testing, tdd, etc.
 ```
 
-From a clone:
+Skills declare their dependencies via `dependsOn` in SKILL.md frontmatter. When you install a skill, skpm recursively installs everything it needs.
 
 ```bash
-git clone https://github.com/jonmumm/skills.git && cd skills && ./scripts/install-agents-md-stack.sh -g
+npx skpm-cli add jonmumm/skills@swarm -g         # swarm + all deps
+npx skpm-cli add jonmumm/skills@nightshift -g     # nightshift + all deps
+npx skpm-cli add jonmumm/skills@vsdd -g           # vsdd + all deps
+npx skpm-cli add jonmumm/skills@create-claude-md -g
 ```
 
-**What it installs:**
-
-1. **CLIs** — Offers to install **Linear CLI** (`lin`), **Codex CLI**, **Claude Code CLI** if missing
-2. **Playwright MCP** — Adds to `~/.codex/config.toml` (provides browser automation)
-3. **This repo's skills** — All 20 skills listed above
-4. **TDD & Testing companions** — TDD, Vitest, E2E patterns (see table below)
-5. **Knowledge Infrastructure** — Gherkin writing, ADR writing (powers `create-agents-md`'s docs/ structure)
-6. **Linear CLI skill** — Always installed (handy for generating backlogs)
-
-### This repo's skills only
-
-No CLIs, no MCP, no companion skills:
+### All skills
 
 ```bash
-npx skills add jonmumm/skills --all -g -y
-```
-
-Or use the script:
-
-```bash
-./scripts/install-all-skills.sh        # global (default)
-./scripts/install-all-skills.sh -p     # project only
-```
-
-### Single skill
-
-```bash
-npx skills add jonmumm/skills@swarm -g -y
-npx skills add jonmumm/skills@create-agents-md -g -y
-npx skills add jonmumm/skills@adr-keeper -g -y
+npx skpm-cli add jonmumm/skills --all -g -y
 ```
 
 ### List available skills
 
 ```bash
-npx skills add jonmumm/skills --list
+npx skpm-cli add jonmumm/skills --list
 ```
 
-## Scripts
+### Global install (recommended)
 
-| Script | What it does |
-|--------|-------------|
-| [scripts/install-agents-md-stack.sh](scripts/install-agents-md-stack.sh) | Full interactive installer: CLIs → MCP → skills → companions. The one-stop-shop. |
-| [scripts/install-all-skills.sh](scripts/install-all-skills.sh) | Installs only this repo's skills (no CLIs, no companions). |
+Install `skpm` globally so you can skip `npx`:
 
-## Companion skills
-
-The install script optionally installs these from other repos.
-
-### TDD & Testing
-
-| Companion | Source | Purpose |
-|-----------|--------|---------|
-| **tdd** | `mattpocock/skills` | TDD: vertical slices, red-green-refactor. Swarm's Feature Agent uses this. |
-| **vitest** | `antfu/skills` | Vitest guidance for the TDD loop. |
-| **e2e-testing-patterns** | `wshobson/agents` | E2E/Playwright patterns. |
-| **linear-cli** | `schpet/linear-cli` | **Always installed.** Linear issue list/create/update/comment from CLI. |
-| **Playwright MCP** | (added to Codex config) | Browser automation. |
-
-### Knowledge Infrastructure
-
-| Companion | Source | Purpose |
-|-----------|--------|---------|
-| **bdd-gherkin-specification** | `jzallen/fred_simulations` | Gherkin writing guidance. `create-agents-md` uses this for `docs/acceptance/` feature files. |
-| **adr-writing** | `existential-birds/beagle` | ADR writing guidance. `create-agents-md` uses this for `docs/adrs/` entries. |
-| **playwright-bdd-gherkin-syntax** | `thebushidocollective/han` | Gherkin → Playwright test generation. Optional, for web E2E projects. |
-
-### Extras (with `--full`)
-
-| Companion | Source | Purpose |
-|-----------|--------|---------|
-| **react-best-practices** | `vercel-labs/agent-skills` | React/Next.js performance. |
-| **skill-creator** | `vercel-labs/agent-skills` | Creating new skills. |
-| **vercel-composition-patterns** | `vercel-labs/agent-skills` | React component refactoring. |
-| **prd-creator** | `vercel-labs/agent-skills` | PRD + task JSON backlog. |
-| **frontend-code-review** | `vercel-labs/agent-skills` | Structured .tsx/.ts review. |
-| **frontend-testing** | `vercel-labs/agent-skills` | Vitest + RTL component/hook tests. |
+```bash
+pnpm i -g skpm-cli
+skpm add jonmumm/skills@swarm -g
+```
 
 ## Typical workflows
 
@@ -141,9 +81,9 @@ The install script optionally installs these from other repos.
 Launch parallel agents that build features AND harden the codebase:
 
 ```bash
-# 1. Bootstrap agent context (if AGENTS.md doesn't exist)
-#    → creates AGENTS.md + docs/ structure
-"create-agents-md"
+# 1. Bootstrap agent context (if CLAUDE.md doesn't exist)
+#    → creates CLAUDE.md + docs/ structure
+"create-claude-md"
 
 # 2. Plan and launch the swarm
 "swarm"
@@ -182,7 +122,14 @@ Skills live at repo root (one folder per skill, each with `SKILL.md`). Optional:
 ---
 name: skill-name
 description: What it does. Use when [trigger scenarios].
+dependsOn:
+  - jonmumm/skills@other-skill
+  - owner/repo@external-skill
+postInstall:
+  - "which some-cli || pnpm i -g some-cli"
 ---
 ```
 
-2. Commit and push. New skills will appear in `npx skills add jonmumm/skills --list`.
+`dependsOn` and `postInstall` are optional. Dependencies are resolved recursively by skpm.
+
+2. Commit and push. New skills will appear in `skpm add jonmumm/skills --list`.

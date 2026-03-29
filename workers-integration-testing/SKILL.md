@@ -5,6 +5,10 @@ description: >
   Tests the full HTTP cycle — request through handler, middleware, bindings (D1, KV, R2, DO, Hyperdrive),
   and back. Use when adding test coverage to a Worker, when a new route/endpoint is created, or when
   /nightshift, /swarm, or /ralph-tdd encounter a Cloudflare Workers service.
+dependsOn:
+  - jonmumm/skills@testing-trophy
+  - jonmumm/skills@seam-tester
+  - jonmumm/skills@parse-at-boundary
 ---
 
 # Workers Integration Testing

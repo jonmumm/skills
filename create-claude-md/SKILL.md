@@ -1,27 +1,29 @@
 ---
-name: create-agents-md
+name: create-claude-md
 description: >
-  Bootstrap AGENTS.md as a short table-of-contents plus a structured docs/
-  directory (architecture, product specs, acceptance tests, ADRs, exec plans,
-  quality grades). Use when AGENTS.md is missing, when asked to "create
-  AGENTS.md", "bootstrap project for agents", or "set up agent context".
+  Bootstrap CLAUDE.md as a short table-of-contents plus a structured docs/
+  directory (agent guidance, architecture, product specs, acceptance tests,
+  ADRs, exec plans, quality grades). Use when CLAUDE.md is missing, when
+  asked to "create CLAUDE.md", "bootstrap project", or "set up agent context".
+dependsOn:
+  - jonmumm/skills@adr-keeper
 ---
 
-# Create AGENTS.md
+# Create CLAUDE.md
 
-Create `AGENTS.md` as the agent's **table of contents** — a ~100-line map
+Create `CLAUDE.md` as the agent's **table of contents** — a brief map
 pointing to deeper sources of truth in `docs/`. Agents start here,
 then load only what they need (progressive disclosure).
 
-> **Philosophy:** AGENTS.md is a map, not an encyclopedia.
+> **Philosophy:** CLAUDE.md is a map, not an encyclopedia.
 > A monolithic instruction file crowds out the task and rots instantly.
 > Keep it short; point to deeper docs.
 
 ## When to Use
 
-- The project has no `AGENTS.md` and you're about to run a swarm or any agent workflow.
-- User asks to "create AGENTS.md", "set up this repo for agents", or "bootstrap agent context".
-- The project has an existing AGENTS.md that is overly long or monolithic and needs restructuring.
+- The project has no `CLAUDE.md` and you're about to run a swarm or any agent workflow.
+- User asks to "create CLAUDE.md", "set up this repo for agents", or "bootstrap agent context".
+- The project has an existing CLAUDE.md that is overly long or monolithic and needs restructuring.
 
 ## What to Do
 
@@ -37,7 +39,7 @@ Before generating anything, detect and report.
 | Package manager | `bun.lockb` → bun, `pnpm-lock.yaml` → pnpm, `yarn.lock` → yarn, else npm |
 | Framework & stack | Read `package.json` deps, config files (tsconfig, vitest, playwright, detox, stryker, etc.) |
 | Source layout | Scan top-level directories (`src/`, `app/`, `lib/`, `services/`, `db/`, `e2e/`, etc.) |
-| Existing agent docs | Check for `AGENTS.md`, `CLAUDE.md`, `CODEX.md`, `spec/`, `docs/` |
+| Existing agent docs | Check for `CLAUDE.md`, `AGENTS.md`, `CODEX.md`, `spec/`, `docs/` |
 | Existing gitignore | Check `.gitignore` for `.swarm/`, `.claude/` |
 
 #### 2. Detect Feedback Commands
@@ -58,25 +60,28 @@ Auto-detect from `package.json` scripts, then confirm with user:
 Show the user what you found and what will be generated:
 
 ```
-Pre-Flight: create-agents-md
+Pre-Flight: create-claude-md
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Project:           my-app (pnpm, TypeScript, React, Vitest)
 Feedback commands:  typecheck, lint, test, test:mutate:incremental
-Existing docs:     CLAUDE.md found (will reference from Knowledge Base)
+Existing docs:     AGENTS.md found (will migrate to CLAUDE.md)
                    spec/SPEC.md found (will migrate to docs/product-specs/)
 
 Will generate:
-  AGENTS.md                           (~100 lines, the TOC)
-  docs/ARCHITECTURE.md                (system map)
-  docs/product-specs/index.md         (product requirements catalog)
-  docs/acceptance/index.md            (acceptance test catalog)
-  docs/adrs/index.md                  (ADR catalog)
-  docs/design-docs/index.md           (design doc catalog)
-  docs/design-docs/core-beliefs.md    (agent-first principles)
-  docs/exec-plans/active/             (active plans directory)
-  docs/exec-plans/completed/          (completed plans directory)
-  docs/QUALITY.md                     (quality grades)
+  CLAUDE.md                                 (the TOC — brief)
+  docs/agents/harness-engineering.md        (continuous improvement loop)
+  docs/agents/testing-principles.md         (project testing conventions)
+  docs/agents/code-style.md                 (language/framework style rules)
+  docs/ARCHITECTURE.md                      (system map)
+  docs/product-specs/index.md               (product requirements catalog)
+  docs/acceptance/index.md                  (acceptance test catalog)
+  docs/adrs/index.md                        (ADR catalog)
+  docs/design-docs/index.md                 (design doc catalog)
+  docs/exec-plans/active/                   (active plans directory)
+  docs/exec-plans/completed/                (completed plans directory)
+  docs/QUALITY.md                           (quality grades)
+  docs/lessons.md                           (persistent project lessons)
 
 Proceed? [Y/n]
 ```
@@ -91,6 +96,10 @@ Always create the full structure:
 
 ```
 docs/
+├── agents/                        ← agent-specific guidance
+│   ├── harness-engineering.md     ← continuous improvement loop
+│   ├── testing-principles.md      ← project testing conventions
+│   └── code-style.md             ← language & framework style rules
 ├── ARCHITECTURE.md                ← system map
 ├── QUALITY.md                     ← quality grades per domain/layer
 ├── lessons.md                     ← persistent project lessons (meta)
@@ -105,16 +114,16 @@ docs/
 │   └── (seed from existing "Key Decisions" sections)
 ├── design-docs/
 │   ├── index.md                   ← design doc catalog
-│   └── core-beliefs.md            ← agent-first principles
+│   └── (project-specific design docs)
 └── exec-plans/
     ├── active/                    ← plans being worked
     └── completed/                 ← finished plans (history)
 ```
 
-#### 2. Create `AGENTS.md`
+#### 2. Create `CLAUDE.md`
 
 Use the template below. Fill every placeholder with real values.
-Aim for 80–100 lines.
+Keep it brief — this is a map, not an encyclopedia.
 
 #### 3. Update `.gitignore`
 
@@ -132,10 +141,11 @@ migrate content:
 
 | Existing | Offer to migrate to |
 |----------|-------------------|
+| `AGENTS.md` | Merge relevant content into `CLAUDE.md` + `docs/agents/` |
 | `spec/SPEC.md` or similar behavioral spec | `docs/product-specs/` (prose) + `docs/acceptance/` (Gherkin distillation) |
-| Inline architecture diagram in old AGENTS.md | `docs/ARCHITECTURE.md` |
+| Inline architecture diagram in old docs | `docs/ARCHITECTURE.md` |
 | "Key Decisions" bullet list | Individual ADR files in `docs/adrs/` |
-| Platform gotchas, framework rules | `docs/design-docs/platform-gotchas.md` |
+| Platform gotchas, framework rules | `docs/agents/code-style.md` or `docs/design-docs/platform-gotchas.md` |
 | Visual design / theme docs | `docs/design-docs/visual-design.md` |
 
 ## Product Specs vs. Acceptance Tests
@@ -150,13 +160,6 @@ Organized by domain area.                 Organized by feature, date-named like 
 Evolves as the product vision changes.    Updated when specific behaviors change.
 Read by humans and agents for context.    Read by agents to verify behavior, can generate
                                           runnable tests (Playwright, Detox, Vitest).
-
-Example:                                  Example:
-"Users hear audio chunks and self-grade   Feature: Listening Session
- their comprehension using an Anki-style    Scenario: Grade gating — phrases tapped
- rating system. Grade gating restricts      Given the answer is revealed
- higher grades when hints are used."        And I have tapped 1 or more phrases
-                                            Then the "All" grade button should be disabled
 ```
 
 **The flow:**
@@ -176,12 +179,6 @@ Use domain-based names in `docs/product-specs/`:
 - `data-model.md` — schemas, entities, relationships
 - `screens.md` or individual screen files (e.g., `home-screen.md`, `session-screen.md`)
 - `api-integration.md` — external API contracts
-- `visual-design.md` — theme, typography, haptics (can also live in design-docs/)
-
-For large specs (like a 400-line monolith), break them into domain files
-during migration. Each file should be independently useful — an agent working
-on the audio system should only need to load `audio-system.md`, not the
-entire product spec.
 
 ### Acceptance Test File Naming
 
@@ -189,26 +186,17 @@ Use date-prefixed names in `docs/acceptance/`:
 - `YYYY-MM-DD-feature-name.feature`
 - e.g., `2026-03-07-listening-session.feature`
 
-New features get new files with today's date. When requirements change,
-either update the existing file or create a new dated file (if the
-change is significant enough to track chronologically).
+## CLAUDE.md Template
 
-## AGENTS.md Template
-
-Fill all `[PLACEHOLDER]` values. Aim for 80–100 lines.
+Fill all `[PLACEHOLDER]` values. Keep it brief — this is a map, not an encyclopedia.
 
 ```markdown
-# AGENTS.md
+# [PROJECT NAME]
 
-## Project
+[One-line description]
 
-- **Name:** [PROJECT NAME]
-- **Description:** [One-line description]
-- **Tech stack:** [e.g. TypeScript, React, Vite, Vitest, Playwright, Stryker]
-- **Package manager:** [pnpm/npm/yarn/bun]
-- **Source layout:**
-  - `[dir]/` — [purpose]
-  - `[dir]/` — [purpose]
+**Stack:** [e.g. TypeScript, React, Vite, Vitest, Playwright, Stryker]
+**Package manager:** [pnpm/npm/yarn/bun] — use `[pnpm/bun] install`, `[pnpm/bun] run ...`
 
 ## Feedback Commands
 
@@ -224,16 +212,17 @@ Run in this order. All must pass before committing.
 
 Start here. Load deeper docs **only when working on the relevant domain.**
 
-| Topic                      | Location                                                   |
-|----------------------------|------------------------------------------------------------|
-| Architecture overview      | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)               |
-| Product specs              | [docs/product-specs/index.md](docs/product-specs/index.md) |
-| Acceptance tests (Gherkin) | [docs/acceptance/index.md](docs/acceptance/index.md)       |
-| Architectural decisions    | [docs/adrs/index.md](docs/adrs/index.md)                   |
-| Design docs & principles   | [docs/design-docs/index.md](docs/design-docs/index.md)     |
-| Active execution plans     | [docs/exec-plans/active/](docs/exec-plans/active/)         |
-| Quality grades             | [docs/QUALITY.md](docs/QUALITY.md)                         |
-| Lessons learned            | [docs/lessons.md](docs/lessons.md)                         |
+| Topic | Location |
+|-------|----------|
+| Agent guidance | [docs/agents/](docs/agents/) — harness engineering, testing, code style |
+| Architecture | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| Product specs | [docs/product-specs/index.md](docs/product-specs/index.md) |
+| Acceptance tests | [docs/acceptance/index.md](docs/acceptance/index.md) |
+| ADRs | [docs/adrs/index.md](docs/adrs/index.md) |
+| Design docs | [docs/design-docs/index.md](docs/design-docs/index.md) |
+| Execution plans | [docs/exec-plans/active/](docs/exec-plans/active/) |
+| Quality grades | [docs/QUALITY.md](docs/QUALITY.md) |
+| Lessons learned | [docs/lessons.md](docs/lessons.md) |
 
 > **Progressive disclosure:** Do NOT load all docs upfront. Read this file,
 > then load the specific doc relevant to your current task.
@@ -242,68 +231,23 @@ Start here. Load deeper docs **only when working on the relevant domain.**
 
 - **Simplicity First**: Make every change as simple as possible. Impact minimal code.
 - **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
-- **Verify Before Done**: Run tests. Ask: "Would a staff engineer approve this?"
+- **Verify Before Done**: Run feedback commands. Ask: "Would a staff engineer approve this?"
 - **Spec Traceability**: Every behavior should trace to an acceptance test in docs/acceptance/.
 - **Architecture First**: Consult docs/adrs/ before making structural decisions.
 
 ## Keeping Docs Current
 
-**Stale docs are worse than no docs. Updating docs is part of completing any task.**
+Stale docs are worse than no docs. Updating docs is part of completing any task.
 
-When your work affects any of these, update them as part of the same change:
-
-| If you...                            | Then update...                                           |
-|--------------------------------------|----------------------------------------------------------|
-| Change a feature's behavior          | Product spec + acceptance test .feature file             |
-| Add a new feature                    | Product spec + new .feature file + docs/acceptance/index.md |
-| Make a structural decision           | Create a new ADR in docs/adrs/ + update index            |
-| Change module boundaries / data flow | docs/ARCHITECTURE.md                                     |
-| Fix a platform gotcha or learn a rule| docs/design-docs/ (e.g. platform-gotchas.md)             |
-| Improve or degrade quality metrics   | docs/QUALITY.md                                          |
-| Change the tech stack                | This file (AGENTS.md Project section)                    |
-| Learn from a mistake or failed approach | docs/lessons.md                                       |
-
-Do NOT defer doc updates to a separate task. The agent (or human) who makes
-the change is the one who knows the context — capture it now.
-
-## Maintaining Acceptance Tests
-
-- When requirements change, update the relevant `.feature` file in `docs/acceptance/`
-- New features MUST have acceptance scenarios before implementation begins
-- Update `docs/acceptance/index.md` when adding/removing feature files
-- Use `YYYY-MM-DD-feature-name.feature` naming (sorted chronologically)
-- Acceptance tests are the contract — if the code doesn't match the .feature file,
-  the code is wrong (unless the spec changed, in which case update the spec first)
-
-## Maintaining Product Specs
-
-- Product specs capture the vision and requirements in prose
-- When the product evolves, update the relevant spec file in `docs/product-specs/`
-- Break large specs into domain files — each independently loadable
-- Specs should be readable without loading the entire knowledge base
-
-## Maintaining Architectural Decisions
-
-- When making structural decisions (new deps, pattern changes, tech choices),
-  create `docs/adrs/YYYY-MM-DD-decision-name.md`
-- ADRs are append-only — never edit old decisions, create new ones that supersede
-- Update `docs/adrs/index.md` with the new entry
-
-## Lessons
-
-Two levels of lessons, serving different purposes:
-
-- **`docs/lessons.md`** — persistent project knowledge. Things any agent needs to
-  know: platform gotchas discovered the hard way, architectural mistakes to avoid,
-  patterns that work well. This file is versioned and survives across all runs.
-- **`.swarm/lessons.md`** — tactical swarm-specific lessons. Merge strategies,
-  agent coordination tips, worktree issues. Managed by the swarm skill.
-
-After any mistake or failed approach:
-1. Ask: "Would this lesson help ANY future agent working on this project?"
-   - Yes → add to `docs/lessons.md`
-   - Only relevant to swarm operations → add to `.swarm/lessons.md`
-2. Review `docs/lessons.md` at the start of each task
+| If you... | Then update... |
+|-----------|---------------|
+| Change a feature's behavior | Product spec + acceptance test .feature file |
+| Add a new feature | Product spec + new .feature file + docs/acceptance/index.md |
+| Make a structural decision | Create a new ADR in docs/adrs/ + update index |
+| Change module boundaries | docs/ARCHITECTURE.md |
+| Fix a platform gotcha | docs/agents/code-style.md or docs/design-docs/ |
+| Change the tech stack | This file (CLAUDE.md header) |
+| Learn from a mistake | docs/lessons.md |
 
 ## Off-Limits
 
@@ -312,11 +256,121 @@ After any mistake or failed approach:
 
 ## After Creating
 
-- Tell the user the structure is ready. Agents will read AGENTS.md as their entry point.
-- You can output `<promise>AGENTS_CREATED</promise>` when done so scripts know
+- Tell the user the structure is ready.
+- You can output `<promise>CLAUDE_MD_CREATED</promise>` when done so scripts know
   to continue.
 
 ## Starter File Templates
+
+### `docs/agents/harness-engineering.md`
+
+```markdown
+# Harness Engineering
+
+How to turn each change into a durable improvement, not a one-off fix.
+
+## Core Mindset
+
+- Humans steer outcomes; agents execute implementation details.
+- Optimize for human attention as the scarce resource.
+- Repository-local knowledge is the source of truth.
+- Prefer small, enforceable rules over long, fragile instructions.
+
+## The Continuous Improvement Loop
+
+Run this loop for features, fixes, and refactors:
+
+1. Define intent and acceptance criteria in the task/PR.
+2. Implement the change.
+3. Evaluate with fast checks (feedback commands).
+4. Capture what was learned in docs, tests, or tooling.
+5. Promote repeated guidance into mechanical enforcement.
+
+## Promote Learning into Enforcement
+
+When a mistake repeats, move "advice" into a stronger guardrail:
+
+1. **Docs** — clarify the expected pattern in docs/agents/.
+2. **Tests** — add coverage for the failure mode.
+3. **Lint/structure** — add a static rule when possible.
+4. **Scripts/automation** — encode the workflow in commands.
+
+Rule of thumb: **if reviewers repeat the same comment twice, encode it.**
+
+## Make Quality Legible
+
+- Deterministic scripts (feedback commands, targeted tests, type checks).
+- Explicit failure messages with remediation hints.
+- Small PRs with clear intent and verification notes.
+- Documentation links near related code.
+
+## Weekly Maintenance Cadence
+
+Lightweight "doc and quality gardening" pass to prevent drift:
+
+- Remove stale guidance from docs/agents/.
+- Tighten unclear instructions and add cross-links.
+- Identify recurring defects and propose one new mechanical guardrail.
+- Record follow-up tech debt as explicit, trackable work.
+
+Continuous small cleanups are cheaper than periodic large rewrites.
+```
+
+### `docs/agents/testing-principles.md`
+
+```markdown
+# Testing Principles
+
+[PROJECT NAME] testing conventions. Adapt to your project's
+test runner (Vitest, Bun test, Jest, Detox, Playwright, etc.)
+
+## Principles
+
+- Prefer flat test files: use top-level `test(...)`, avoid `describe` nesting.
+- Inline setup per test. Avoid shared `beforeEach`/`afterEach`.
+- Don't test what the type system already guarantees.
+- Build helpers that return ready-to-run objects (factory pattern), not globals.
+- Keep test intent obvious in the name: "[subject] [verb]s [expected outcome]".
+- Write tests so they run offline — prefer local fakes/fixtures over network.
+- Prefer fast unit tests for logic; keep E2E focused on user journeys.
+
+## Testing Hierarchy
+
+1. **Integration tests at seams** — the highest-value tests. Test real boundaries.
+2. **Unit tests for pure logic** — fast, no mocks of internal modules.
+3. **E2E for critical journeys** — expensive but irreplaceable for full-stack confidence.
+4. **Mutation testing** — validates that tests actually catch regressions.
+
+## When to Add Tests
+
+- Every new behavior gets a test BEFORE the implementation (TDD).
+- Every bug fix starts with a failing test that reproduces the bug.
+- Never modify existing tests to make new code pass — the new code is wrong.
+```
+
+### `docs/agents/code-style.md`
+
+```markdown
+# Code Style
+
+Apply these rules to all new or edited code. When in doubt, match the
+existing file style first, then run the formatter.
+
+[Fill in project-specific conventions. Examples below — keep only what applies.]
+
+## TypeScript
+
+- Prefer named exports. Default exports only for framework contracts.
+- Prefer `type` aliases for object shapes. Use `interface` only for declaration merging.
+- Use `null` for explicit "no value"; `undefined` for optional fields.
+- Function declarations for reusable functions; arrow functions for callbacks.
+- Parse external data at the boundary with Zod (no `any`, no `as` casting).
+
+## [Framework-Specific]
+
+- [e.g. "Remix: loader/action functions in route files, business logic in services/"]
+- [e.g. "React Native: no @tailwind base with NativeWind v4"]
+```
 
 ### `docs/ARCHITECTURE.md`
 
@@ -389,24 +443,6 @@ Named `YYYY-MM-DD-short-description.md` and sorted chronologically.
 | ... | ... | Accepted |
 ```
 
-### `docs/design-docs/core-beliefs.md`
-
-```markdown
-# Core Beliefs
-
-Operating principles for agent-first development in this project.
-
-1. **Repository is the system of record** — anything not in the repo
-   doesn't exist for agents
-2. **Progressive disclosure** — start with AGENTS.md, load deeper
-   docs only when needed
-3. **Enforce mechanically** — prefer linters and tests over documentation
-   for enforcing rules
-4. **Stale docs are actively harmful** — keep docs current or delete them
-5. **Docs are part of the change** — updating docs is not a separate task,
-   it's part of completing the work
-```
-
 ### `docs/QUALITY.md`
 
 ```markdown
@@ -435,14 +471,9 @@ Persistent project knowledge. Things any agent (or human) needs to know.
 Updated whenever a mistake is made, a gotcha is discovered, or a pattern proves
 effective. Review this file at the start of each task.
 
-> **Rule of thumb:** If this lesson would save a future agent from making
-> the same mistake, it belongs here. If it's only about swarm coordination
-> or merge strategy, it goes in `.swarm/lessons.md` instead.
-
 ## Platform & Framework
 
 - [e.g. "NativeWind v4: never use @tailwind base — it breaks Pressable styles"]
-- [e.g. "Detox on Fabric: testID alone doesn't work, must add nativeID too"]
 
 ## Architecture
 

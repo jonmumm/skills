@@ -7,6 +7,11 @@ description: >
   LLM judges → codex review) → commit → morning briefing. Use when going AFK —
   lunch, gym, overnight, weekend. Optionally provide duration so the agent can
   scope work accordingly.
+dependsOn:
+  - jonmumm/skills@grill-me
+  - jonmumm/skills@evals-first
+  - jonmumm/skills@testing-trophy
+  - jonmumm/skills@codex-review
 ---
 
 # Nightshift

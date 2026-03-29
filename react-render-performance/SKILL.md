@@ -5,6 +5,8 @@ description: >
   Zustand, Redux, Nanostores, context). Prefer selector-based subscriptions over useState(wholeObject).
   Use when dealing with external state in React, optimizing re-renders, choosing state patterns,
   or integrating with these libraries.
+dependsOn:
+  - jonmumm/skills@react-composable-components
 ---
 
 # React Render Performance

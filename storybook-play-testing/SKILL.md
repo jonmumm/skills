@@ -7,6 +7,9 @@ description: >
   play function patterns, viewport coverage, and vitest browser test runner.
   Use when writing Storybook stories, setting up Storybook in a TanStack Start
   project, testing route-level pages, or adding play function interaction tests.
+dependsOn:
+  - jonmumm/skills@actorkit-storybook-testing
+  - jonmumm/skills@mutation-testing
 ---
 
 # Storybook Play Function Testing
