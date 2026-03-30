@@ -366,7 +366,7 @@ while [[ "$ITERATION" -lt "$MAX_ITERATIONS" ]]; do
   fi
 
   if echo "$OUTPUT" | grep -qF "<promise>BLOCKED:"; then
-    REASON="$(echo "$OUTPUT" | grep -oP '(?<=<promise>BLOCKED:)[^<]+' | head -1 || echo "unknown")"
+    REASON="$(echo "$OUTPUT" | grep -oE '<promise>BLOCKED:[^<]+</promise>' | head -1 | sed 's|<promise>BLOCKED:||;s|</promise>||' || echo "unknown")"
     echo ""
     echo "=== BLOCKED: $REASON ==="
     echo "Fix the issue and re-run. Logs: $RUN_DIR/logs/iteration-$ITERATION.log"
@@ -374,7 +374,7 @@ while [[ "$ITERATION" -lt "$MAX_ITERATIONS" ]]; do
   fi
 
   if echo "$OUTPUT" | grep -qF "<promise>DECIDE:"; then
-    QUESTION="$(echo "$OUTPUT" | grep -oP '(?<=<promise>DECIDE:)[^<]+' | head -1 || echo "see logs")"
+    QUESTION="$(echo "$OUTPUT" | grep -oE '<promise>DECIDE:[^<]+</promise>' | head -1 | sed 's|<promise>DECIDE:||;s|</promise>||' || echo "see logs")"
     echo ""
     echo "=== NEEDS HUMAN DECISION ==="
     echo "    $QUESTION"

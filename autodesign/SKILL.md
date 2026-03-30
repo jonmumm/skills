@@ -1,11 +1,13 @@
 ---
 name: autodesign
 description: >
-  Autonomous design iteration loop. Captures screenshots, runs design critique +
-  impeccable skills, gets cross-model consensus (Claude + Codex), implements fixes,
-  deploys, and repeats until the design converges. Use when going AFK on design polish,
-  when asked to "autodesign", "design loop", "polish loop", "iterate on the design",
-  or "make it look good while I'm away".
+  Two-phase design loop like /swarm but for visual design. EXPLORE: launches N parallel
+  subagents in Figma — each designs a distinct concept on its own page simultaneously,
+  then cross-model consensus (Claude + Codex) picks the winner. DEEP: iterates the
+  chosen concept with critique → impeccable skills → fixes until it converges.
+  Use when starting a new UI from scratch or iterating an existing design, when asked
+  to "autodesign", "explore designs", "design this in Figma", "go wide then deep", or
+  "make it look good".
 dependsOn:
   - jonmumm/skills@evals-first
   - jonmumm/skills@codex-review
@@ -14,9 +16,11 @@ dependsOn:
 
 # Autodesign
 
-Autonomous design iteration loop. Captures screenshots of your UI across viewports,
-runs design critique and impeccable skills, gets cross-model consensus feedback,
-implements the highest-impact fixes, deploys, and repeats until the design converges.
+Two-phase design loop modeled after `/swarm`. **Explore phase**: launch N parallel
+subagents in Figma — each designs a distinct concept on its own page simultaneously.
+Cross-model consensus (Claude + Codex) picks the winner. **Deep phase**: iterate the
+chosen concept with critique → impeccable skills → fixes until it converges. Go wide,
+then go deep.
 
 ## Concept
 
@@ -25,8 +29,9 @@ Phase 1: PREFLIGHT (interactive, human present)
   ├── Understand the design target (what are we designing?)
   ├── Detect context: new design from scratch (→ Exploration phase) vs. iterating existing
   ├── IF new design from Figma:
-  │   ├── How many explorations? (default: 10)
-  │   └── Confirm Figma file / page to generate into
+  │   ├── How many parallel concepts? (default: 3–5)
+  │   ├── Name + direction for each concept
+  │   └── Confirm Figma file to work in
   ├── Choose capture method (Playwright / Chrome MCP / Maestro / XCUITest / Detox / Storybook)
   ├── Define viewports (mobile 390x844, desktop 1440x900, tablet, etc.)
   ├── Define design judges via /evals-first (LLM judges for subjective criteria)
@@ -35,17 +40,17 @@ Phase 1: PREFLIGHT (interactive, human present)
   └── User confirms → agent takes over
 
 Phase 1.5: EXPLORATION — go wide (Figma new-design mode only)
-  ├── Generate N distinct design concepts in Figma (default: 10)
-  │   ├── Each concept gets its own named frame: "Exploration 01", "Exploration 02", …
-  │   ├── Vary: layout structure, visual direction, tone, typographic voice
-  │   └── Aim for genuine diversity — not 10 variations of the same idea
-  ├── Get cross-model evaluation of all N designs
-  │   ├── Claude: rank and score each design, explain top 3 picks
-  │   └── Codex: independently rank and score each design, explain top 3 picks
-  ├── Synthesize: which designs do BOTH models agree on?
-  ├── Present ranked shortlist (top 3 by consensus) to the user with reasoning
-  ├── User selects the direction (or asks for more explorations)
-  └── Chosen concept becomes the baseline → continue to Phase 2 LOOP
+  ├── Create one Figma page per concept (e.g. "A — Madden Playbook", "B — Arrow Overlay")
+  ├── Launch N parallel subagents — one per concept, each designing in its own page
+  │   ├── Each subagent has full independent context — no cross-contamination
+  │   ├── Each designs its concept fully: real content, real layout, real colors
+  │   └── All run simultaneously → N concepts done in the time of 1
+  ├── Wait for all subagents to complete
+  ├── Screenshot all concept pages → cross-model eval (Claude + Codex)
+  ├── Synthesize: which designs do BOTH models rank highly?
+  ├── Present ranked shortlist to the user with side-by-side reasoning
+  ├── User selects the direction (or requests another round)
+  └── Chosen concept page becomes the working design → continue to Phase 2 LOOP
 
 Phase 2: LOOP — go deep (AFK, autonomous)
   ├── 1. Capture screenshots across all viewports
@@ -69,93 +74,143 @@ Phase 3: HANDOFF (waiting for human)
 ## Exploration Phase (Go Wide Before Going Deep)
 
 When designing something **new** in Figma, autodesign runs an exploration phase before
-the polish loop. The goal is divergence first — generate many distinct directions,
-evaluate them with two independent models, then converge on the best one.
+the polish loop. The mechanism is **parallel subagents** — one per concept, launched
+simultaneously, each with full independent context. No sequential generation, no shared
+state, no context bleed between directions.
 
 ### How many explorations?
 
 During preflight, ask:
 
-> "How many design explorations should we generate before picking a direction?" (default: 10)
+> "How many design concepts should we explore before picking a direction?" (default: 3–5)
 
-10 is the right number for most cases — enough variety to surface genuinely different
-directions, not so many that evaluation becomes noise.
+3–5 is the right number for subagents — enough variety to surface genuinely different
+directions without becoming unwieldy to evaluate. If the user wants more coverage,
+run a second round.
 
-### Generating explorations
+### Setting up Figma pages
 
-Each exploration is a standalone Figma frame. Use Figma MCP to create them:
+Before launching subagents, create one Figma page per concept using Figma MCP:
 
-1. Create a new Figma page called **"Explorations"** (keep existing pages intact)
-2. Generate N frames named `Exploration 01` through `Exploration N`
-3. For each exploration, genuinely vary:
-   - Layout structure (single column vs. grid vs. editorial vs. asymmetric)
-   - Visual direction (minimal, rich, typographic, illustrative, photo-forward)
-   - Tone (serious/professional, playful/friendly, bold/aggressive, calm/trustworthy)
-   - Typographic voice (display-led, body-text-led, oversized numerics, etc.)
-   - Color approach (monochrome, brand accent, full palette, neutral + one pop)
-4. Aim for diversity — 10 slight variations of the same idea is NOT the goal.
-   If you notice yourself repeating a pattern, skip it and invent something different.
+```javascript
+// Example: 3 concepts for a play-calling UI
+const page1 = figma.root.children[0];
+page1.name = "A — Madden Playbook";
 
-### Cross-model evaluation
+const page2 = figma.createPage();
+page2.name = "B — Arrow Overlay";
 
-Once all N explorations exist in Figma, run both models independently:
-
-**Claude evaluation:**
-Capture screenshots of all N frames. Ask Claude to:
-- Score each design 1-10 across: hierarchy, distinctiveness, fit-for-purpose, polish potential
-- Identify top 3 picks with specific reasoning
-- Flag any explorations it would discard and why
-
-**Codex evaluation:**
-```bash
-codex exec \
-  -c model_reasoning_effort="xhigh" \
-  "You are evaluating $(N) UI design explorations for [target]. Screenshots are at:
-   .autodesign/captures/explorations/
-
-   For each design, score it 1-10 on:
-   - Visual hierarchy: does the eye go where it should?
-   - Distinctiveness: does it avoid generic AI design clichés?
-   - Fit-for-purpose: does the visual direction match the product's purpose?
-   - Polish potential: how much work would it take to make this production-ready?
-
-   Then rank your top 3 picks with specific reasoning.
-   Format: RANK 1: Exploration XX — [reason]. RANK 2: ... RANK 3: ...
-   Then list any you'd eliminate immediately and why." \
-  2>&1 | tee .autodesign/codex-exploration-review.md
+const page3 = figma.createPage();
+page3.name = "C — Coaching Clipboard";
 ```
 
-### Synthesis and selection
+Name pages with a letter prefix so they sort clearly (A, B, C...) and a short concept
+description. This makes it obvious at a glance what each direction is.
 
-After both reviews:
-1. Find consensus: which designs appear in BOTH models' top 3?
-2. Rank by consensus score (average rank across both models)
-3. Present the top 3 consensus picks to the user with:
-   - Side-by-side reasoning from each model
-   - What each direction would look like if taken to production
-4. User selects one (or asks for more explorations in a different direction)
+### Naming concepts
 
-**If no consensus:** present top 2 from each model separately and let the user decide.
+Spend a moment naming the concepts before launching agents — the names shape what
+each subagent designs. Good names are evocative and directionally specific:
 
-**If user wants more explorations:** generate another batch in the same Figma page
-(`Exploration 11`–`Exploration 20`), run the same evaluation, add to the shortlist.
+| Good | Bad |
+|------|-----|
+| "Madden Playbook" | "Option 1" |
+| "Arrow Overlay" | "Design A" |
+| "Coaching Clipboard" | "Concept 3" |
+| "Stadium Scoreboard" | "Alternative" |
+
+The name is the brief. Make it mean something.
+
+### Launching parallel subagents
+
+Use the `Agent` tool to launch all subagents in a single message — they run in parallel:
+
+```
+Agent("Design Madden Playbook concept", "
+  You are designing the 'A — Madden Playbook' concept in Figma.
+  File key: [fileKey]. Work on the page named 'A — Madden Playbook'.
+
+  Design a play-calling UI that feels like a Madden NFL playbook overlay:
+  3 play cards, each containing a mini pitch diagram with colored arrows,
+  player names, and a brief play name. Dark semi-transparent overlay on the
+  game board. Tap a card to preview it full-size. Warm amber accent on selected.
+
+  Use real content — real player names, real play names (Wing Run, Triangle Pass,
+  Long Ball). Make it look like a real game UI, not a wireframe.
+
+  When done, output the Figma frame node ID you created.
+")
+
+Agent("Design Arrow Overlay concept", "...")
+Agent("Design Coaching Clipboard concept", "...")
+```
+
+Each subagent:
+- Works on its own Figma page — no conflicts
+- Designs its concept fully with real content
+- Has no awareness of the other concepts being designed in parallel
+
+### What to put in each subagent prompt
+
+Each prompt should specify:
+1. **The concept name and its page** — where to work
+2. **The visual metaphor** — what this concept feels like (Madden playbook, chalkboard, etc.)
+3. **Key layout decisions** — where plays appear, how selection works, what info shows
+4. **Real content** — actual player names, play names, game state data to render
+5. **The interaction model** — how the user picks a play in this concept
+
+Don't over-specify — leave room for the subagent to make design decisions. Give it the
+concept direction, not a pixel-level spec.
+
+### After subagents complete
+
+Once all subagents finish:
+
+1. **Take screenshots** of each concept page via Figma MCP `get_screenshot`
+2. **Claude evaluation** (you, now): score each concept on:
+   - Visual hierarchy — does the eye go to the right place?
+   - Fit-for-purpose — does this feel right for the product?
+   - Distinctiveness — does it avoid generic AI design?
+   - Polish potential — how close to production-ready?
+3. **Codex evaluation** (cross-model):
+   ```bash
+   codex exec -c model_reasoning_effort="xhigh" \
+     "Evaluate these [N] play-calling UI concepts. Screenshots at: .autodesign/captures/explorations/
+      Score each 1-10 on: hierarchy, fit, distinctiveness, polish potential.
+      Rank your top picks with specific reasoning." \
+     > .autodesign/codex-exploration-review.md
+   ```
+4. **Synthesize**: find consensus between Claude and Codex rankings
+5. **Present to user**: show the shortlist table with both models' reasoning
+
+If no consensus, show top picks from each model separately. Let the user decide.
+
+### If the user wants more concepts
+
+Launch another round of subagents. Name pages `D — ...`, `E — ...` continuing the alphabet.
+Don't delete earlier concepts — they're the audit trail of what was considered.
 
 ### Figma organization during exploration
 
 ```
 Figma file
-  └── Page: "Explorations"
-        ├── [Section: "Round 1"]
-        │     ├── Frame: "Exploration 01"
-        │     ├── Frame: "Exploration 02"
-        │     ├── …
-        │     └── Frame: "Exploration 10"
-        └── [Section: "Round 2"]  ← if more explorations requested
-              ├── Frame: "Exploration 11"
-              └── …
+  ├── Page: "A — Madden Playbook"     ← ★ SELECTED (winner gets this label)
+  ├── Page: "B — Arrow Overlay"
+  ├── Page: "C — Coaching Clipboard"
+  ├── Page: "D — ..."                 ← Round 2 concepts, if needed
+  └── Page: "Iterations"             ← Created when deep loop begins
 ```
 
-Winning exploration gets labeled `★ SELECTED` in its frame name.
+The selected concept page gets `★ SELECTED` added to its name. All other pages stay
+as-is — they're the record of what was explored and rejected.
+
+### Why subagents, not sequential generation
+
+Sequential generation in a single context means each concept is influenced by the last.
+The 3rd concept will unconsciously echo patterns from the 1st and 2nd. Parallel subagents
+each start from zero — genuinely independent directions, genuinely divergent results.
+
+The speed is a bonus. The independence is the point.
 
 ## Figma Organization (Iteration History)
 
@@ -459,8 +514,9 @@ Ask:
 - What viewports matter? (default: mobile 390x844 + desktop 1440x900)
 
 **If new design (from Step 0):**
-- How many design explorations before picking a direction? (default: **10**)
-- Which Figma file should explorations be created in? (create new file if none)
+- How many parallel concepts to explore? (default: **3–5**)
+- A short name/direction for each concept — these become the subagent briefs
+- Which Figma file to work in? (create new if none)
 - Any non-negotiable constraints? (brand colors, typography, platform conventions)
 
 ### Step 2: Choose capture method
