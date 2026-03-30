@@ -10,6 +10,7 @@ description: >
 dependsOn:
   - jonmumm/skills@evals-first
   - jonmumm/skills@codex-review
+  - pbakaus/impeccable
 ---
 
 # Autodesign
@@ -496,9 +497,31 @@ If the project can be deployed (e.g., Cloudflare Pages, Vercel):
 - Confirm deploy command
 - Confirm whether to deploy after each iteration or only at the end
 
-### Step 6: Launch
+### Step 6: Generate Script and Hand Off
 
-Confirm everything with the user, then start the loop.
+Autodesign runs each iteration in a **fresh subprocess** — no context bleed between
+iterations. During preflight, Claude generates a customized `autodesign.sh` script
+and hands it off to the user to run.
+
+1. Write `.autodesign/config.json` with all preflight answers
+2. Copy `autodesign.sh` from the skill's `scripts/` directory to `.autodesign/autodesign.sh`
+3. Apply configuration: inject TARGET, CAPTURE_METHOD, DEPLOY_CMD, EXPLORATION settings, etc.
+   The script reads from `config.json` at startup — most overrides go there rather than
+   hardcoded into the script.
+4. Confirm the script with the user:
+
+```
+✓ Config saved to .autodesign/config.json
+✓ Script ready at .autodesign/autodesign.sh
+
+Run it:
+  bash .autodesign/autodesign.sh
+
+Each iteration runs as a fresh Claude subprocess — you can safely close this terminal.
+Monitor progress via: watch cat .autodesign/HEARTBEAT
+```
+
+5. Do NOT start the loop yourself. The script is the entry point.
 
 ## Iteration Loop (Detail)
 
@@ -661,18 +684,32 @@ Autodesign can persist settings so you don't re-answer preflight questions:
 
 ## Launching
 
-### Interactive (recommended)
+### Interactive (preflight, then hand off)
 
 ```
 /autodesign
 ```
 
-The skill runs preflight, then launches the loop.
+Preflight runs interactively with you present. At the end, Claude generates
+`.autodesign/autodesign.sh` and hands it off — **you run the script**:
 
-### With options
+```bash
+bash .autodesign/autodesign.sh
+```
+
+Each iteration runs as a fresh `claude -p` subprocess. The script is the loop controller
+— you can leave it running AFK. Monitor live progress:
+
+```bash
+watch -n 5 cat .autodesign/HEARTBEAT
+# or
+tail -f .autodesign/logs/iteration-*.log
+```
+
+### With options (passed to preflight)
 
 ```
-/autodesign 3h                        — run for 3 hours max
+/autodesign 3h                        — run for 3 hours max (sets MAX_ITERATIONS hint)
 /autodesign --skip-codex              — skip cross-model review (faster iterations)
 /autodesign --figma <url>             — use Figma as source of truth
 /autodesign --capture chrome-mcp      — force Chrome MCP capture instead of Playwright
@@ -680,6 +717,9 @@ The skill runs preflight, then launches the loop.
 /autodesign --explore-count 20        — generate 20 explorations instead of default 10
 /autodesign --skip-explore            — skip exploration phase, go straight to deep loop
 ```
+
+These flags are baked into `.autodesign/config.json` during preflight, not passed
+to the script at runtime. Edit `config.json` directly to change them later.
 
 ### Re-run (skip preflight)
 
@@ -689,4 +729,14 @@ If `.autodesign/config.json` exists from a previous run:
 /autodesign --resume
 ```
 
-Loads saved config, skips preflight, starts the loop immediately.
+Skips preflight, regenerates the script from the saved config, tells you to run it.
+
+### Environment overrides (for the script)
+
+You can also override config values inline when running the script:
+
+```bash
+MAX_ITERATIONS=10 bash .autodesign/autodesign.sh
+EXPLORATION_ENABLED=true EXPLORATION_COUNT=15 bash .autodesign/autodesign.sh
+AGENT_RUNTIME=codex bash .autodesign/autodesign.sh   # use Codex instead of Claude
+```
