@@ -234,15 +234,28 @@ run_agent() {
     echo "[$name] Iteration $iteration of $MAX_ITERATIONS — $(date '+%Y-%m-%d %H:%M:%S')"
     echo "[$name] ════════════════════════════════════════════════"
 
-    # Run the agent
-    local result
-    if [[ "$AGENT_RUNTIME" == "claude" ]]; then
-      result="$(cd "$worktree" && env -u CLAUDECODE claude -p --dangerously-skip-permissions "$prompt" 2>&1)" || true
-    else
-      result="$(cd "$worktree" && codex exec -C "$worktree" --dangerously-bypass-approvals-and-sandbox "$prompt" 2>&1)" || true
-    fi
+    # Run the agent — stream output in real-time (prefix each line with agent name)
+    local iter_logfile="${logfile%.log}-iter-${iteration}.log"
+    > "$iter_logfile"
+    local iter_start
+    iter_start="$(date '+%s')"
 
-    echo "$result" | tee -a "$logfile"
+    echo "[$name] ▶ Streaming output (also logged to $iter_logfile)"
+    if [[ "$AGENT_RUNTIME" == "claude" ]]; then
+      (cd "$worktree" && env -u CLAUDECODE claude -p --dangerously-skip-permissions "$prompt" 2>&1) \
+        | while IFS= read -r line; do printf '[%s] %s\n' "$name" "$line"; done \
+        | tee -a "$iter_logfile" || true
+    else
+      (cd "$worktree" && codex exec -C "$worktree" --dangerously-bypass-approvals-and-sandbox "$prompt" 2>&1) \
+        | while IFS= read -r line; do printf '[%s] %s\n' "$name" "$line"; done \
+        | tee -a "$iter_logfile" || true
+    fi
+    cat "$iter_logfile" >> "$logfile"
+
+    local iter_elapsed=$(( $(date '+%s') - iter_start ))
+    echo "[$name] ────── iteration $iteration done (${iter_elapsed}s) ──────"
+    local result
+    result="$(cat "$iter_logfile")"
 
     # Check signals
     if [[ "$result" == *"<promise>COMPLETE</promise>"* ]]; then

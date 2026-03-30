@@ -207,6 +207,16 @@ Include a small annotation below each frame with the date and key eval findings 
 After each iteration, copy the latest design to the **Final** page and replace the
 previous frame. The Final page always shows the current production-bound design.
 
+### Copy before modifying (CRITICAL)
+
+Before making ANY changes to the Working frame, always:
+1. Check if the "Iterations" page exists (create it if not)
+2. Duplicate the Working frame to the Iterations page
+3. Name the duplicate `v{N} — {brief summary of what's about to change}`
+4. THEN modify the Working frame
+
+This is non-negotiable. Skipping it loses design history permanently.
+
 ### Never delete exploration frames
 
 Explorations and earlier iterations must never be removed. They are the design audit trail.
@@ -684,7 +694,40 @@ Autodesign can persist settings so you don't re-answer preflight questions:
 
 ## Launching
 
-### Interactive (preflight, then hand off)
+### Figma-direct mode (Figma iteration, no code changes)
+
+The `scripts/autodesign.sh` script handles Figma-only design iteration. Pass the
+Figma file key, working frame node ID, and your design target:
+
+```bash
+~/src/skills/autodesign/scripts/autodesign.sh \
+  --figma-file SmM43Vo4vKFNVg2q1TAPH2 \
+  --working-frame "7:2" \
+  --target "CLI tool landing page for skpm — the skill package manager" \
+  --iterations 10 \
+  --wide
+```
+
+Each iteration:
+1. Screenshots the Working frame
+2. Critiques the design
+3. **Copies the Working frame to the "Iterations" Figma page** (preserving history)
+4. Implements the top 3-5 improvements on the Working frame
+5. Verifies with a post-change screenshot
+6. Updates `.autodesign/state.json` with convergence tracking
+
+Monitor progress:
+```bash
+watch -n 5 cat .autodesign/HEARTBEAT
+```
+
+Flags:
+- `--wide`: explore dramatically different directions (go wide before deep)
+- `--iterations N`: max iterations (default: 10)
+
+State persists across re-runs via `.autodesign/state.json` — re-run to continue.
+
+### Interactive (web/native, preflight, then hand off)
 
 ```
 /autodesign

@@ -380,7 +380,7 @@ STEP 2: LOAD CONTEXT
    Follow progressive disclosure: only load the docs you need, not all of them.
 3. If docs/acceptance/ has a .feature file matching this spec, read it for
    Gherkin acceptance criteria.
-4. Check AGENTS.md (if it exists) for additional documentation pointers.
+4. Check CLAUDE.md (if it exists) for additional documentation pointers.
 5. Read relevant source code and existing tests.
 6. Read $RUN_DIR/progress.md for what's been done this run.
 7. Read judge prompts from $NIGHTSHIFT_DIR/eval-surface/judges/ for this task's
@@ -667,29 +667,40 @@ while [[ "$ITERATION" -lt "$MAX_ITERATIONS" ]]; do
 
   PROMPT_FILE=$(mktemp)
   echo "$AGENT_PROMPT" > "$PROMPT_FILE"
+  ITER_LOG="$RUN_DIR/logs/iteration-$ITERATION.log"
+  ITER_START="$(date '+%s')"
+  > "$ITER_LOG"
 
-  OUTPUT=""
+  echo "  ▶ Streaming agent output (also logged to $ITER_LOG)"
+  echo "  ────────────────────────────────────────────────────"
+  echo ""
+
   if [[ "$AGENT_RUNTIME" == "claude" ]]; then
-    OUTPUT="$(cd "$PROJECT_ROOT" && env -u CLAUDECODE claude -p --dangerously-skip-permissions \
+    (cd "$PROJECT_ROOT" && env -u CLAUDECODE claude -p --dangerously-skip-permissions \
       --max-turns 80 \
-      < "$PROMPT_FILE" 2>&1)" || true
+      < "$PROMPT_FILE" 2>&1) | tee -a "$ITER_LOG" || true
   else
-    OUTPUT="$(cd "$PROJECT_ROOT" && codex exec -C "$PROJECT_ROOT" \
+    (cd "$PROJECT_ROOT" && codex exec -C "$PROJECT_ROOT" \
       --dangerously-bypass-approvals-and-sandbox \
-      "$(cat "$PROMPT_FILE")" 2>&1)" || true
+      "$(cat "$PROMPT_FILE")" 2>&1) | tee -a "$ITER_LOG" || true
   fi
   rm -f "$PROMPT_FILE"
 
-  echo "$OUTPUT" >> "$RUN_DIR/logs/nightshift.log"
+  OUTPUT="$(cat "$ITER_LOG")"
+  {
+    echo ""
+    echo "=== ITERATION $ITERATION — $(date '+%Y-%m-%d %H:%M:%S') ==="
+    cat "$ITER_LOG"
+  } >> "$RUN_DIR/logs/nightshift.log"
 
-  # Show iteration summary from progress.md and heartbeat
+  ITER_ELAPSED=$(( $(date '+%s') - ITER_START ))
   echo ""
+  echo "  ────────────────────────────────────────────────────"
+  echo "  Iteration $ITERATION complete (${ITER_ELAPSED}s)"
   if [[ -f "$NIGHTSHIFT_DIR/HEARTBEAT" ]]; then
-    echo "  HEARTBEAT: $(cat "$NIGHTSHIFT_DIR/HEARTBEAT")"
+    echo "  ❤  $(cat "$NIGHTSHIFT_DIR/HEARTBEAT")"
   fi
-  # Show last progress entry (the latest ## header and its content)
   if [[ -f "$RUN_DIR/progress.md" ]]; then
-    local last_entry
     last_entry="$(awk '/^## \[NIGHTSHIFT\]/{found=$0; content=""} found{content=content"\n"$0} END{print content}' "$RUN_DIR/progress.md" | tail -5)"
     if [[ -n "$last_entry" ]]; then
       echo "  PROGRESS:"
