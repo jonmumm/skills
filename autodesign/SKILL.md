@@ -3,10 +3,9 @@ name: autodesign
 description: >
   Autonomous design iteration loop. Captures screenshots, runs design critique +
   impeccable skills, gets cross-model consensus (Claude + Codex), implements fixes,
-  deploys, and repeats. Like autoresearch but for visual design quality instead of
-  quantitative metrics. Use when going AFK on design polish, when asked to "autodesign",
-  "design loop", "polish loop", "iterate on the design", or "make it look good while
-  I'm away".
+  deploys, and repeats until the design converges. Use when going AFK on design polish,
+  when asked to "autodesign", "design loop", "polish loop", "iterate on the design",
+  or "make it look good while I'm away".
 dependsOn:
   - jonmumm/skills@evals-first
   - jonmumm/skills@codex-review
@@ -18,10 +17,6 @@ dependsOn:
 Autonomous design iteration loop. Captures screenshots of your UI across viewports,
 runs design critique and impeccable skills, gets cross-model consensus feedback,
 implements the highest-impact fixes, deploys, and repeats until the design converges.
-
-Like autoresearch but for visual design quality — instead of measuring val_bpb and
-keeping/reverting experiments, autodesign captures screenshots, evaluates against
-design judges, implements improvements, and loops until consecutive passes.
 
 ## Concept
 
