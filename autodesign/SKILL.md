@@ -27,6 +27,10 @@ design judges, implements improvements, and loops until consecutive passes.
 ```
 Phase 1: PREFLIGHT (interactive, human present)
   ├── Understand the design target (what are we designing?)
+  ├── Detect context: new design from scratch (→ Exploration phase) vs. iterating existing
+  ├── IF new design from Figma:
+  │   ├── How many explorations? (default: 10)
+  │   └── Confirm Figma file / page to generate into
   ├── Choose capture method (Playwright / Chrome MCP / Maestro / XCUITest / Detox / Storybook)
   ├── Define viewports (mobile 390x844, desktop 1440x900, tablet, etc.)
   ├── Define design judges via /evals-first (LLM judges for subjective criteria)
@@ -34,7 +38,20 @@ Phase 1: PREFLIGHT (interactive, human present)
   ├── Confirm deploy command (if applicable)
   └── User confirms → agent takes over
 
-Phase 2: LOOP (AFK, autonomous)
+Phase 1.5: EXPLORATION — go wide (Figma new-design mode only)
+  ├── Generate N distinct design concepts in Figma (default: 10)
+  │   ├── Each concept gets its own named frame: "Exploration 01", "Exploration 02", …
+  │   ├── Vary: layout structure, visual direction, tone, typographic voice
+  │   └── Aim for genuine diversity — not 10 variations of the same idea
+  ├── Get cross-model evaluation of all N designs
+  │   ├── Claude: rank and score each design, explain top 3 picks
+  │   └── Codex: independently rank and score each design, explain top 3 picks
+  ├── Synthesize: which designs do BOTH models agree on?
+  ├── Present ranked shortlist (top 3 by consensus) to the user with reasoning
+  ├── User selects the direction (or asks for more explorations)
+  └── Chosen concept becomes the baseline → continue to Phase 2 LOOP
+
+Phase 2: LOOP — go deep (AFK, autonomous)
   ├── 1. Capture screenshots across all viewports
   ├── 2. Run design eval stack (critique → targeted skills → cross-model review)
   ├── 3. Prioritize findings (critical → high → medium → low)
@@ -42,14 +59,157 @@ Phase 2: LOOP (AFK, autonomous)
   ├── 5. Deploy (if deploy command configured)
   ├── 6. Re-capture screenshots → verify fixes, check for regressions
   ├── 7. Commit with detailed message
-  ├── 8. If converged (2+ consecutive no-change passes) → stop
-  └── 9. Otherwise → loop to step 1
+  ├── 8. Each iteration saved as a named Figma frame (see Figma Organization)
+  ├── 9. If converged (2+ consecutive no-change passes) → stop
+  └── 10. Otherwise → loop to step 1
 
 Phase 3: HANDOFF (waiting for human)
   ├── Design briefing in .autodesign/BRIEFING.md
   ├── Before/after screenshots in .autodesign/captures/
+  ├── Figma organized with full exploration + iteration history
   └── Eval gap notes for next run
 ```
+
+## Exploration Phase (Go Wide Before Going Deep)
+
+When designing something **new** in Figma, autodesign runs an exploration phase before
+the polish loop. The goal is divergence first — generate many distinct directions,
+evaluate them with two independent models, then converge on the best one.
+
+### How many explorations?
+
+During preflight, ask:
+
+> "How many design explorations should we generate before picking a direction?" (default: 10)
+
+10 is the right number for most cases — enough variety to surface genuinely different
+directions, not so many that evaluation becomes noise.
+
+### Generating explorations
+
+Each exploration is a standalone Figma frame. Use Figma MCP to create them:
+
+1. Create a new Figma page called **"Explorations"** (keep existing pages intact)
+2. Generate N frames named `Exploration 01` through `Exploration N`
+3. For each exploration, genuinely vary:
+   - Layout structure (single column vs. grid vs. editorial vs. asymmetric)
+   - Visual direction (minimal, rich, typographic, illustrative, photo-forward)
+   - Tone (serious/professional, playful/friendly, bold/aggressive, calm/trustworthy)
+   - Typographic voice (display-led, body-text-led, oversized numerics, etc.)
+   - Color approach (monochrome, brand accent, full palette, neutral + one pop)
+4. Aim for diversity — 10 slight variations of the same idea is NOT the goal.
+   If you notice yourself repeating a pattern, skip it and invent something different.
+
+### Cross-model evaluation
+
+Once all N explorations exist in Figma, run both models independently:
+
+**Claude evaluation:**
+Capture screenshots of all N frames. Ask Claude to:
+- Score each design 1-10 across: hierarchy, distinctiveness, fit-for-purpose, polish potential
+- Identify top 3 picks with specific reasoning
+- Flag any explorations it would discard and why
+
+**Codex evaluation:**
+```bash
+codex exec \
+  -c model_reasoning_effort="xhigh" \
+  "You are evaluating $(N) UI design explorations for [target]. Screenshots are at:
+   .autodesign/captures/explorations/
+
+   For each design, score it 1-10 on:
+   - Visual hierarchy: does the eye go where it should?
+   - Distinctiveness: does it avoid generic AI design clichés?
+   - Fit-for-purpose: does the visual direction match the product's purpose?
+   - Polish potential: how much work would it take to make this production-ready?
+
+   Then rank your top 3 picks with specific reasoning.
+   Format: RANK 1: Exploration XX — [reason]. RANK 2: ... RANK 3: ...
+   Then list any you'd eliminate immediately and why." \
+  2>&1 | tee .autodesign/codex-exploration-review.md
+```
+
+### Synthesis and selection
+
+After both reviews:
+1. Find consensus: which designs appear in BOTH models' top 3?
+2. Rank by consensus score (average rank across both models)
+3. Present the top 3 consensus picks to the user with:
+   - Side-by-side reasoning from each model
+   - What each direction would look like if taken to production
+4. User selects one (or asks for more explorations in a different direction)
+
+**If no consensus:** present top 2 from each model separately and let the user decide.
+
+**If user wants more explorations:** generate another batch in the same Figma page
+(`Exploration 11`–`Exploration 20`), run the same evaluation, add to the shortlist.
+
+### Figma organization during exploration
+
+```
+Figma file
+  └── Page: "Explorations"
+        ├── [Section: "Round 1"]
+        │     ├── Frame: "Exploration 01"
+        │     ├── Frame: "Exploration 02"
+        │     ├── …
+        │     └── Frame: "Exploration 10"
+        └── [Section: "Round 2"]  ← if more explorations requested
+              ├── Frame: "Exploration 11"
+              └── …
+```
+
+Winning exploration gets labeled `★ SELECTED` in its frame name.
+
+## Figma Organization (Iteration History)
+
+When going deep on the selected design, every iteration is preserved in Figma.
+This creates a clear visual record of the design's progression.
+
+### Page structure
+
+```
+Figma file
+  ├── Page: "Explorations"       ← All N initial explorations (see above)
+  ├── Page: "Iterations"         ← One frame per deep iteration
+  │     ├── Frame: "v0 — Baseline"  (the chosen exploration, copied here)
+  │     ├── Frame: "v1 — [key change]"
+  │     ├── Frame: "v2 — [key change]"
+  │     └── …
+  └── Page: "Final"              ← Current best version (updated each iteration)
+        └── Frame: "Final"
+```
+
+### Naming convention
+
+Each iteration frame in the **Iterations** page is named descriptively:
+
+```
+v0 — Baseline
+v1 — Tightened hierarchy, removed feature card grid
+v2 — Dark CTA section → inline strip, footer contrast fix
+v3 — Mobile hero padding, copy compression
+v4 — CONVERGED (clean pass)
+```
+
+The name is written after the iteration completes — it summarizes the primary change,
+not the process. This means reading down the Iterations page tells the design story.
+
+### Laying out iteration frames
+
+Arrange iteration frames left-to-right in chronological order on the Iterations page.
+Space them with consistent gutters (e.g., 100px) so the progression is clear at a glance.
+Include a small annotation below each frame with the date and key eval findings that drove the change.
+
+### Updating the Final page
+
+After each iteration, copy the latest design to the **Final** page and replace the
+previous frame. The Final page always shows the current production-bound design.
+
+### Never delete exploration frames
+
+Explorations and earlier iterations must never be removed. They are the design audit trail.
+Even discarded explorations stay — they show what was considered and rejected.
 
 ## Prerequisites
 
@@ -249,7 +409,11 @@ After convergence, write the handoff briefing and stop.
     ai-slop-detection.md
     custom-*.md            ← Project-specific judges
   captures/
-    baseline/              ← Screenshots before autodesign started
+    explorations/          ← Screenshots of all N exploration frames (new design only)
+      exploration-01.png
+      exploration-02.png
+      ...
+    baseline/              ← The selected exploration (start of deep iteration)
       desktop.png
       mobile.png
     iteration-1/
@@ -258,7 +422,8 @@ After convergence, write the handoff briefing and stop.
     iteration-2/
       ...
     current/               ← Latest screenshots (symlinked)
-  codex-design-review.md   ← Latest cross-model review output
+  codex-exploration-review.md  ← Cross-model exploration rankings (new design only)
+  codex-design-review.md   ← Latest cross-model iteration review
   eval-gaps.md             ← Gaps found, feeds next run
 ```
 
@@ -268,6 +433,17 @@ After convergence, write the handoff briefing and stop.
 
 Interactive setup with the human. Formalize requirements into judges.
 
+### Step 0: New design vs. iteration?
+
+**This is the first question.** It determines whether the Exploration phase runs.
+
+- **New design** — nothing exists yet, or the user wants to explore fresh directions.
+  → Run Exploration phase (Phase 1.5) before the polish loop.
+- **Iterating existing** — there's already a design (Figma, live app, or codebase).
+  → Skip Exploration, go directly to Phase 2 LOOP.
+
+If unclear, ask: *"Are we starting fresh or polishing something that already exists?"*
+
 ### Step 1: Understand the target
 
 Ask:
@@ -275,6 +451,11 @@ Ask:
 - Is there a Figma source of truth? (if yes, connect via Figma MCP)
 - What's the URL or entry point?
 - What viewports matter? (default: mobile 390x844 + desktop 1440x900)
+
+**If new design (from Step 0):**
+- How many design explorations before picking a direction? (default: **10**)
+- Which Figma file should explorations be created in? (create new file if none)
+- Any non-negotiable constraints? (brand colors, typography, platform conventions)
 
 ### Step 2: Choose capture method
 
@@ -429,7 +610,14 @@ Autodesign can persist settings so you don't re-answer preflight questions:
   "maxIterations": 5,
   "convergenceThreshold": 2,
   "figmaFileKey": null,
-  "judges": ["ai-slop", "mobile-usability", "visual-hierarchy", "brand-consistency"]
+  "judges": ["ai-slop", "mobile-usability", "visual-hierarchy", "brand-consistency"],
+  "exploration": {
+    "enabled": false,
+    "count": 10,
+    "figmaFileKey": null,
+    "figmaPageName": "Explorations",
+    "selectedExploration": null
+  }
 }
 ```
 
@@ -448,6 +636,9 @@ Autodesign can persist settings so you don't re-answer preflight questions:
   composition but miss 1-2px alignment problems. /polish handles that.
 - **Cross-model review adds latency.** Each iteration takes longer with Codex review.
   Skip it for trivial iterations (only CSS spacing changes).
+- **Exploration diversity matters more than quantity.** 10 varied explorations beats 20
+  slight variations. If you find yourself making minor adjustments across explorations,
+  stop — invent a completely different visual direction instead.
 - **Don't over-iterate.** 5 iterations is usually enough. After that you're shuffling
   preferences between models, not improving design quality.
 - **Capture after deploy, not before.** CDN caching can serve stale content. Hard-refresh
@@ -481,10 +672,13 @@ The skill runs preflight, then launches the loop.
 ### With options
 
 ```
-/autodesign 3h                    — run for 3 hours max
-/autodesign --skip-codex          — skip cross-model review (faster iterations)
-/autodesign --figma <url>         — use Figma as source of truth
-/autodesign --capture chrome-mcp  — force Chrome MCP capture instead of Playwright
+/autodesign 3h                        — run for 3 hours max
+/autodesign --skip-codex              — skip cross-model review (faster iterations)
+/autodesign --figma <url>             — use Figma as source of truth
+/autodesign --capture chrome-mcp      — force Chrome MCP capture instead of Playwright
+/autodesign --explore                 — force exploration phase (go wide first, default: 10)
+/autodesign --explore-count 20        — generate 20 explorations instead of default 10
+/autodesign --skip-explore            — skip exploration phase, go straight to deep loop
 ```
 
 ### Re-run (skip preflight)
