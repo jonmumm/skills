@@ -10,9 +10,9 @@ project-root/           <- main branch (integration target)
 │   └── worker/         <- worktree on branch: mission/worker
 ```
 
-Unlike swarm (which uses 4 parallel worktrees), missions uses a single worker
-worktree that is created, used, merged, and reset for each feature. Workers
-are sequential within a milestone, so only one worktree is needed at a time.
+Missions uses a single worker worktree that is created, used, merged, and reset
+for each feature. Workers are sequential within a milestone, so only one worktree
+is needed at a time.
 
 ## Lifecycle
 
@@ -97,16 +97,6 @@ Missions workers are sequential within a milestone because:
 
 4. **Validation IS parallel.** The parallelism in missions comes from running
    scrutiny + contract + codex validators simultaneously, not from workers.
-
-## Comparison with Swarm
-
-| | Missions | Swarm |
-|---|---|---|
-| **Worktrees** | 1 (sequential, recreated per feature) | 4 (parallel, persistent) |
-| **Branches** | `mission/worker` (ephemeral) | `swarm/feature`, `swarm/crap`, etc. (persistent) |
-| **Merge strategy** | Merge after each feature, destroy worktree | Merge after each iteration, rebase |
-| **Conflict risk** | None (sequential) | Real (parallel workers touch same files) |
-| **Purpose** | Cognitive isolation | File-system isolation + parallelism |
 
 ## Validators Don't Use Worktrees
 

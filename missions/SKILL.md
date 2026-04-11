@@ -22,20 +22,6 @@ context.** An agent that implemented something is biased toward confirming its o
 work. Missions separates the "build" and "judge" roles with fresh context boundaries,
 and defines success criteria (the validation contract) before any code is written.
 
-## When to use Missions vs Nightshift vs Swarm
-
-| | Missions | Nightshift | Swarm |
-|---|---|---|---|
-| **Goal** | Build a large system from a high-level objective | Ship spec'd features from a backlog | Harden codebase quality |
-| **Scope** | Multi-milestone, multi-feature project | Flat backlog, one task at a time | Parallel quality agents |
-| **Planning** | Decomposes goal into milestones + features | Picks from existing specs | Uses existing backlog |
-| **Validation** | Independent validator agents + validation contract | Eval stack (tests + judges + codex) | Metric convergence |
-| **Key differentiator** | Fresh-context validators, milestone gates, fix feature loop | Sequential AFK loop | Parallel quality hardening |
-| **Best for** | "Build me a Slack clone" | "Ship these 5 specs overnight" | "Get mutation score to 95%" |
-
-Missions subsumes nightshift and swarm for large goals. For small, well-spec'd
-backlogs, nightshift is simpler. For pure quality hardening, swarm is more focused.
-
 ## Core Principles
 
 ### 1. Validation contract first
