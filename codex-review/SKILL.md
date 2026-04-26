@@ -147,14 +147,13 @@ By default, Codex uses the model from `~/.codex/config.toml`. Override via `-c`:
 ```bash
 # Use a specific model with max reasoning
 codex review --base main \
-  -c model="gpt-5.4" \
+  -c model="gpt-5.5" \
   -c model_reasoning_effort="xhigh"
 ```
 
 Valid reasoning efforts: `none`, `minimal`, `low`, `medium`, `high`, `xhigh`.
 
-Prefer `xhigh` reasoning effort for reviews — thoroughness matters more than speed
-when reviewing code. Use `medium` only for quick sanity checks.
+Prefer `gpt-5.5` with `xhigh` reasoning for reviews — thoroughness matters more than speed when reviewing code. Use `medium` only for quick sanity checks. `gpt-5.5` requires codex CLI ≥ 0.125; older CLIs silently fall back to `gpt-5.4` even if the config requests 5.5, so run `codex --version` if you suspect drift.
 
 ### Sandbox permissions
 
@@ -164,7 +163,7 @@ No sandbox configuration needed.
 ## Gotchas
 
 - **Codex doesn't have your CLAUDE.md context by default.** Include key conventions in the review prompt, or Codex will review against its own defaults (which may conflict with your project's patterns).
-- **Review output varies by model.** o3 gives more thorough reviews but takes longer. gpt-5.4 is fast and good for quick passes.
+- **Review output varies by model.** `gpt-5.5` is the current default — most thorough, best for production review. `gpt-5.4` is faster and fine for quick passes. Older `o3` is still available but slower and weaker than 5.5 in practice.
 - **False positives are normal.** Codex may flag patterns that are intentional in your project. Don't blindly fix everything — use judgment.
 - **Don't loop reviews forever.** One review + fixes + optional re-review is enough. Diminishing returns after that.
 - **`codex review` has fewer flags than `codex exec`.** No `-o`, `-m`, or `--json`. Use `-c model="..."` for model overrides and `| tee` for output capture.
