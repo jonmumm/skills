@@ -496,6 +496,17 @@ cmux log progress "Running integration tests (3/6 passing)"
 
 The orchestrator (and the human) can see this in the sidebar without switching workspaces.
 
+## `cmux claude-teams` (Agent Teams launcher)
+
+cmux 0.63+ ships `cmux claude-teams` — a one-command launcher for [Claude Code Agent Teams](../agent-teams/SKILL.md). It sets `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` and shims tmux on PATH with cmux's tmux-compat layer, so split-pane teammates render as native cmux pane splits stacked vertically in a right column, auto-equalizing as agents spawn and exit.
+
+```bash
+cmux claude-teams --dangerously-skip-permissions
+# All args forward to claude. Works over cmux SSH too.
+```
+
+For the actual *use* of Agent Teams (when to spawn one, how to coordinate teammates, hooks, plan approval, recipe library), see the `/agent-teams` skill. This is just the launcher.
+
 ## Integration with /swarm
 
 Instead of (or alongside) git worktrees, `/swarm` can use cmux workspaces:
