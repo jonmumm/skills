@@ -227,13 +227,21 @@ Start here. Load deeper docs **only when working on the relevant domain.**
 > **Progressive disclosure:** Do NOT load all docs upfront. Read this file,
 > then load the specific doc relevant to your current task.
 
-## Core Principles
+## Building with Agents — Operating Principles
 
-- **Simplicity First**: Make every change as simple as possible. Impact minimal code.
-- **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
-- **Verify Before Done**: Run feedback commands. Ask: "Would a staff engineer approve this?"
-- **Spec Traceability**: Every behavior should trace to an acceptance test in docs/acceptance/.
-- **Architecture First**: Consult docs/adrs/ before making structural decisions.
+These govern *how* we work, not just what we build. Long-form rationale and
+the failure mode each one prevents lives in the [/principles](../principles/SKILL.md) skill.
+
+- **Implement to learn** — ship the smallest end-to-end version first; let real failures teach you what the design needs.
+- **Rebuild often** — when patching the same module twice, rewrite it. Agents make rewrites cheap; ossification is the real cost.
+- **E2E tests are gold** — every user-visible behavior gets an acceptance test. Unit tests die when the implementation changes; E2E tests survive.
+- **Document intent** — code shows *what*; tests show *that*; only docs/ADRs/wide-events show *why*. Without intent, the next agent refactors the load-bearing weirdness away.
+- **Maintain your spec** — change spec → change acceptance test → change code. In that order. A stale spec misdirects every agent that reads it.
+- **Find what's hard (that's the value)** — the easy parts agents handle in seconds. Spend disproportionate effort on the genuinely hard sub-problem (contracts, race conditions, ambiguity).
+- **Trust the boundary, not the middle** — parse data once at the system edge with Zod/Codable. After the boundary, internal code can trust types. No `as` casting.
+- **Agents drift, gates don't** — every autonomous loop needs a hard gate it can't self-grade (CRAP, mutation score, eval threshold, acceptance test). Without one, loops optimize for "looks done."
+- **Read the failure, don't paper it** — when a check fails, understand it before suppressing. `--no-verify`, `.skip`, widened types, and `try/catch` swallowers all remove future warning systems.
+- **Name what you know; flag what you don't** — when inferring an unstated constraint, say so. Tacit assumptions become silent bugs.
 
 ## Keeping Docs Current
 
