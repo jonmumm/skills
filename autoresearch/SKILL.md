@@ -1,13 +1,15 @@
 ---
 name: autoresearch
 description: >
-  A hypothesis-generating loop that validates itself. Claude Code proposes a
-  change, runs a fixed-budget experiment, measures a deterministic metric, then
-  git-commits wins and git-reverts losses — repeating ~10–100x while you're AFK.
-  Use whenever there's a single scalar metric to push (lower KL / RMSE / loss /
-  latency, higher accuracy / score / win-rate / pass-rate) and the validation
-  runs end-to-end without human judgment. The pattern is the skill — no special
-  package, no ML required. Works on simulators, fitting routines, portfolio
+  A hypothesis-generating loop that validates itself, run entirely inside Claude
+  Code. Claude proposes a change, runs a fixed-budget experiment, measures a
+  deterministic metric, then git-commits wins and git-reverts losses — repeating
+  ~10–100x while you're AFK. The harness is `/loop` (single agent iterating) or
+  `/agent-teams` (a proposer + a validator/judge running in parallel) — no
+  external scripts, full progress visible in the session. Use whenever there's
+  a single scalar metric to push (lower KL / RMSE / loss / latency, higher
+  accuracy / score / win-rate / pass-rate) and the validation runs end-to-end
+  without human judgment. Works on simulators, fitting routines, portfolio
   optimizers, eval pass rates, hyperparameter tuning, solver tuning, fuzzing,
   perf budgets, prompt scores — anything optimizable. Triggers: "autoresearch",
   "run autoresearch", "optimize this overnight", "AFK optimize", "autonomous
@@ -21,10 +23,20 @@ hypothesis → agent runs a bounded experiment → the experiment produces a num
 git keeps the change if the number improved (and regressions still pass), reverts
 otherwise. Repeat for hours.
 
-The agent is **Claude Code itself**, running in your project. There is no
-separate framework, no Python harness to install. You wire the four steps with
-whatever scripts already exist in the repo, write a `program.md` describing the
-metric and the rules, and tell Claude to run the loop.
+Everything runs **inside Claude Code**. The harness is one of two skills you
+already have:
+
+- **`/loop`** — Claude reruns the same prompt on a cadence (or self-paced),
+  driving experiments one at a time. Progress streams into the session as it
+  happens, so you can watch the metric move.
+- **`/agent-teams`** — spin up a proposer agent and an independent
+  validator/judge agent. The proposer changes code; the validator runs the
+  metric script + regression tests and decides commit vs. revert. Two
+  perspectives, harder to game.
+
+No `loop.sh`, no external script, no separate framework. You write `program.md`
+describing the metric and the rules, then invoke `/loop` or `/agent-teams` with
+that file as the brief.
 
 It applies to anything where:
 
@@ -58,12 +70,11 @@ The shape:
 | **Frozen** (per `CLAUDE.md`) | `prepare.py`, `config.py`, scoring rules in `test_scoring.py` |
 | **Regression gate** | `pytest test_scoring.py -v` (DK 2026 rules must still pass) |
 | **Keep/revert ledger** | `git log` — commit messages carry the metric delta |
-| **Agent** | Claude Code, running locally |
+| **Harness** | `/loop` proposing changes, or `/agent-teams` (proposer + validator) |
 
-No language models were trained. No GPU. No special framework. The loop is just
-"propose a change in `train.py`, run the fitter, parse KL, compare to last
-commit, run pytest, commit or revert." Run that for a night and the agent claws
-the metric down a slice at a time.
+The loop is just "propose a change in `train.py`, run the fitter, parse KL,
+compare to last commit, run pytest, commit or revert." Run that for a night and
+the agent claws the metric down a slice at a time.
 
 ## When to reach for autoresearch
 
@@ -75,7 +86,6 @@ the metric down a slice at a time.
 - Performance budgets: bundle size, p99 latency, peak RSS
 - Fuzzing/property-test minimization: shortest counterexample, highest crash count
 - Eval pass-rate against a frozen rubric or labeled set
-- ML training (Karpathy's original use case) — see footnote recipe
 
 ❌ **Wrong fit:**
 - Subjective quality (UI polish, copy tone) — use `/autodesign` or a calibrated LLM judge
@@ -88,9 +98,9 @@ the metric down a slice at a time.
 ```
 human writes program.md (metric, modifiable files, frozen files, regression gate, budget)
     ↓
-Claude Code reads program.md and current code
+/loop or /agent-teams reads program.md and current code
     ↓
-proposes a change (architecture, hparam, prompt, algorithm…)
+proposes a change (architecture, hparam, algorithm, ensemble weight…)
     ↓
 runs the validator: bounded budget (5 min / N sims / fixed seed)
     ↓
@@ -107,7 +117,7 @@ a real metric.
 
 ## Setup pattern (works in any project)
 
-Four pieces in the repo. Build once, then the loop runs itself.
+Three pieces in the repo. Build once, then the harness does the rest.
 
 ### 1. `program.md` — the agent's standing orders
 
@@ -122,71 +132,68 @@ Your leverage point. Specify:
   *`python train.py --quiet | tail -1`* and *"line is `KL=<float>`"*.
 - **Time budget per experiment** — wall-clock cap so attempts are comparable.
 - **Regression gates** — tests that must pass before commit.
+- **Commit/revert protocol** — strict `<` or `>`, regression tests must pass,
+  commit message format: `autoresearch: <metric> (was <prev>) — <hypothesis>`.
 - **Heuristics** — "small changes first", "if 3 attempts in a direction fail
   switch directions", "explain the hypothesis in 2 sentences before each change",
   "after a kept commit try a *different* axis."
 
 ### 2. Validation script — deterministic, bounded, single number
 
-- Print the metric on its own parseable line (`METRIC=0.4523` or similar).
+- Print the metric on its own parseable line (`METRIC=0.4523`, `KL=53.05`, etc.).
 - Fix all randomness (seeds, data order). Noise must be smaller than the
   improvements you care about.
 - Cap runtime. If validation can blow past the budget, the loop stalls.
 
 ### 3. Regression tests — `pytest` (or equivalent) that must pass
 
-Run *before* committing. If the metric improved but tests fail, discard.
-This is the guard against Goodhart.
-
-### 4. `loop.sh` — the harness
-
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
-
-BEST_FILE=.autoresearch/best
-BUDGET_SEC=${BUDGET_SEC:-300}
-mkdir -p .autoresearch
-
-prev_best=$(cat "$BEST_FILE" 2>/dev/null || echo "inf")
-
-# 1. Run validation under time budget
-metric=$(timeout "$BUDGET_SEC" python validate.py | grep -oE 'METRIC=[0-9.]+' | cut -d= -f2)
-
-# 2. Compare (lower-is-better here; flip for higher-is-better)
-better=$(python -c "print(float('$metric') < float('$prev_best'))")
-
-# 3. Regression gate + commit/revert
-if [[ "$better" == "True" ]] && pytest -q; then
-  echo "$metric" > "$BEST_FILE"
-  git add -A && git commit -m "autoresearch: $metric (was $prev_best)"
-else
-  git reset --hard HEAD
-fi
-```
+The agent runs these *before* committing. If the metric improved but tests fail,
+it discards. This is the guard against Goodhart.
 
 ## Launch
 
-From the project root:
+### Option A: `/loop` (single agent, simplest)
 
-```bash
-claude
-```
-
-Then prompt:
+In Claude Code at the project root:
 
 ```
-Read program.md. We are running autoresearch. The validation command, the
-metric definition, and the rules for kept/discarded experiments are all there.
-Run fully autonomously — do not ask for confirmation between experiments.
-After each experiment run loop.sh, then propose the next change. Keep going
-until I come back or you've made 50 attempts without improvement.
+/loop Read program.md. Run one autoresearch iteration:
+  1. Propose one change to a modifiable file, with a 2-sentence hypothesis.
+  2. Run the validator command, parse the metric.
+  3. If metric strictly improved AND `pytest -q` passes:
+       git add -A && git commit -m "autoresearch: <metric> (was <prev>) — <hypothesis>"
+     else:
+       git reset --hard HEAD
+  4. Append one row to results.tsv: <metric>, <kept|discarded>, <hypothesis>.
+  Stop after this iteration — /loop will fire the next one.
 ```
 
-> **First-time check.** Watch the first 2–3 experiments before going AFK. Verify
-> Claude is actually running `loop.sh`, that the metric is being parsed, and
-> that commits/reverts are happening. The most common failure is silent: the
-> agent "tries" changes but never actually invokes the validator.
+Omit the interval to let Claude self-pace. Each tick is one experiment, fully
+visible in the session — you see the diff, the metric, the keep/revert decision.
+
+### Option B: `/agent-teams` (proposer + validator, harder to game)
+
+For longer runs or when you don't trust a single agent to police itself:
+
+```
+/agent-teams Run autoresearch on program.md.
+  Roles:
+    Proposer — reads program.md and the current code, proposes one change with a
+      hypothesis, makes the edit, hands off to Validator.
+    Validator — runs the validator command, parses the metric, runs the
+      regression tests, decides commit vs. revert. Writes the result to
+      results.tsv. Hands back to Proposer for the next iteration.
+  Stop condition: 50 attempts, OR target metric reached, OR human interrupts.
+```
+
+The validator never proposes; the proposer never decides. Splitting the roles
+makes it much harder for the loop to "succeed" by gaming the metric, since the
+validator has no incentive to accept a sketchy diff.
+
+> **First-time check.** Watch the first 2–3 iterations before going AFK. Verify
+> the validator is actually being run, the metric is being parsed, and
+> commits/reverts are happening. The most common silent failure: the agent
+> "tries" a change without ever running the validator.
 
 ## More recipes
 
@@ -220,14 +227,6 @@ until I come back or you've made 50 attempts without improvement.
 - **Budget**: cost-cap (max $X per experiment) since judge calls dominate.
 - Watch Goodhart hard — judges are gameable. Calibrate against human labels first.
 
-### Recipe (footnote): Karpathy's overnight LLM training
-
-If you happen to want a tiny LLM trained overnight on val_bpb, the wiring already
-exists at [`miolini/autoresearch-macos`](https://github.com/miolini/autoresearch-macos)
-(Apple Silicon) or [`karpathy/autoresearch`](https://github.com/karpathy/autoresearch)
-(NVIDIA). `uv sync && uv run prepare.py && uv run train.py`, then point Claude at
-its `program.md`. This is one instantiation of the pattern, not the pattern itself.
-
 ## Tips for getting real results
 
 1. **Smoke-test the validator first.** One manual run, end-to-end. If you can't reliably get a metric out, the agent can't either.
@@ -235,21 +234,22 @@ its `program.md`. This is one instantiation of the pattern, not the pattern itse
 3. **Most experiments fail.** 10–20 keepers per 100 attempts is normal. The git log filters to wins automatically.
 4. **Watch for noise > signal.** If repeated runs of the same code give different metrics by more than a typical improvement, fix the seed / increase samples / lengthen the budget *before* starting the loop.
 5. **Strict comparison.** Use `<` / `>` not `≤` / `≥`. Otherwise the agent drifts on within-noise "neutral" changes.
-6. **Commit message = experiment description.** Have Claude write a one-line hypothesis in each commit message. `git log` becomes a research diary.
+6. **Commit message = experiment description.** Include a one-line hypothesis in each commit. `git log` becomes a research diary.
+7. **Prefer `/agent-teams` for unattended overnight runs** — the proposer/validator split closes the most common Goodhart failure.
 
 ## Output artifacts after a session
 
 - **`git log --oneline`** — chronological list of wins, each with the metric in its message.
-- **`.autoresearch/best`** — current best metric.
-- **`results.tsv`** (optional, recommended) — every attempt with metric, duration, kept/discarded, hypothesis. Lets you plot metric vs. experiment number.
+- **`results.tsv`** — every attempt with metric, duration, kept/discarded, hypothesis. Lets you plot metric vs. experiment number.
+- **Session transcript** — because everything ran in Claude Code, the proposals, runs, and decisions are all in one scrollback.
 
 ## Failure modes
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Agent never invokes the validator | `program.md` underspecifies the loop | Make `loop.sh` mandatory; the agent must call it after every change. |
+| Agent never invokes the validator | `program.md` underspecifies the loop | Make the validator command mandatory in the launch prompt; require its output be quoted before the keep/revert decision. |
 | Metric improves but tests break | Missing regression gate | Add `pytest`/equivalent step before `git commit`. Revert if it fails. |
 | Same metric forever | Validator is too noisy or too short | Fix seed; lengthen budget; aggregate over multiple seeds. |
 | Agent loops on the same change | Not tracking what's been tried | Append every attempt to `results.tsv`; instruct it to read the file before proposing. |
 | All experiments time out | Budget too tight or change exploded runtime | Lower problem size; raise budget; cap memory. |
-| Massive metric jump that looks fake | Goodhart — agent gamed the metric (overfit, removed asserts, hardcoded answer) | Inspect the diff. Add the gamed path as a regression test. |
+| Massive metric jump that looks fake | Goodhart — agent gamed the metric (overfit, removed asserts, hardcoded answer) | Inspect the diff. Add the gamed path as a regression test. Switch to `/agent-teams` so a separate validator inspects each diff. |
