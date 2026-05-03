@@ -7,6 +7,8 @@ description: Measure and lower CRAP (Change Risk Anti-Patterns) — a metric tha
 
 CRAP is a single number per function that says: *"how dangerous is this code to change?"* It fuses cyclomatic complexity (CC) and test coverage so that a function is only "safe" when it's either simple OR thoroughly tested (ideally both). High complexity with low coverage explodes the score.
 
+> **Principle #10 (Agents drift, gates don't)** — CRAP is one of the gates an autonomous loop cannot self-grade around. Wire it as a `TaskCompleted` hook so a teammate or nightshift agent can't mark work done while leaving a function above threshold. See [/principles](../principles/SKILL.md).
+
 ## The formula
 
 ```

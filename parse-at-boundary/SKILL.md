@@ -18,6 +18,8 @@ downstream code receives typed data and never re-validates.
 
 If parsing fails, **fail loudly**. Never silently coerce.
 
+> **Principle #8 (Trust the boundary, not the middle)** — this skill is the canonical operationalization. The trust gradient is *outside (paranoid) → boundary (parse) → inside (trust)*; defensive code in the middle of your system is a sign that the boundary is leaking. See [/principles](../principles/SKILL.md).
+
 > *"We require Codex to parse data shapes at the boundary, but are not
 > prescriptive on how that happens."*
 > — OpenAI Harness Engineering

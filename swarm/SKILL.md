@@ -9,13 +9,15 @@ description: >
 dependsOn:
   - jonmumm/skills@grill-me
   - jonmumm/skills@mutation-testing
-  - mattpocock/skills@tdd
+  - jonmumm/skills@tdd
 ---
 
 # Swarm
 
 Plan first, then launch parallel AI agents that build features AND continuously
 harden the codebase — all running in isolated Git worktrees.
+
+> **Principle #6 (Find what's hard — that's the value)** — the orchestrator's job in Phase 1 is identifying the brittle seam, not splitting work evenly. **Principle #10 (Agents drift, gates don't)** — the CRAP, Mutation, and Acceptance agents are the gates that keep the Feature agent honest. **Principle #7 (Reversibility over correctness)** — worktrees make every agent's work cheap to discard. Three principles reinforce each phase. See [/principles](../principles/SKILL.md).
 
 ## Workflow
 
@@ -390,7 +392,7 @@ These hooks:
 | Topic | Source | Load When |
 |-------|--------|-----------|
 | **Planning** | `grill-me` skill | Phase 1 — interrogating the plan |
-| **TDD discipline** | `mattpocock/skills@tdd` | Feature Agent red-green-refactor |
+| **TDD discipline** | `jonmumm/skills@tdd` | Feature Agent red-green-refactor |
 | **Mutation setup** | `mutation-testing` skill | Pre-flight or Mutation Agent |
 | **Pre-commit hooks** | `setup-pre-commit` skill | Pre-flight Stage 4 |
 | **CLAUDE.md** | `create-claude-md` skill | Pre-flight Stage 1 |

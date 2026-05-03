@@ -22,6 +22,8 @@ context.** An agent that implemented something is biased toward confirming its o
 work. Missions separates the "build" and "judge" roles with fresh context boundaries,
 and defines success criteria (the validation contract) before any code is written.
 
+> **Principle #10 (Agents drift, gates don't)** — the validation contract IS the gate. Independent validators with no shared context with the builders are what keep a multi-day autonomous run from optimizing toward "looks done." **Principle #2 (Rebuild often)** — between milestones, ask "would I structure this the same way knowing what I know now?" before continuing. The reflection point is built into the milestone boundary for a reason. See [/principles](../principles/SKILL.md).
+
 ## Core Principles
 
 ### 1. Validation contract first

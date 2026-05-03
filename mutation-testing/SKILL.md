@@ -7,6 +7,8 @@ description: Run and interpret Stryker mutation testing; kill survivors to reach
 
 Use Stryker Mutator to verify that tests actually catch breakage — not just that they pass. Often used after TDD (e.g. in Ralph’s quality gate).
 
+> **Principle #10 (Agents drift, gates don't)** — mutation testing closes the gap CRAP can't see: 100% coverage with weak assertions still loses a 95% mutation score. Pair the two. Suppressing a surviving mutant by `.skip`-ing the test is the most common gate-bypass — refuse it. See [/principles](../principles/SKILL.md).
+
 ## What It Does
 
 Stryker modifies your source code (mutates it) and checks if your tests catch the change. If a mutation survives (tests still pass), there's a gap in your test coverage.

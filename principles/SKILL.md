@@ -1,23 +1,21 @@
 ---
 name: principles
-description: The "10 Commandments" for coding with agents — operating principles that govern how to build with AI as a peer, not a tool. Use when bootstrapping a new project, reviewing an agent workflow that drifted, deciding between tactical fixes and structural changes, or whenever the user asks "how should we approach this?" in an agent-driven context. Triggers on "principles", "commandments", "how should we work with agents", "what's our philosophy", or when conversations turn from "what to build" to "how to build it well".
+description: The 10 operating principles for building software with AI agents — when to use them, what failure mode each one prevents, and which skills operationalize them. Use when bootstrapping a new project, reviewing an agent workflow that drifted, deciding between tactical fixes and structural changes, or whenever the conversation turns from "what to build" to "how to build it well". Triggers on "principles", "commandments", "how should we work with agents", "what's our philosophy", or when an agent loop is producing low-quality output and you need to diagnose which principle was violated.
 ---
 
 # Principles for Building with Agents
 
-A short, opinionated set of operating principles for software work where AI agents do most of the implementation. Each one names a failure mode that's easy to fall into and the discipline that prevents it.
+Ten operating principles for software work where AI agents do most of the implementation. Each one names a failure mode and the discipline that prevents it.
 
-This is the philosophy layer. The skills in `~/src/skills` are the *operations*; this file is the *why*. When a skill prescribes a behavior, it's usually one of these principles in action — referenced by name.
+This is the philosophy layer. The skills in `~/src/skills` are the *operations*; this file is the *why*. When a skill prescribes a behavior, it's usually one of these principles in action — referenced by name and number.
 
-> **Status: 12 candidates, culling to 10.** Treat as a working draft. Each one is paired with the skill(s) that operationalize it; if a candidate doesn't earn its keep across multiple skills, it's a candidate for removal.
-
-## The principles
+## The 10
 
 ### 1. Implement to learn
 
 The fastest way to understand a problem is to build the wrong solution and feel where it bends. Don't try to design the correct architecture upfront when the constraints are still fuzzy. Implement the obvious thing, run it against real cases, and let the failures teach you what the design actually needs.
 
-**Failure it prevents**: paralysis-by-architecture, where a team spends weeks on diagrams for a system whose real constraints only emerge under load.
+**Failure it prevents**: paralysis-by-architecture, where weeks of diagrams get spent on a system whose real constraints only emerge under load.
 
 **How to apply**: ship the smallest end-to-end version *first* (even if hacky), then refactor with knowledge you didn't have before. Use `/missions` between milestones to ask "what did we actually learn?" and update the spec.
 
@@ -33,7 +31,7 @@ Your second pass is always better than your first. The cost of rewriting a small
 
 **How to apply**: when you find yourself patching the same module twice, rebuild it from scratch instead. Use `/swarm` or `/agent-teams` to do parallel rewrites and compare. Set a calendar trigger ("every milestone, ask: would I structure this the same way knowing what I know now?").
 
-**Operationalized in**: `/missions` (between-milestone reflection), `/create-claude-md` (CLAUDE.md is a living artifact, not write-once), `/swarm` (parallel rewrites are cheap with agents).
+**Operationalized in**: `/missions` (between-milestone reflection), `/create-claude-md` (CLAUDE.md is a living artifact), `/swarm` and `/agent-teams` (parallel rewrites are cheap).
 
 ---
 
@@ -49,15 +47,15 @@ End-to-end tests prove that the user-visible behavior actually works. Unit tests
 
 ---
 
-### 4. Document intent
+### 4. Document intent (and surface assumptions)
 
-Code shows *what* happens. Tests show *that it works*. Only intentional documentation captures *why this is the right shape*. Without it, the next agent (or future you) will refactor it back into something subtly wrong.
+Code shows *what* happens. Tests show *that it works*. Only intentional documentation captures *why this is the right shape* and *what was assumed when the choice was made*. Without it, the next agent (or future you) refactors the load-bearing weirdness away — or builds on a hidden assumption that turns out to be false.
 
-**Failure it prevents**: lost-context regression. A "cleanup" PR removes a load-bearing weirdness because no one knew it was load-bearing.
+**Failure it prevents**: lost-context regression and assumption-shaped bugs. A "cleanup" PR removes a load-bearing weirdness because no one knew it was load-bearing. Or: the agent inferred UTC, the test assumed local time, and the deploy at midnight UTC silently breaks.
 
-**How to apply**: ADRs for structural decisions. Wide-event log lines for runtime intent. Comments only when the *why* is non-obvious. Spec docs for product intent. The test name says what it's testing; the comment says why it matters.
+**How to apply**: ADRs for structural decisions. Wide-event log lines for runtime intent. Comments only when the *why* is non-obvious. Spec docs for product intent. **When inferring an unstated constraint, say so**: "I'm assuming X — confirm or correct." The discipline is making the implicit explicit, in whichever artifact is most durable for that knowledge.
 
-**Operationalized in**: `/adr-keeper`, `/adr-writing`, `/wide-events-logging`, `/grill-me` (capture the *why* of every answer, not just the decision), `/create-claude-md` (the docs/ directory is intent storage).
+**Operationalized in**: `/adr-keeper`, `/adr-writing`, `/wide-events-logging`, `/grill-me` (extract assumptions before they become bugs), `/create-claude-md` (the docs/ directory is intent storage).
 
 ---
 
@@ -67,7 +65,7 @@ A stale spec is worse than no spec — it actively misleads. The spec is a contr
 
 **Failure it prevents**: spec-rot. The spec describes v1, the code is on v3, and new agents implement features against the wrong contract.
 
-**How to apply**: changing behavior means changing the spec *first*, the acceptance test *second*, the code *third*. If the spec didn't change, the behavior didn't really change. Use `evals-first` to make the spec executable.
+**How to apply**: changing behavior means changing the spec *first*, the acceptance test *second*, the code *third*. If the spec didn't change, the behavior didn't really change. Use `/evals-first` to make the spec executable.
 
 **Operationalized in**: `/vsdd` (verified spec-driven dev), `/evals-first` (spec → eval → code), `/create-claude-md` (the "Keeping Docs Current" table).
 
@@ -117,68 +115,35 @@ The single biggest predictor of code quality is the time between writing a line 
 
 **How to apply**: pre-commit hooks for type, lint, format. Watch-mode for tests during development. Local CRAP/mutation runs before pushing. Smoke-test deploys before promoting. Wide-event logs to shorten the gap between bug-in-prod and root-cause-known.
 
-**Operationalized in**: `/setup-pre-commit`, `/deploy-verify`, `/babysit-pr`, `/wide-events-logging`, `/debug-runbook`, `/fewer-permission-prompts` (lower friction = more feedback).
+**Operationalized in**: `/setup-pre-commit`, `/deploy-verify`, `/babysit-pr`, `/wide-events-logging`, `/debug-runbook`, `/fewer-permission-prompts`.
 
 ---
 
 ### 10. Agents drift, gates don't
 
-A long-running agent loop will drift toward "looks done" if no objective gate stops it. Without a hard check it can't bypass — CRAP score, mutation score, eval threshold, acceptance test pass — the loop optimizes for plausibility instead of correctness.
+A long-running agent loop will drift toward "looks done" if no objective gate stops it. Without a hard check it can't bypass — CRAP score, mutation score, eval threshold, acceptance test pass — the loop optimizes for plausibility instead of correctness. The most common drift is *papering over the failure* (`--no-verify`, widening the type, catching-and-ignoring, marking tests `.skip`, increasing the timeout). When a check fails, the failure *is* the signal; suppression removes the warning system.
 
 **Failure it prevents**: confident hallucination at scale. The agent ships 12 features overnight; in the morning, 4 of them don't actually work but every status update said "complete."
 
-**How to apply**: every autonomous loop needs at least one gate it cannot self-grade. Wire `TaskCompleted` hooks. Set `thresholds.break` in mutation config. Require an independent validator (separate agent, separate worktree, no shared context) before marking work done.
+**How to apply**: every autonomous loop needs at least one gate it cannot self-grade. Wire `TaskCompleted` hooks. Set `thresholds.break` in mutation config. Require an independent validator (separate agent, separate worktree, no shared context) before marking work done. Treat suppression of a failing check as a high-bar event: it requires a comment naming the reason and a follow-up issue, not a silent fix.
 
-**Operationalized in**: `/missions` (validation gate per milestone), `/nightshift` (gates between tasks), `/swarm` (CRAP/Mutation/Acceptance agents are gates), `/agent-teams` (`TaskCompleted` hook), `/crap`, `/mutation-testing`, `/evals-first`.
-
----
-
-### 11. Read the failure, don't paper it
-
-When a check fails, the failure *is* the signal. The instinct to make the red go away — `--no-verify`, widening the type, catching-and-ignoring, increasing the timeout, marking the test `.skip` — is almost always the wrong move. The check fired *because* something needs your attention.
-
-**Failure it prevents**: silent regression. Each papered-over failure removes a future warning system. The next real bug looks identical to the noise you've trained yourself to ignore.
-
-**How to apply**: when something fails, the first response is to *understand the failure*, not to suppress it. Acceptable suppressions exist (a flaky test, a known-broken third-party type) but they require a comment naming the reason and a follow-up issue. No silent papering.
-
-**Operationalized in**: `/debug-runbook` (structured root-cause hunt), `/babysit-pr` (don't merge red), `/grill-me` (challenge "we'll fix it later" answers), CLAUDE.md "no laziness" principle.
-
----
-
-### 12. Name what you know; flag what you don't
-
-Tacit assumptions are the silent killers of agent work. The agent infers a constraint from context ("the user probably wants X") and proceeds without saying so. Half the time it's right; the other half it produces correct-looking code that fails on the unstated case. The fix is cheap: surface the assumption.
-
-**Failure it prevents**: assumption-shaped bugs. The agent assumed UTC; the test assumed local time; the deploy was at midnight UTC and worked once before silently breaking.
-
-**How to apply**: when an agent infers something not in the prompt, it should say "I'm assuming X — confirm or correct." When taking on a task, the agent's first response is "Here's what I think is true; here's what I'm uncertain about." Skills like `/grill-me` exist to extract these *before* implementation.
-
-**Operationalized in**: `/grill-me` (interrogate assumptions out of hiding), `/create-claude-md` (CLAUDE.md captures shared assumptions so they aren't re-inferred), `/missions` (ambiguity surfaces between milestones).
+**Operationalized in**: `/missions` (validation gate per milestone), `/nightshift` (gates between tasks), `/swarm` (CRAP/Mutation/Acceptance agents are gates), `/agent-teams` (`TaskCompleted` hook), `/crap`, `/mutation-testing`, `/evals-first`, `/babysit-pr` (don't merge red), `/debug-runbook` (root-cause hunt over suppression).
 
 ---
 
 ## How to use this skill
 
 ### When bootstrapping a project (`/create-claude-md`)
-The generated CLAUDE.md gets a "Building with Agents" section with the principles inline (short form) and a link here for the long form. Every project starts with the principles in the agent's context.
+The generated CLAUDE.md gets the principles inline (short form) and a link here for the long form. Every project starts with the principles in the agent's context.
 
 ### When reviewing a stuck workflow
-If an agent loop is producing low-quality output, check it against these principles. Almost every agent failure traces to violating one of #6, #10, or #12 (didn't find what's hard, no gate, hidden assumption).
+If an agent loop is producing low-quality output, check it against these principles. Almost every agent failure traces to violating one of #6 (didn't find what's hard), #10 (no gate, drift accepted), or #4 (assumption never surfaced).
 
 ### When deciding "should we just patch this?"
-Run the candidate fix against #2 (rebuild often), #5 (maintain your spec), #11 (don't paper failures). If the patch violates two or more, it's not a fix — it's a future incident.
+Run the candidate fix against #2 (rebuild often), #5 (maintain your spec), #10 (don't paper failures). If the patch violates two or more, it's not a fix — it's a future incident.
 
 ### When a new tool/skill is being added
 Ask: which principle does this operationalize? If the answer is "none, it's just nice to have," it probably doesn't need to be a skill — just a one-time script.
-
-## Cull list (decide which 2 to drop)
-
-To get from 12 → 10:
-- **#7 (Reversibility)** and **#9 (Latency)** are both about *cost-of-being-wrong*. They could merge: "Optimize for cheap recovery" → covers both fast-feedback and reversible decisions.
-- **#11 (Read the failure)** could fold into **#10 (Agents drift, gates don't)** — papering failures is the most common way agents bypass gates.
-- **#12 (Name what you know)** could fold into **#4 (Document intent)** — both are about making the implicit explicit.
-
-Suggested cuts: keep all 6 originals, plus **#8 (Trust the boundary)**, **#10 (Agents drift, gates don't)**, plus 2 of the remaining 4 — picking based on which failure modes the user has hit hardest.
 
 ## Inheritance into other skills
 
@@ -190,4 +155,4 @@ When updating other skills, prefer **referencing this file by principle number**
 > See [/principles](../principles/SKILL.md).
 ```
 
-This keeps the philosophy in one place and lets skills focus on *how* to operationalize it.
+This keeps the philosophy in one place and lets skills focus on *how* to operationalize it, not *why* it matters.
