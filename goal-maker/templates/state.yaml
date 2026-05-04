@@ -1,0 +1,84 @@
+# Goal Maker v2 state.yaml
+# Board truth lives here. goal.md is the editable charter; notes/ holds long receipts only.
+
+version: 2
+
+goal:
+  title: "<Goal title>"
+  slug: "<goal-slug>"
+  kind: open_ended # specific | open_ended | recovery | audit
+  tranche: "<bounded current tranche>"
+  status: active # active | blocked | done
+
+rules:
+  pm_owns_state: true
+  one_active_task: true
+  max_write_workers: 1
+  no_implementation_without_worker_or_pm_task: true
+  no_completion_without_judge_or_pm_audit: true
+
+agents:
+  scout: installed
+  worker: installed
+  judge: installed
+
+active_task: T001
+
+tasks:
+  - id: T001
+    type: scout
+    assignee: Scout
+    status: active
+    reasoning_hint: default # default | low | medium | high | xhigh
+    objective: "Map repo purpose, architecture, verification commands, health signals, and improvement candidates."
+    inputs:
+      - README.md
+      - package.json
+      - docs
+      - tests
+    constraints:
+      - "Read-only."
+      - "Do not edit implementation files."
+      - "Prefer concrete file-path evidence over generic advice."
+    expected_output:
+      - "Repo map"
+      - "Verification commands"
+      - "Ranked improvement candidates"
+      - "Candidate next tasks"
+    receipt: null
+  - id: T002
+    type: judge
+    assignee: Judge
+    status: queued
+    reasoning_hint: default
+    objective: "Review Scout findings and choose the first safe implementation tranche."
+    inputs:
+      - "T001 receipt"
+    constraints:
+      - "Do not implement."
+      - "Pick small reviewable work."
+    expected_output:
+      - "Decision"
+      - "First Worker task"
+      - "Blocked or deferred tasks"
+    receipt: null
+  - id: T003
+    type: worker
+    assignee: Worker
+    status: queued
+    reasoning_hint: default
+    objective: "Reserved for the first implementation task after Judge selection."
+    allowed_files: []
+    verify: []
+    stop_if:
+      - "Need files outside allowed_files."
+      - "Behavior is ambiguous."
+      - "Verification fails twice."
+    receipt: null
+
+checks:
+  dirty_fingerprint: unknown
+  last_verification:
+    result: unknown
+    task: null
+    commands: []
