@@ -331,6 +331,7 @@ Read docs/goals/<slug>/goal.md and state.yaml. Work only the active task. After 
 ## Composing with other skills
 
 - **`/grill-me` first** — interrogate the goal before bootstrapping the board. The Scout-first discipline prevents implementing from vibes, but a Goal that's mush before Scout produces a Scout task that's also mush.
+- **`/codex-goal` to execute** — once the board is valid, hand the PM loop off to Codex (gpt-5.5, low reasoning) for cost + context-isolation wins. Claude validates the board pre and post, parses the receipt, and reports state changes. The natural pairing: `/goal-maker` (Claude scopes) → `/codex-goal` (Codex executes) → repeat.
 - **`/missions`** for multi-milestone goals (this is single-tranche; for *the next 5 tranches*, use missions which builds in milestone gates).
 - **`/agent-teams`** in Claude Code — instead of separate Codex agents, the PM is the team lead and Scout/Judge/Worker are teammates with the agent type specified in the spawn prompt.
 - **`/codex-review`** for the Judge role on hard decisions — give Judge the option to invoke a Codex review for a second opinion on tranche-completion calls.

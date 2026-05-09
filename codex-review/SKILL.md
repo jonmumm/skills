@@ -137,6 +137,7 @@ codex review --uncommitted "Re-review: I addressed the following findings from a
 | **/swarm** | Run against the Feature Agent's branch before merging to main |
 | **/babysit-pr** | Trigger a codex review before enabling auto-merge |
 | **/design-principle-enforcer** | Codex reviews for bugs, DPE reviews for architecture |
+| **/codex-goal** | Sibling skill: same wrapper pattern but for goal-maker boards. Use `/codex-goal` to delegate goal execution to Codex; use `/codex-review` to delegate code review. |
 
 ## Configuration
 
