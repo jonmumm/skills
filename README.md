@@ -7,6 +7,7 @@ Personal AI agent skills. Install with [skpm](https://skpm.sh) — dependencies 
 | Skill | Description |
 |-------|-------------|
 | [ai-sdk-testing](ai-sdk-testing/) | Test Vercel AI SDK code (generateText, streamText, structured output) without calling real LLM APIs. MockLanguageModelV3, MockEmbeddingModelV3, simulateReadableStream, and UI message stream simulation. |
+| [auto-grill-me](auto-grill-me/) | Continue an in-progress /grill-me session in auto-pilot — the agent keeps asking the same questions but answers them with its own best recommendation. User interrupts (Esc) only when they disagree. |
 | [actorkit-storybook-testing](actorkit-storybook-testing/) | Test actor-kit state machines in Storybook using mock clients and play functions. Covers static snapshots, interactive state transitions, event interception, and multi-actor nesting. |
 | [actorkit-tanstack-start](actorkit-tanstack-start/) | Integrate actor-kit with TanStack Start/Router for server-rendered, real-time stateful apps on Cloudflare Workers. Covers route loaders, server functions, SSR hydration, and WebSocket handoff. |
 | [adr-keeper](adr-keeper/) | Create and maintain Architectural Decision Records with date-named files sorted like migrations. Captures the WHY behind structural decisions. |
