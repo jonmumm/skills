@@ -36,10 +36,10 @@ Ask the user or infer from context:
 
 | Situation | Command |
 |-----------|---------|
-| Review uncommitted work | `codex review --uncommitted` |
-| Review a specific commit | `codex review --commit <sha>` |
-| Review branch diff against main | `codex review --base main` |
-| Review with a PR title for context | `codex review --base main --title "Add user auth"` |
+| Review uncommitted work | `codex review --uncommitted -c model="gpt-5.6-sol" -c model_reasoning_effort="medium"` |
+| Review a specific commit | `codex review --commit <sha> -c model="gpt-5.6-sol" -c model_reasoning_effort="medium"` |
+| Review branch diff against main | `codex review --base main -c model="gpt-5.6-sol" -c model_reasoning_effort="medium"` |
+| Review with a PR title for context | `codex review --base main --title "Add user auth" -c model="gpt-5.6-sol" -c model_reasoning_effort="medium"` |
 
 ## Step 2: Build Review Prompt
 
@@ -51,16 +51,19 @@ Ask the user or infer from context:
 For a simple diff review, just use the flags alone:
 
 ```bash
-codex review --base main
-codex review --uncommitted
-codex review --commit abc123
+codex review --base main -c model="gpt-5.6-sol" -c model_reasoning_effort="medium"
+codex review --uncommitted -c model="gpt-5.6-sol" -c model_reasoning_effort="medium"
+codex review --commit abc123 -c model="gpt-5.6-sol" -c model_reasoning_effort="medium"
 ```
 
 For custom review instructions (without `--base`/`--commit`), pass a prompt directly.
 Codex will review the current repo state:
 
 ```bash
-codex review "Review for correctness, test coverage, and security. Reference file paths and line numbers."
+codex review \
+  -c model="gpt-5.6-sol" \
+  -c model_reasoning_effort="medium" \
+  "Review for correctness, test coverage, and security. Reference file paths and line numbers."
 ```
 
 ### Adding project-specific context
@@ -76,12 +79,14 @@ to give Codex the same context Claude Code has.
 ```bash
 # Capture review output to a file
 codex review --base main \
-  -c model_reasoning_effort="xhigh" \
+  -c model="gpt-5.6-sol" \
+  -c model_reasoning_effort="medium" \
   2>&1 | tee .codex-review-output.md
 
 # Or for uncommitted changes
 codex review --uncommitted \
-  -c model_reasoning_effort="xhigh" \
+  -c model="gpt-5.6-sol" \
+  -c model_reasoning_effort="medium" \
   2>&1 | tee .codex-review-output.md
 ```
 
@@ -125,7 +130,10 @@ Track progress:
 After addressing findings, optionally re-run:
 
 ```bash
-codex review --uncommitted "Re-review: I addressed the following findings from a previous review. Verify the fixes are correct and check for any new issues introduced. Previous findings: [paste summary]"
+codex review --uncommitted \
+  -c model="gpt-5.6-sol" \
+  -c model_reasoning_effort="medium" \
+  "Re-review: I addressed the following findings from a previous review. Verify the fixes are correct and check for any new issues introduced. Previous findings: [paste summary]"
 ```
 
 ## Composing with Other Skills
@@ -143,18 +151,19 @@ codex review --uncommitted "Re-review: I addressed the following findings from a
 
 ### Model and reasoning effort
 
-By default, Codex uses the model from `~/.codex/config.toml`. Override via `-c`:
+Always override the model and reasoning effort via `-c` so reviews do not depend on
+`~/.codex/config.toml`:
 
 ```bash
-# Use a specific model with max reasoning
+# Use the review model and reasoning effort
 codex review --base main \
-  -c model="gpt-5.5" \
-  -c model_reasoning_effort="xhigh"
+  -c model="gpt-5.6-sol" \
+  -c model_reasoning_effort="medium"
 ```
 
 Valid reasoning efforts: `none`, `minimal`, `low`, `medium`, `high`, `xhigh`.
 
-Prefer `gpt-5.5` with `xhigh` reasoning for reviews — thoroughness matters more than speed when reviewing code. Use `medium` only for quick sanity checks. `gpt-5.5` requires codex CLI ≥ 0.125; older CLIs silently fall back to `gpt-5.4` even if the config requests 5.5, so run `codex --version` if you suspect drift.
+Use `gpt-5.6-sol` with `medium` reasoning effort for reviews.
 
 ### Sandbox permissions
 
@@ -164,7 +173,7 @@ No sandbox configuration needed.
 ## Gotchas
 
 - **Codex doesn't have your CLAUDE.md context by default.** Include key conventions in the review prompt, or Codex will review against its own defaults (which may conflict with your project's patterns).
-- **Review output varies by model.** `gpt-5.5` is the current default — most thorough, best for production review. `gpt-5.4` is faster and fine for quick passes. Older `o3` is still available but slower and weaker than 5.5 in practice.
+- **Review output varies by model.** This skill standardizes reviews on `gpt-5.6-sol` with `medium` reasoning effort.
 - **False positives are normal.** Codex may flag patterns that are intentional in your project. Don't blindly fix everything — use judgment.
 - **Don't loop reviews forever.** One review + fixes + optional re-review is enough. Diminishing returns after that.
 - **`codex review` has fewer flags than `codex exec`.** No `-o`, `-m`, or `--json`. Use `-c model="..."` for model overrides and `| tee` for output capture.
