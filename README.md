@@ -6,6 +6,7 @@ Personal AI agent skills. Install with [skpm](https://skpm.sh) — dependencies 
 
 | Skill | Description |
 |-------|-------------|
+| [agent-review](agent-review/) | Cross-agent code review using the Cursor Agent CLI in read-only Ask mode, followed by systematic triage and fixes. |
 | [ai-sdk-testing](ai-sdk-testing/) | Test Vercel AI SDK code (generateText, streamText, structured output) without calling real LLM APIs. MockLanguageModelV3, MockEmbeddingModelV3, simulateReadableStream, and UI message stream simulation. |
 | [auto-grill-me](auto-grill-me/) | Continue an in-progress /grill-me session in auto-pilot — the agent keeps asking the same questions but answers them with its own best recommendation. User interrupts (Esc) only when they disagree. |
 | [actorkit-storybook-testing](actorkit-storybook-testing/) | Test actor-kit state machines in Storybook using mock clients and play functions. Covers static snapshots, interactive state transitions, event interception, and multi-actor nesting. |
@@ -31,6 +32,7 @@ Personal AI agent skills. Install with [skpm](https://skpm.sh) — dependencies 
 | [react-composable-components](react-composable-components/) | Write and refactor React components to be small, composable, and customizable, doing one thing well. Leverage compound components, prop spreading, and utility class merging. |
 | [react-render-performance](react-render-performance/) | Minimize unnecessary React re-renders with selectors and useSyncExternalStore. Patterns for XState, Zustand, Redux, and context. |
 | [seam-tester](seam-tester/) | Focuses exclusively on writing robust integration tests at system boundaries (seams) rather than writing brittle, shallow unit tests. |
+| [split-pr](split-pr/) | Split an oversized PR or branch into small, reviewer-aligned PRs using GitHub's native stacked pull requests (`gh-stack`) — auto-retargeting and atomic stack merges replace hand-rolled branch chains and manual rebases. |
 | [swarm](swarm/) | Launch parallel AI agents (Feature, CRAP, Mutate, Accept) in Git worktrees to automate both coding and continuous codebase hardening. **The primary workflow.** |
 | [tlaplus](tlaplus/) | Formal verification of system designs using TLA+ and the TLC model checker. Models concurrent state machines, finds race conditions, deadlocks, and invariant violations before code is written. |
 | [vsdd](vsdd/) | Verified Spec-Driven Development — rigorous spec → TDD → adversarial review → mutation testing pipeline. Three intensity levels (Full/Standard/Light). |
