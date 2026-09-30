@@ -299,6 +299,29 @@ It beat both vector clip-art and generated 3D. See `ai-art-assets` → "Art kit 
 - Check the rig before trusting a critic. See `procedural-3d-web-game/references/critic-loop.md`
   §5.
 
+## Lessons from Peekaboo Garden (Sep 2026)
+
+- **A restarted Durable Object loses its XState timers.** A deploy, an eviction, or in `wrangler dev`
+  every file save restores the room from storage, but pending `after`/`raise({delay})` timers are gone,
+  so the room freezes mid-phase. actor-kit sends a system `RESUME` event after restoring: handle it in
+  every timed state (move on, or re-arm the heartbeat). Test it with a helper that persists the
+  snapshot, creates a fresh actor from it, and sends `RESUME`. Don't name a client event `RESUME`
+  either (a pause button did): the restore handler caught it. Guard on `event.caller.type === "system"`.
+- **The found moment must keep continuity.** Same camera angle, ease toward the spot under the lens,
+  the critter pops out of its own cover, and the lens turns into the spotlight. A cut to a new angle
+  read as "the one revealed isn't the one the glass was over".
+- **No identical duplicates in a search round.** Two copies of the same critter confuse a 5-year-old.
+  The only allowed twin is the one a position word ("in the flowers") tells apart.
+- **One panel per player** in the recorder (TV | grown-up | kid iPad | little-kid iPad). An inset
+  hides the little kid's part. `pnpm record --stitch` rebuilds the video from the raw footage.
+- **Two wrangler dev servers (HTTP for seam tests, HTTPS for devices) need separate
+  `--persist-to` dirs**, or they lock each other's Durable Object SQLite.
+- **Stryker's vitest runner never activates mutants under vitest 5** (every mutant "survives"). Use
+  the command runner: it sets `__STRYKER_ACTIVE_MUTANT__`, which instrumented code reads. Check with
+  one mutant activated by hand. TypeScript 7 has no JS API, so point `tsconfigFile` at a missing file.
+- **Clue words must be true to what the kid sees**: color first in rounds 1-2, and treat features a
+  child could confuse (a fox's pointy ears vs "long ears") as matches when choosing decoys.
+
 ## Known open issues (check before relying on them)
 
 - **A ~3s video freeze about once every 3 minutes** when a packet truly can't be recovered.
