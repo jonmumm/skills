@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>World</title>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #000; }
+    canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
+    #hud { position: fixed; left: 8px; top: 8px; font: 12px/1.4 ui-monospace, monospace; color: #fff;
+           text-shadow: 0 1px 2px #000; pointer-events: none; white-space: pre; display: none; }
+    #loader { position: fixed; inset: 0; display: grid; place-items: center; background: #000; transition: opacity .6s; }
+    #loader div { width: 120px; height: 2px; background: #333; overflow: hidden; }
+    #loader div::after { content: ''; display: block; height: 100%; width: 40%; background: #fff; animation: l 1s infinite; }
+    @keyframes l { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+  </style>
+</head>
+<body>
+  <div id="hud"></div>
+  <div id="loader"><div></div></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+[
+  { "call": "setView", "args": ["hero"], "label": "start at hero view" },
+  { "frames": 5 },
+  { "shot": "start" },
+  { "expect": "(window.__start = __game.ctx.get('camera').focus.clone(), true)", "label": "record camera focus" },
+  { "key": "KeyW", "holdFrames": 10, "label": "hold W for 10 frames to move forward" },
+  { "frames": 3 },
+  { "expect": "__game.ctx.get('camera').focus.distanceTo(window.__start) > 1", "label": "W moved the camera focus" },
+  { "key": "KeyV", "label": "cycle to next view" },
+  { "frames": 20 },
+  { "expect": "__game.ctx.camera.position.y > 1", "label": "camera stays above water and terrain" },
+  { "key": "KeyN", "label": "advance time of day" },
+  { "frames": 10 },
+  { "shot": "after-controls" },
+  { "expect": "__game.stats().frame > 10", "label": "render loop running" }
+]

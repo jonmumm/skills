@@ -42,7 +42,10 @@ a fresh critic. Expect previous 7s and 8s to land at 4–6. That drop is the poi
 ceiling", no amount of lighting or shaders will fix it: change the asset pipeline first
 (`ai-art-assets`: style bible + prompt prefix, 4-image calibration, character sheet → poses with
 an image-edit model, background removal, WebP + manifest; ElevenLabs for music beds and foley).
-In Story Nook that one pass was worth more than any later pass.
+In Story Nook that one pass was worth more than any later pass. It is also where the money goes:
+agree the pass's cap in `.asset-budget.json` first, calibrate at 1K and get the sheet approved
+before the bulk run, and generate parts rather than permutations (`ai-art-assets` → "Cost
+discipline").
 
 ## Step 1 — A fixed evidence rig (one command per round)
 
@@ -114,7 +117,11 @@ polish.
   other's shots. Build right before each shoot; accept the other agent's changes appearing.
 - **Credits run out mid-pass** (fal 403 "Exhausted balance"). Generation scripts must fail
   before overwriting; tell running agents to fall back to existing art; ask the user to top up.
-- **Secrets only in the interactive shell** (`zsh -ic '…'`); never printed or logged.
+  The scripts mark the service exhausted for every agent, so nobody retries into the 403.
+- **Rounds that "fix" by regenerating.** Each round's plan names its asset spend (e.g. "≤ 12
+  images, ≤ $2"). A row that needs more is a decision for the user, not a fix. Prefer code
+  (tint, relight, recompose, crop) over a new image.
+- **Secrets live in ~/.zshenv**, so every shell has them (no `source ~/.zshrc` or `zsh -ic` needed); never printed or logged.
 - **Long rounds.** A full round can exceed a 10-minute tool timeout: run it in the background.
 - **Critic variance.** Fresh critics re-discover issues and sometimes miss fixed ones. Judge
   progress by the minimum and the trend over rounds, not a single row's wobble.

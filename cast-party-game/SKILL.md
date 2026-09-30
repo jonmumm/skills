@@ -160,6 +160,30 @@ Asymmetric information (the phone knows what, the kid has the buttons) creates t
 - Particles, a warp tunnel, bloom and a camera shake on the TV; ripples and haptics on the phones.
 - A countdown, then the big moment (liftoff), then landing held **together** (both hold a button).
 
+### Voice, music and sound effects with ElevenLabs
+
+Jon has ElevenLabs API access; the key is in the `ELEVENLABS_API_KEY` environment variable.
+- Generate audio at build time with `../procedural-3d-web-game/scripts/elevenlabs.mjs`
+  (`check`, `sfx`, `music`, `tts`, `voices`) and commit the resulting files. Never call
+  ElevenLabs from the TV page or the phones, and never put the key in a bundle, commit, log or
+  chat. If a game truly needs runtime speech (say, reading player names), call it from the
+  Worker with the key stored as a Worker secret (`wrangler secret put ELEVENLABS_API_KEY`), and
+  cache the results.
+- Best uses in this format: a narrator voice on the TV for kids who can't read (whose turn it
+  is, clues, cheers), short stingers (win, unlock, rescue), and music loops per phase. Keep the
+  synthesized pentatonic instrument for per-press sounds, so they always harmonize and stay
+  instant.
+- Each generation costs credits: don't regenerate existing files without a reason, and record
+  every generated file in the game's credits (the script writes `assets/audio/CREDITS.json`).
+  The script also enforces the project's `elevenlabs_credits` cap and logs each call's real cost.
+- Music is the costly kind: 30–60 s mood loops crossfaded in code, not 120 s tracks, and not a
+  second "variation" before the first one has been heard in the game. Draft trailer VO with
+  `say`; generate the ElevenLabs take once the script is locked.
+- Runtime speech from the Worker scales with plays: cache every line in R2 by voice + text, and
+  pre-generate the fixed lines at build time.
+- If the variable isn't set in the session's shell, say so and fall back to synthesis rather
+  than asking for the key.
+
 ## Testing and verification
 
 - Unit tests on the machine with `SimulatedClock`; pure game modules tested beside them.
@@ -207,6 +231,73 @@ Asymmetric information (the phone knows what, the kid has the buttons) creates t
 - **Ask the device instead of guessing**: the receiver answers `GET_STATE` (started, view URL,
   overlay visible, video size, playing, decoded frames/fps). A pychromecast probe script reads
   it from the Chromecast during a real cast.
+
+## Conventions from the first six games (Sep 2026)
+
+These games converged on the same setup: Rocket Crew, Night Flight, Story Nook, Bake Shop,
+Peekaboo Garden and Juneau's Adventures. Use it from day one. When building several games at
+once, run them as a studio (`/game-studio`).
+
+**Kickoff brief (what Jon wants every time)**
+- Phases with ⏸ gates: "stop and wait for me".
+- A one-line update at each phase end.
+- `/grill-me` capped at about 5 questions.
+- Record decisions in the spec under "Decisions and assumptions".
+- **Budgets** per service in `.asset-budget.json` (`fal_usd`, `meshy_credits`,
+  `elevenlabs_credits`), set by Jon at kickoff and enforced by the generator scripts; the tally
+  is `assets/SPEND.jsonl` (`spend.mjs budget`). Ask before going over. See `ai-art-assets` →
+  "Cost discipline".
+- Keys only from env. Kids' photos only in `private/` (gitignored).
+- Ask before adding anything not in the spec. Commit at every working milestone (Jon wants
+  nothing lost); ask before pushing to a shared remote or deploying to the OGS directory.
+
+**Standard files**
+- `docs/<game>-spec.md`, `docs/tv-scene-brief.md` (scene contract plus performance rules),
+  `docs/art-style.md` (style guide).
+- `SCORECARD.md`, `STATUS.md` (always resumable), `CREDITS.md` / `assets/**/CREDITS.json`.
+- Critic evidence in `critic/rounds/NN/`.
+- `.claude/skills/` links to `~/src/skills`: cast-party-game, procedural-3d-web-game,
+  ai-art-assets, tdd, grill-me, seam-tester.
+- `CLAUDE.md` with a skills table. Update it when a rule changes; stale "off-limits" lines
+  mislead later sessions.
+- One fixed dev port per game, taken from the studio registry, so games can run side by side.
+
+**Plumbing every game needs** (copy it; the skeleton still lacks these)
+- `/host`: the OGS app's start phone skips the role picker and goes straight to naming.
+- Named kid seats (`NAME_SEAT`) shown on the TV and phones and remembered on the host phone.
+  Coaching lines use the kid's name.
+- An activity beacon (`window.__ogsActivityAt`), so an abandoned cast shuts the cloud GPU down.
+- `?stream=1` lite render for the software-GL stream server, with PNG fallbacks for 3D icons.
+- `NeutralToneMapping` (ACES washed out the key colors).
+- A shader prewarm in the lobby, and disposing replaced meshes (a GPU leak across games).
+- Guard `pow()`/`normalize()` against NaN: bloom smears one NaN into black frames. `shoot` fails
+  on any black frame.
+- Night Flight's `docs/skeleton-notes.md` lists what else the template should gain:
+  - seats as `{id, kind, name}[]`
+  - public and private views derived by one function
+  - a `rig()` test helper
+  - a recorder core plus a per-game `playTurn()`
+  - one `config.ts`
+  - progress kept on the host phone
+
+**The look that worked**
+A 2.5D painted diorama: fal-generated character sheets and poses as cutouts, painted layers and
+pop-ups, placed in a lit Three.js scene with depth of field, a grade and paper or felt materials.
+It beat both vector clip-art and generated 3D. See `ai-art-assets` → "Art kit pipeline".
+
+**Evidence each round** (the best versions to copy until a shared kit exists)
+- Recorder: `story-nook/e2e/record-session.ts`. It drives every device, records a 3-panel video
+  with TV audio and marks, and uses `--disable-audio-output` so a hung CoreAudio doesn't make a
+  silent take.
+- Evidence and audio: `story-nook/scripts/evidence.py` and `scripts/audio-report.py` (loudness,
+  spectrogram, luma at each mark, bass and harshness share), `night-flight-owls/scripts/evidence.sh`,
+  `bake-shop/scripts/critic-pack.py`.
+- Contact and phone sheets: `bake-shop/e2e/contact-sheet.ts` and `e2e/phones-sheet.ts`.
+- Stream: `scripts/stream-check.ts` (fps, audio energy, overlay, startup timeline).
+- Trailer: `rocket-crew/scripts/trailer/` (cut points from marks, the game engine renders the
+  score, a voiceover, cards) and `night-flight-owls/scripts/trailer.py` (clean audio layers).
+- Check the rig before trusting a critic. See `procedural-3d-web-game/references/critic-loop.md`
+  §5.
 
 ## Known open issues (check before relying on them)
 
