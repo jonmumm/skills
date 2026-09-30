@@ -125,6 +125,18 @@ polish.
 - **Long rounds.** A full round can exceed a 10-minute tool timeout: run it in the background.
 - **Critic variance.** Fresh critics re-discover issues and sometimes miss fixed ones. Judge
   progress by the minimum and the trend over rounds, not a single row's wobble.
+- **Server timing vs TV staging.** When the TV adds a cinematic beat (a cloud punch-through at
+  liftoff), the phones still follow the server clock: the Captain read problem 1 while the TV was
+  a white screen. Hold visuals on the TV *and* move the server beat (Rocket Crew: countdown 4 → 6.5 s).
+- **Generated music beds have silent heads and long fade-out tails.** Looping the whole file puts
+  a 2–3 s dip at every seam, which critics hear as "the music cuts out". Loop the content window
+  (first/last 50 ms block above −40 dBFS) and crossfade music into music.
+- **Square-wave alarms click.** An instant square edge is a full-band click up to 20 kHz that the
+  harshness detector counts at every problem start; use a triangle with a ~12 ms attack.
+- **A per-bed high shelf beats a global low-pass** for hi-hat-heavy generated beds: −6 to −7 dB
+  above 6 kHz on the offending beds only.
+- **The user's playtest beats the critic.** A family note ("weird spikes on the planet", "start
+  from the planet we landed on") goes into the very next pass, ahead of the critic's list.
 
 ## References
 
