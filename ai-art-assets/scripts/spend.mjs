@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Spend guard and ledger shared by fal.mjs, meshy.mjs and procedural-3d-web-game/scripts/elevenlabs.mjs.
+// Spend guard and ledger shared by fal.mjs, codex.mjs, meshy.mjs and procedural-3d-web-game/scripts/elevenlabs.mjs.
 // All three services draw on ONE wallet each, shared by every game and every agent running tonight, so:
 //   - every paid call is checked against the project's cap BEFORE it is sent (guard),
 //   - every paid call is appended to the project ledger and the global ledger (record),
@@ -8,7 +8,9 @@
 //
 // Caps live in <project>/.asset-budget.json (the project root is the nearest folder with that file,
 // package.json or .git). Missing file = DEFAULT_CAPS. Raising a cap is the owner's call, not the agent's.
-//   { "fal_usd": 10, "meshy_credits": 150, "elevenlabs_credits": 8000, "prices": { "fal-ai/some-model": 0.05 } }
+//   { "fal_usd": 10, "codex_images": 30, "meshy_credits": 150, "elevenlabs_credits": 8000, "prices": { "fal-ai/some-model": 0.05 } }
+// codex_images is not money: Codex image generation draws on the ChatGPT plan's usage limits, so its
+// cap is a count over the last 24 hours (WINDOW), not a lifetime total.
 //
 //   node spend.mjs budget            this project's caps, spent and remaining
 //   node spend.mjs report [--days 7] every project's spend from the global ledger
@@ -18,8 +20,9 @@ import { homedir } from 'node:os';
 import { dirname, join, resolve, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const DEFAULT_CAPS = { fal_usd: 5, meshy_credits: 100, elevenlabs_credits: 10000 };
-const UNIT = { fal: 'fal_usd', meshy: 'meshy_credits', elevenlabs: 'elevenlabs_credits' };
+export const DEFAULT_CAPS = { fal_usd: 5, codex_images: 30, meshy_credits: 100, elevenlabs_credits: 10000 };
+const UNIT = { fal: 'fal_usd', codex: 'codex_images', meshy: 'meshy_credits', elevenlabs: 'elevenlabs_credits' };
+const WINDOW = { codex: { ms: 86400e3, label: ' (last 24h)' } };
 const EXHAUSTED_TTL_MS = 30 * 60e3; // re-probe after 30 min even if nobody cleared it
 
 const stateDir = () => process.env.GAME_ASSETS_STATE ?? join(homedir(), '.local/state/game-assets');
@@ -42,7 +45,10 @@ const readLedger = (f) => existsSync(f)
   ? readFileSync(f, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)) : [];
 
 export function spent(root, service) {
-  return readLedger(ledgerOf(root)).filter((e) => e.service === service).reduce((s, e) => s + (e.amount ?? 0), 0);
+  const since = WINDOW[service] ? Date.now() - WINDOW[service].ms : -Infinity;
+  return readLedger(ledgerOf(root))
+    .filter((e) => e.service === service && (since === -Infinity || Date.parse(e.date) >= since))
+    .reduce((s, e) => s + (e.amount ?? 0), 0);
 }
 
 // Rough, deliberately conservative USD per output image (Sep 2026). Override per project with "prices".
@@ -78,7 +84,7 @@ export function markExhausted(service, detail) {
 export function clearExhausted(service) { rmSync(sentinel(service), { force: true }); }
 /** True for the answers that mean "the wallet is empty": stop, don't retry. */
 export const looksExhausted = (status, text) =>
-  status === 402 || /exhausted|locked|top.?up|insufficient|quota_exceeded|not enough credits/i.test(text);
+  status === 402 || /exhausted|locked|top.?up|insufficient|quota_exceeded|not enough credits|usage limit/i.test(text);
 
 /** Refuses (exit 3) when the service is out of balance or this call would pass the project's cap. */
 export function guard({ service, estimate = 0, label = '', dry = false }) {
@@ -89,7 +95,7 @@ export function guard({ service, estimate = 0, label = '', dry = false }) {
   const used = spent(root, service);
   const ex = isExhausted(service);
   const fmt = (x) => (unit.endsWith('usd') ? `$${x.toFixed(2)}` : `${Math.round(x)}`);
-  const line = `${service} ${label}: ≈${fmt(estimate)} · spent ${fmt(used)} of ${fmt(cap)} ${unit} (${file ? basename(file) : 'default caps'})`;
+  const line = `${service} ${label}: ≈${fmt(estimate)} · spent ${fmt(used)} of ${fmt(cap)} ${unit}${WINDOW[service]?.label ?? ''} (${file ? basename(file) : 'default caps'})`;
   if (dry) { console.log(`[dry] ${line}${ex ? ' · BALANCE EXHAUSTED' : ''}`); process.exit(0); }
   if (ex) {
     console.error(`${service} balance is exhausted (${ex.trim()}). Stop generating and use existing/fallback assets; ask the owner to top up, then run: node ${fileURLToPath(import.meta.url)} clear ${service}`);
@@ -131,7 +137,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     const root = findRoot();
     const { caps, file } = loadBudget(root);
     console.log(`${root} (${file ?? 'no .asset-budget.json: default caps'})`);
-    for (const [s, u] of Object.entries(UNIT)) console.log(`  ${s.padEnd(11)} ${Math.round(spent(root, s) * 100) / 100} of ${caps[u]} ${u}${isExhausted(s) ? '  (balance exhausted)' : ''}`);
+    for (const [s, u] of Object.entries(UNIT)) console.log(`  ${s.padEnd(11)} ${Math.round(spent(root, s) * 100) / 100} of ${caps[u]} ${u}${WINDOW[s]?.label ?? ''}${isExhausted(s) ? '  (balance exhausted)' : ''}`);
   } else if (cmd === 'report') {
     const days = arg === '--days' ? Number(val) : 7;
     const since = Date.now() - days * 86400e3;
@@ -143,6 +149,6 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   } else if (cmd === 'clear' && UNIT[arg]) {
     clearExhausted(arg); console.log(`${arg}: cleared; the next run will try again`);
   } else {
-    console.error('usage: spend.mjs <budget|report [--days N]|clear <fal|meshy|elevenlabs>>'); process.exit(2);
+    console.error('usage: spend.mjs <budget|report [--days N]|clear <fal|codex|meshy|elevenlabs>>'); process.exit(2);
   }
 }

@@ -86,7 +86,7 @@ most impressive, zero dependencies) vs. procedural + CC0 textures/sounds vs. AI-
 models (Tripo/Higgsfield/Blender) for hero characters. Characters and realistic footsteps/music
 are where pure code is weakest; say so.
 
-**Art: fal.ai and Meshy.** For generated illustrations, character sheets, textures or 3D models, use the `ai-art-assets` skill (`FAL_KEY` and `MESHY_API_KEY` in env, same key rules as below).
+**Art: Codex, fal.ai and Meshy.** For generated illustrations, character sheets, textures or 3D models, use the `ai-art-assets` skill. Images: `codex.mjs` on the ChatGPT plan first, fal when you need its models (`FAL_KEY` and `MESHY_API_KEY` in env, same key rules as below).
 
 **Audio: Jon has ElevenLabs API access.** The key is in the `ELEVENLABS_API_KEY` environment
 variable. Use `scripts/elevenlabs.mjs` (run `check` first) for anything synthesis does badly:

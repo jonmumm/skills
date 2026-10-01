@@ -1,15 +1,15 @@
 ---
 name: ai-art-assets
 description: >
-  Generate game and storybook art with fal.ai (images, character sheets, poses, parallax layers,
-  background removal) and 3D models with Meshy, at build time or through a server, with keys kept
+  Generate game and storybook art with Codex image generation (ChatGPT plan, no per-image cost) or
+  fal.ai (images, character sheets, poses, parallax layers, background removal) and 3D models with Meshy, at build time or through a server, with keys kept
   out of the client. Includes putting a real child into a story from family photos (hero sheet,
   consistent likeness, privacy). Use when a game needs illustrations, characters, props, world
   backgrounds, a kid's likeness, or a 3D model from an image ("use fal", "make art with AI",
-  "put my son in the story", "turn this into a 3D model", "Meshy").
+  "put my son in the story", "turn this into a 3D model", "Meshy", "use codex for art").
 ---
 
-# AI art assets (fal.ai, Meshy)
+# AI art assets (Codex, fal.ai, Meshy)
 
 Generated art is only as good as its **art direction** and its **review**. Decide the style once,
 generate in kits, look at every image, and keep what's consistent. **Every call costs real money
@@ -33,7 +33,7 @@ ElevenLabs month. Most of that spend was avoidable:
 
 **Before any generation run:**
 1. `node $S/spend.mjs budget`: the caps and what's spent. No `.asset-budget.json` means the
-   defaults ($5 fal, 100 Meshy credits, 10k ElevenLabs credits). Ask the owner to set real caps at
+   defaults ($5 fal, 30 Codex images/24h, 100 Meshy credits, 10k ElevenLabs credits). Ask the owner to set real caps at
    kickoff, and never raise a cap yourself.
 2. Count first. Every kit script needs `--dry` that prints the count and the estimated cost.
    More than ~40 images or ~$10 → show the owner the count, the cost and a contact sheet of the
@@ -42,7 +42,14 @@ ElevenLabs month. Most of that spend was avoidable:
    existing pose with a transform: all free. Generate only what code can't make.
 4. Run serially, or at most 4 at a time. Stop the batch on the first 403/402. Don't retry.
 
-**Budget guard (built into the scripts).** `fal.mjs`, `meshy.mjs` and `elevenlabs.mjs` check each
+**Codex first for images.** `codex.mjs` uses Codex's built-in image generation (gpt-image) on the
+owner's ChatGPT plan: no per-image cost, but ~1 min per image and the plan has usage limits shared
+by every game. Its cap is `codex_images` per project over the last 24h (default 30). A "usage
+limit" answer blocks codex for 30 min like an exhausted wallet. Don't fall back to fal on your own
+then; ask. Use fal when you need a model Codex doesn't have (nano-banana, seedream), exact sizes,
+cheap cutouts of existing art, or a big batch that would blow the plan limit.
+
+**Budget guard (built into the scripts).** `fal.mjs`, `codex.mjs`, `meshy.mjs` and `elevenlabs.mjs` check each
 call against the project's cap before sending it (`exit 3` when over), log it to
 `assets/SPEND.jsonl` and the machine-wide ledger (`spend.mjs report`), and write an "exhausted"
 marker on a 402/403 that blocks every later run for 30 min, or until `spend.mjs clear <service>`
@@ -52,10 +59,13 @@ directly (Story Nook's `generate.mjs`) is invisible to the caps.
 
 ```json
 // .asset-budget.json at the project root. The owner sets it.
-{ "fal_usd": 15, "meshy_credits": 0, "elevenlabs_credits": 8000 }
+{ "fal_usd": 15, "codex_images": 30, "meshy_credits": 0, "elevenlabs_credits": 8000 }
 ```
 
 **Current picks (Sep 2026; check prices with the fal pricing API before changing):**
+- Hero art, character sheets, TV plates, transparent props: `codex.mjs` first (free on the plan;
+  real alpha when the prompt asks for a transparent background; returns ~1254², so resize in code).
+  Pass the sheet with `--image` for consistent characters.
 - Exploration, icons, props, recolours that must be generated: `fal-ai/nano-banana-2` ($0.08) or
   seedream v5 ($0.07), at 1K.
 - Hero art, character sheets, TV plates: `fal-ai/nano-banana-pro` ($0.15, 2K) or gpt-image
@@ -74,7 +84,7 @@ directly (Story Nook's `generate.mjs`) is invisible to the caps.
 
 ## Scripts
 
-All three scripts save files into the project, refuse to overwrite without `--force` (every run
+All the scripts save files into the project, refuse to overwrite without `--force` (every run
 costs credits), append to a `CREDITS.json`, enforce the project's budget and log spend (see
 "Cost discipline"). Every paid command takes `--dry`.
 
@@ -82,6 +92,9 @@ costs credits), append to a `CREDITS.json`, enforce the project's budget and log
 S=~/src/skills/ai-art-assets/scripts
 node $S/spend.mjs budget                    # caps, spent, exhausted services (this project)
 node $S/spend.mjs report --days 7           # every project, from the machine-wide ledger
+node $S/codex.mjs run --prompt "..." --out assets/art/moon.png --dry        # today's count vs cap
+node $S/codex.mjs run --prompt "... transparent background" --out assets/art/moon.png
+node $S/codex.mjs run --prompt "pose: waving" --image refs/sheet.png --out assets/art/hero-wave.png
 node $S/fal.mjs check
 node $S/fal.mjs run <model-id> --prompt "..." --out x.png --dry           # estimate only
 node $S/fal.mjs run <model-id> --prompt "..." --out assets/art/sea/sky.png
