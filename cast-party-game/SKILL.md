@@ -322,6 +322,23 @@ It beat both vector clip-art and generated 3D. See `ai-art-assets` → "Art kit 
 - **Clue words must be true to what the kid sees**: color first in rounds 1-2, and treat features a
   child could confuse (a fox's pointy ears vs "long ears") as matches when choosing decoys.
 
+## The toddler seat (from Rocket Crew, Oct 2026)
+
+A younger sibling will walk over and tap the big kid's iPad mid-mission, and the big kid melts
+down. Give every family game an optional **toddler seat** from day one:
+- The third phone to join gets it. Launch never waits for it; the game works the same without it.
+- Her own device: 4 giant wordless toys (2×2 grid, ~42vmin circles), each a delightful TV moment
+  tied to the theme (Rocket Crew: honk-and-hop, shooting stars, engine puff, rainbow sparkle).
+- **Nothing she does touches the mission.** Server: a single `TOY` event guarded `fromLookout`,
+  stored as `{toy, seq}` in public state; every mission event (press, hint, launch, land, replay,
+  pause, shake) stays guarded to the two real seats. Test it: a burst of toys leaves every mission
+  field equal (`missionState(before) === missionState(after)`).
+- TV gate: at most one toy per ~0.5 s, and toys that would fight a staged moment (arrival, mayday)
+  degrade to a sparkle. Effects stay small and off the focal area and the kid's dock.
+- Lobby: a compact dashed "3 · Little one · optional" seat that lights up when she's aboard.
+- An end-to-end script (`scripts/lookout-check.mts`) joins three devices, taps every toy, spams 20
+  taps and asserts the Captain's line didn't change.
+
 ## Known open issues (check before relying on them)
 
 - **A ~3s video freeze about once every 3 minutes** when a packet truly can't be recovered.
