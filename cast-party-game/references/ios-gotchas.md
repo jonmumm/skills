@@ -20,3 +20,15 @@ of these only showed up there.
 - The app injects the bridge; `isOGSCastAvailable()` is true there, so host rather than show the TV.
 - The app's edge swipe-back slides the whole WebView. A drag taken over by another gesture must
   settle back (`onPanResponderTerminate`), or the game stays shifted and clipped on the right.
+
+## Old iPads run Safari 15 (Oct 2026, Rocket Crew)
+
+Hand-me-down iPads (e.g. iPad Air 2, stuck on iOS 15.8) run Safari 15. Things that silently break there:
+- **Container query units (`cqh`, `cqw`) and `container-type`** need Safari 16. A `transform` using `cqh`
+  is dropped entirely, so a lever knob lost its centring. Use `%` of the parent (`top: 50%` +
+  `translate(-50%, -50%)`).
+- **`color-mix()`** needs Safari 16.2. Declarations containing `var()` + `color-mix()` become invalid
+  at computed time (no fallback kicks in). Add `@supports not (color: color-mix(in srgb, red, blue))`
+  overrides using layered gradients (`linear-gradient(#000a, #000a), var(--c)`) and plain shadows.
+- **Shaking a heavy iPad** rarely passes a phone-sized threshold (12 m/s²); use ~7 for tablets.
+- **Fullscreen**: `requestFullscreen` works on iPad Safari, never on iPhone Safari (video only).
