@@ -128,7 +128,11 @@ export async function withLock(name, fn, { staleMs = 15 * 60e3 } = {}) {
       await new Promise((r) => setTimeout(r, 1000));
     }
   }
-  try { return await fn(); } finally { rmSync(dir, { recursive: true, force: true }); }
+  // process.exit() inside fn (e.g. an API error) skips `finally`; release on exit too, or every
+  // later call waits out the 15-minute stale timeout.
+  const release = () => rmSync(dir, { recursive: true, force: true });
+  process.once('exit', release);
+  try { return await fn(); } finally { release(); process.removeListener('exit', release); }
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
