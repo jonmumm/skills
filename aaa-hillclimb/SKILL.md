@@ -138,6 +138,17 @@ polish.
 - **The user's playtest beats the critic.** A family note ("weird spikes on the planet", "start
   from the planet we landed on") goes into the very next pass, ahead of the critic's list.
 
+- **A UI-polish variant (every screen × every size).** Rocket Crew went 5 → 7 in six passes with a
+  `scripts/ui-matrix.mts` that plays one real mission and, at each phase, resizes every device through
+  real sizes (iPhone SE/15/Pro Max with and without Safari bars, landscape; iPad mini/Air 2/Air/Pro
+  portrait + landscape with and without bars; TV 720p/1080p/ultrawide/4:3/tall windows), plus
+  `ui-sheets.py` (one labelled sheet per phase × role) and a 7-row UI scorecard (occlusion, clipping,
+  spacing, readability, touch, consistency, phase polish). Lessons: tell the critic the sheets scale
+  shots to one height (judge text size on full-size PNGs only), that Playwright has no iOS safe-area
+  insets, and which transitions are timing-dependent; it found real bugs no gameplay round did (an ink
+  outline ballooning into a black disc on resize, smoke whiteouts in tall windows, a 16:9-stage HUD
+  over a window-aspect 3D camera).
+
 ## References
 
 - `references/scorecard-aaa.md` — the AAA scorecard template (rows, anchors, log format).
