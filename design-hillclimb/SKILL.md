@@ -15,6 +15,7 @@ dependsOn:
   - jonmumm/skills@aaa-hillclimb
   - jonmumm/skills@autodesign
   - jonmumm/skills@product-design-critic
+  - jonmumm/skills@verify-on-device
 ---
 
 # Design hill-climb
@@ -80,6 +81,9 @@ Rules that make the evidence trustworthy:
   mid-capture, seeded data). Flow recordings run with motion on.
 - Device frames at true CSS size (phone 390×844, tablet 820×1180, TV 1920×1080), shot at 2×.
 - Commit each round's evidence under `critic/rounds/NN/`. Open the flow recordings for the user.
+- **Prove the rig, then freeze it** (as in `aaa-hillclimb` Step 1): before round 01, feed every
+  check a deliberate fault (a tiny tap target, low-contrast text, words on a kid screen, a wrong
+  scenario) and confirm it fails. Gate flow recordings with `verify-on-device`'s `av-verdict.mjs`.
 
 ## Step 2 — Two fresh critics, every round
 
@@ -109,6 +113,8 @@ minimum where it was.
   "commit after each step", "re-shoot and look at the shots with the Read tool after each step",
   a budget, and a final report (changes per step, best shots, thresholds moved old → new, what
   wasn't achieved).
+- **Keep or revert each step** against the shots it names, logged in `critic/decisions.tsv`
+  (`aaa-hillclimb` Step 3).
 - Use the impeccable skills as targeted tools when a row calls for them: `/clarify` (copy,
   labels), `/distill` (overloaded screens), `/arrange` (layout rhythm), `/typeset` (type),
   `/animate` (transitions that explain), `/harden` (edge states), `/onboard` (first run),
@@ -118,7 +124,9 @@ minimum where it was.
 
 ## Step 4 — Stop rule
 
-Stop when every row ≥ 8, or the minimum fails to rise for **two consecutive rounds**, or the
+Stop when every row ≥ 8 (after a floor of 3 rounds), or the minimum stays flat through one
+**pivot round** (`aaa-hillclimb` Step 4: when two flat rounds' kept steps were all one kind of
+change, the next round's fixes come from a different category, usually the IA model), or the
 budget ends (default 8 rounds / ~10 h). At a plateau, hand the user: the score table (baseline →
 now), the latest flow recordings, the stuck rows and *why* (usually structural: the model, a
 platform limit, a rule that fights another rule), and 2–3 directions with a recommendation.

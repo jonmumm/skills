@@ -11,6 +11,7 @@ description: >
 dependsOn:
   - jonmumm/skills@procedural-3d-web-game
   - jonmumm/skills@ai-art-assets
+  - jonmumm/skills@verify-on-device
 ---
 
 # AAA hill-climb
@@ -64,6 +65,14 @@ The critic only sees evidence, so evidence is the product. Build `scripts/round.
 Commit each round's evidence under `critic/rounds/NN/`. Open the session video for the user
 at each round: they will want to watch it, and their reaction outranks the scorecard.
 
+**Prove the rig, then freeze it.** Before round 01, show that every automatic check can fail:
+point it at a build with a forced fault (a black or white TV via a scenario hook, a muted mix, a
+hidden HUD) and confirm the log flags each one, and that two different builds produce visibly
+different evidence. A check that never fails measures nothing (the empty `OGS_CONCEPTS` filter
+"passed" by selecting nothing). Then freeze `round.sh` and its thresholds: a change to the rig
+between rounds means re-shooting the previous round with it so the two are comparable. Gate the
+session video with `verify-on-device`'s `av-verdict.mjs --expect-motion --expect-audio`.
+
 ## Step 2 — A fresh critic every round
 
 Spawn a new subagent (strongest model) each round with `references/critic-prompt.md`: it reads
@@ -91,11 +100,25 @@ misreads evidence, fix the evidence (see Gotchas), not the critic.
   what wasn't achieved.
 - Relay user-facing trade-offs (moved brightness targets, behaviour changes) to the user in
   plain words. Tests that pin behaviour stay; fold new content into existing structure instead.
+- **Keep or revert, one step at a time.** After each numbered step, re-shoot the shots it names.
+  Keep the step only if those shots improved and nothing else regressed; otherwise revert it in
+  full ("might help" is not kept). Log one row per step in `critic/decisions.tsv`
+  (`round, step, hypothesis, shots, before, after, verdict, commit`), kept or reverted. Read it
+  before planning the next round so reverted ideas aren't retried blind.
 
 ## Step 4 — Stop rule
 
-Stop when every row ≥ 8, or the minimum fails to rise for **two consecutive rounds**, or the
-budget ends. At a plateau, stop and hand the user: the score table (baseline vs now), the
+Agree the stop rule before round 01: a target (every row ≥ 8) **and** a floor of rounds (at
+least 3), so one lucky round can't end the run.
+
+**At the first plateau, pivot once before stopping.** When the minimum is flat for two rounds,
+look at `decisions.tsv`: if the kept steps were all the same kind of change (lighting, materials,
+UI polish on the same system), run one more round whose fixes come from a *different category*:
+the asset pipeline, the camera/staging model, a design rule that fights another rule, or
+recombining near-misses that were reverted. Write the pivot's hypothesis down first.
+
+Stop when every row ≥ 8 (after the floor), or the minimum stays flat through the pivot round, or
+the budget ends. At a plateau, stop and hand the user: the score table (baseline vs now), the
 latest video, the rows stuck and *why* (usually structural: the art approach, a design rule
 like "bedtime = dark" fighting "readable"), and 2–3 concrete directions with a recommendation.
 Plateaus are information: they tell you the next gain needs a different approach, not more
