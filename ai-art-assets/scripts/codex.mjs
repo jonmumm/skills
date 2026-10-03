@@ -56,7 +56,8 @@ const r = spawnSync(process.env.CODEX_BIN ?? 'codex', [
   'exec', '--json', '--skip-git-repo-check', '--sandbox', 'read-only', '-C', work,
   '-c', 'model_reasoning_effort=low',
   ...refs.flatMap((p) => ['-i', p]),
-  instruction,
+  // `-i <FILE>...` is greedy in codex-cli ≥0.150: without `--` the prompt is read as another image.
+  '--', instruction,
 ], { encoding: 'utf8', timeout: Number(args.timeout ?? 600) * 1000, maxBuffer: 64 << 20, env: process.env });
 rmSync(work, { recursive: true, force: true });
 
