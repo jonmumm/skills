@@ -346,5 +346,9 @@ down. Give every family game an optional **toddler seat** from day one:
   holding back PLI requests. Choppiness was otherwise fixed by the shader prewarm plus
   720p/4 Mbps plus a 200 ms playout buffer (measured: server freezes of up to 3.7s dropped to
   ≤0.2s, and Chromecast freezes went from 3 to 1 per 3 minutes).
-- The Cast receiver is unpublished: only registered devices (the Chromecast HD) can run it,
-  not the LG TV's built-in Cast.
+- **Receiver publish state and TV Cast support change: check, don't recall.** As of 2026-09-29 the
+  OGS receiver (app 807AD5E9) is **Published**, so any Cast device can launch it, and the LG OLED
+  **has Google Cast built in**. An earlier note here said the opposite and an agent repeated it to
+  the user twice. If a TV is missing from the picker, it is usually its `_googlecast._tcp` mDNS
+  record: `dns-sd -B _googlecast._tcp`, `curl http://<tv>:8008/setup/eureka_info`; power-cycle
+  the TV. Quote the probe's output before saying what a device can or can't do.
