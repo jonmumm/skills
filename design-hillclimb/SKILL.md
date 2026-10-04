@@ -157,6 +157,12 @@ Write `BRIEFING.md` (two-minute read) and fill in the case study.
 - **A noisy check gets "fixed" in the design.** An overlap check that flagged inline code inside
   wrapped prose made a fix owner rewrite the docs to satisfy it. When an owner reports a check
   misfiring, fix the check (and re-prove the rig) before the round, not the content.
+- **A high score on the wrong model.** OGS round 02 hit 7.25 on a model the owner replaced after
+  ten minutes with the real app ("casting is the first thing you do"). Before any deep round, have
+  the owner use today's product and review a wide sheet of variants of the key moments.
+- **The prototype isn't the proof.** Carry the rig into the build: synced phone + TV video, a fake
+  device that counts side effects (casts, loads), and at least one run against a real game, not a
+  fixture. OGS's build found a double-open, a swallowed gesture and a duplicated label only there.
 
 ## References
 
