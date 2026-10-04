@@ -20,6 +20,9 @@ dependsOn:
 
 # Design hill-climb
 
+The generic loop (frozen rubric, proven evaluators, fresh blind panel, keep/revert, pivot once)
+is `hillclimb`; this skill specializes it.
+
 `aaa-hillclimb` raises a game by grading fixed evidence with a fresh critic each round. This is
 the same loop for **product and UI design**: flows, states, information architecture and visual
 craft across every device a product runs on. It borrows `autodesign`'s go-wide-then-deep shape

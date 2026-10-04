@@ -16,6 +16,9 @@ dependsOn:
 
 # AAA hill-climb
 
+The generic loop (frozen rubric, proven evaluators, fresh blind panel, keep/revert, pivot once)
+is `hillclimb`; this skill specializes it.
+
 A playable game gets good by **climbing a hill in fixed steps**, graded by someone who didn't
 build it. This is the loop that took Story Nook (a cast party bedtime game) from a
 "competent indie demo" to a build the family called "really great" in one day: baseline
