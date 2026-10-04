@@ -111,7 +111,8 @@ misreads evidence, fix the evidence (see Gotchas), not the critic.
 Agree the stop rule before round 01: a target (every row ≥ 8) **and** a floor of rounds (at
 least 3), so one lucky round can't end the run.
 
-**At the first plateau, pivot once before stopping.** When the minimum is flat for two rounds,
+**At the first plateau, pivot once before stopping** (run the pivot as an `arena`: 3 candidates
+from different categories, judged on the scorecard, best one kept). When the minimum is flat for two rounds,
 look at `decisions.tsv`: if the kept steps were all the same kind of change (lighting, materials,
 UI polish on the same system), run one more round whose fixes come from a *different category*:
 the asset pipeline, the camera/staging model, a design rule that fights another rule, or

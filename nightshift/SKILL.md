@@ -239,9 +239,11 @@ Phase 2: LOOP (AFK, autonomous)
   ├── 8. Fix issues, re-run eval stack until all blocking tiers pass
   ├── 9. Optional: exploratory Chrome MCP / simulator smoke test (advisory)
   ├── 10. Final commit with detailed message for human review
-  ├── 11. Log: progress.md, NOTICED.md, lessons.md, eval gap log
+  ├── 11. Log: progress.md, NOTICED.md, lessons.md, eval gap log, and one decisions.tsv row per
+  │       fork/revert/blocker (show-me-your-work)
   ├── 12. Loop to step 2 for next task
-  └── 13. Write morning briefing + workflow feedback + eval iteration notes
+  └── 13. Write morning briefing + workflow feedback + eval iteration notes; audit decisions.tsv
+          and end MORNING.md with show-me-your-work's cross-model Attention section
 
 Phase 3: HANDOFF (waiting for human)
   ├── Morning briefing in .nightshift/MORNING.md

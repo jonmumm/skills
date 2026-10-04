@@ -51,7 +51,7 @@ Step 4  stop rule: every row ≥ 8, or min flat two rounds, or budget → hand o
 2. Write the **coverage matrix** (`critic/COVERAGE.md`): every flow × its full state set
    (empty, loading, partial, success, error, interrupted, undone) × every device. A blank cell is
    a gap the critic will score; keep the matrix honest.
-3. **Go wide.** Name 3–5 genuinely different concept directions (the name is the brief; make the
+3. **Go wide** (an `arena` with one candidate per direction). Name 3–5 genuinely different concept directions (the name is the brief; make the
    biggest open product question, e.g. brand or IA model, one axis). Launch one subagent per
    concept *in a single message* (independent context, no cross-contamination); each builds the
    same 2–3 hardest moments into the shared prototype harness under its own folder
@@ -154,6 +154,9 @@ Write `BRIEFING.md` (two-minute read) and fill in the case study.
   Shoot from a fresh `vite build` + `vite preview`, not the dev server.
 - **Long rounds.** Run `round.sh` in the background; a full round of flows can exceed a tool
   timeout.
+- **A noisy check gets "fixed" in the design.** An overlap check that flagged inline code inside
+  wrapped prose made a fix owner rewrite the docs to satisfy it. When an owner reports a check
+  misfiring, fix the check (and re-prove the rig) before the round, not the content.
 
 ## References
 
