@@ -1,13 +1,37 @@
 # OGS casting: deploy, debug, measure
 
+## How a game reaches the TV (Oct 2026)
+
+The phone casts **once** per evening; games never cast. The game-side contract is
+`~/src/open-game-system/docs/specification.md`; this page is the pipeline behind it.
+
+1. The OGS app (TV tab, or Play → Cast) launches the Cast receiver (app 807AD5E9) and sends
+   `LOAD_VIEW` on `urn:x-cast:org.opengame.view` with the **launcher URL**
+   (`<tvBase>/?api=…&token=<launcher token>`, `launcherUrl` in `apps/mobile/services/config.ts`), never a
+   game URL, plus `streamServerUrl`.
+2. The receiver asks that stream server to render the launcher; a cloud GPU Chrome tab-captures it →
+   Cloudflare Realtime SFU → WebRTC → the Chromecast.
+3. Starting a game is `game.start` on the couch session (phone or TV remote). The game's phone page
+   declares its TV page (`useCastViewUrl`), the app forwards it as `game.view`, and the launcher frames
+   it. Swaps and Home park the frame (`ogs:suspend`); no recast.
+
+**Stream path today: the PR-5 preview Worker.** Until streaming moves onto the production API
+(roadmap "One API for streaming too"), build the app with
+`EXPO_PUBLIC_OGS_STREAM=https://opengame-api-pr-5.jonathanrmumm.workers.dev/api/v1/stream`. That Worker
+has `STREAM_SERVER_URL` → Cloud Run `stream-gpu` and the TURN secrets. Unset, the app names
+`<EXPO_PUBLIC_OGS_API>/api/v1/stream` (`streamServerUrl` in `apps/mobile/services/cast-view.ts`); the
+production API had no TURN on 2026-10-04, and the GPU publisher reaches the SFU only through TURN.
+Check with `pnpm stream:ready <api-url>` (in `services/api`; it starts no GPU unless `--probe-renderer`) before casting through a new API.
+
 ## Pieces and where they live
 
 | Piece | Location | Deploy |
 |---|---|---|
-| Game (TV + phones) | its own repo, Cloudflare Worker | `pnpm build:client && pnpm run deploy` |
+| Game (TV + phones) | its own repo, Cloudflare Worker | `pnpm build:client && pnpm run deploy` (never `pnpm deploy`) |
+| Catalogue entry + art kit | `open-game-system/services/api/src/catalogue.ts`, art in `apps/tv/public/art/<appId>/` | API and launcher deploys (see `/ogs-game`) |
+| TV launcher | `open-game-system/apps/tv` (Pages project `ogs-tv`) | `pnpm --filter @open-game-system/tv run deploy` |
 | OGS app (sender) | `open-game-system/apps/mobile` (Expo) | Release build to a device: `xcodebuild -workspace ios/opengameapp.xcworkspace -scheme opengameapp -configuration Release -destination id=<udid> -derivedDataPath build-device -allowProvisioningUpdates DEVELOPMENT_TEAM=<apple-team-id> CODE_SIGN_STYLE=Automatic build`, then `xcrun devicectl device install app --device <id> build-device/Build/Products/Release-iphoneos/opengameapp.app` |
-| Game directory entry | `apps/mobile/services/game-directory.ts` | app build |
-| Cast receiver | `open-game-system/apps/web/public/receiver.html` → opengame.org/receiver.html | `pnpm build && npx wrangler pages deploy dist --project-name=opengame-org --branch=main` |
+| Cast receiver | `open-game-system/apps/web/public/receiver.html` → opengame.org/receiver.html | `pnpm build && npx wrangler pages deploy dist --project-name=opengame-org --branch=main` (diff against the live deployment first: `docs/lessons.md`) |
 | Stream API | `services/api` (worker `opengame-api-pr-5`) | preview wrangler config; the `STREAM_SERVER_URL` secret points to Cloud Run |
 | Stream server (GPU Chrome) | `services/api/container` | `gcloud builds submit --project=opengame-stream --region=us-central1 --tag us-central1-docker.pkg.dev/opengame-stream/stream/stream-server:<tag> .`, then `gcloud run deploy stream-gpu --project=opengame-stream --region=us-east4 --image=…` |
 
@@ -27,7 +51,9 @@ scales to zero when idle; a cold start takes about 20–40s to first video. Alwa
   stops, the pings stop, and it scales down.
 - A $20/month budget alert on the billing account, filtered to `opengame-stream`.
 - The Artifact Registry `stream` repo has a cleanup policy that keeps the 3 newest images.
-- The TV also reports player activity (`useActivityBeacon`), so an abandoned cast can shut down.
+- Idle stop: the renderer reads `window.__ogsActivityAt` on the page it streams, which for an OGS
+  cast is the launcher (games are cross-origin frames). The launcher keeps it fresh while a phone is
+  on the couch (`apps/tv/src/session/activity.ts`).
 
 ## Hard-won settings
 
@@ -63,6 +89,18 @@ scales to zero when idle; a cold start takes about 20–40s to first video. Alwa
 - Drive the Chromecast from the CLI with pychromecast in a venv (never the conda base):
   launch app 807AD5E9 and answer `REQUEST_VIEW` with `LOAD_VIEW`.
 - `wrangler tail opengame-api-pr-5` for API trace logs.
+
+## App cast state lessons (from real living-room testing)
+
+- **The app's cast state mirrors the real Google Cast session, never its own guesses**
+  (`apps/mobile/services/cast-sync.ts`, tested with a fake SessionManager): it picks up an existing
+  session on reopen, follows the session events, stops with `endCurrentSession(true)` (which also
+  stops the receiver app), and never re-stops a session that ended on its own. If the app and the TV
+  disagree, the bug is there.
+- **Name the cast after `session.getCastDevice()`**, not the first discovered device.
+- **"Sound but no video" was an overlay**: a late status update re-showed "Connecting…" over a
+  playing stream. Once connected, status never shows the overlay; the video's `playing` event hides
+  it; `stream-check` fails if the overlay covers the video.
 
 ## Finding choppiness (the method that worked)
 

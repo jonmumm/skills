@@ -4,11 +4,12 @@ description: >
   Build a new family "cast party game" in a day: a shared TV screen cast from the grown-up's
   phone through the OpenGame (OGS) app, plus a grown-up phone and a kid's iPhone/iPad as
   controllers. Covers the one-page spec, the room architecture (Cloudflare Worker + one Durable
-  Object per room with actor-kit), OGS casting and the GPU stream server, iOS/iPadOS device
-  gotchas, juice, testing and the gameplay-video recorder. Use when starting a new game in this
-  format ("new game for me and my son", "make a game like Rocket Crew", "cast party game",
-  "TV + phones game"), or when adding a game to the OGS directory.
+  Object per room with actor-kit), designing the TV page for the cloud stream, iOS/iPadOS device
+  gotchas, juice, testing and the gameplay-video recorder. OGS integration (catalogue, launcher,
+  profiles) is in /ogs-game. Use when starting a new game in this format ("new game for me and my
+  son", "make a game like Rocket Crew", "cast party game", "TV + phones game").
 dependsOn:
+  - jonmumm/skills@ogs-game
   - jonmumm/skills@grill-me
   - jonmumm/skills@tdd
   - jonmumm/skills@seam-tester
@@ -24,8 +25,8 @@ github.com/open-game-system/rocket-crew). Copy its skeleton; don't re-derive it.
 
 | Screen | Who | What it shows | Rule |
 |---|---|---|---|
-| TV | everyone | The shared world: big, animated, 3D, music | Nobody touches it. It's cast from the host phone and rendered in the cloud |
-| Host phone | grown-up | Words: what to say, coaching, Hint/Pause/Next | Reads aloud. It also hosts the room and starts the cast |
+| TV | everyone | The shared world: big, animated, 3D, music | Nobody touches it. The OGS TV launcher frames it inside the evening's one cast |
+| Host phone | grown-up | Words: what to say, coaching, Hint/Pause/Next | Reads aloud. It also hosts the room (OGS does the casting) |
 | Kid device | child (iPhone/iPad) | **No words**: colors, pictures, sounds, buzzes | Every press gets instant feedback on this device |
 
 The magic is **talking**: the game makes the grown-up and the kid talk to each other.
@@ -45,8 +46,8 @@ Asymmetric information (the phone knows what, the kid has the buttons) creates t
 5. **Juice pass**: sound, haptics, particles, transitions (see below).
 6. **Record the gameplay video** (a 3-panel TV | phone | kid view with TV audio) and look at it.
    For something to share with the family, cut a **trailer**: see `references/trailer.md`.
-7. **Deploy** (`wrangler deploy`), add the game to the OGS game directory, and cast from the
-   app to verify.
+7. **Put it in OGS: follow `/ogs-game`** (profile-kit, parked audio, art kit, catalogue entry,
+   `pnpm run deploy`), then cast from the app to verify.
 
 ## Architecture (copy from rocket-crew)
 
@@ -71,37 +72,31 @@ Asymmetric information (the phone knows what, the kid has the buttons) creates t
   fixed upstream; otherwise a phone dropping without a close frame crashes `wrangler dev` and
   leaks subscriptions.
 
-## OGS casting (how the TV gets onto the real TV)
+## OGS: follow /ogs-game
 
-- The game declares its TV page: `useCastViewUrl(`${tvUrl}&stream=1`)` in the host panel
-  (cast-kit-react ≥0.2.0), plus a `<CastButton>`.
-- Inside the OGS app (`isOGSCastAvailable()`), the start page redirects to `/host`: the phone
-  is the host, not the TV. A phone/tablet browser (coarse pointer) gets a start chooser; a
-  laptop gets the TV with a "Start the TV — sound & full screen" gate.
-- The pipeline:
-  1. The app launches the Cast receiver (app 807AD5E9) and sends `LOAD_VIEW {viewUrl}` on
-     `urn:x-cast:org.opengame.view`.
-  2. The receiver calls the API `start-stream`.
-  3. **Cloud Run L4 GPU Chrome** renders the TV page.
-  4. Tab capture → Cloudflare Realtime SFU → WebRTC → the Chromecast.
-- **Design the TV for the stream**:
-  - 1920×1080 at 30 fps.
-  - Nobody can click it: when `?stream` is set, start audio and music on mount (autoplay is
-    allowed there).
-  - Keep progress on the host phone, not in the streamed TV's localStorage.
-  - Use a lite render mode **only** when the WebGL renderer is software (`scene/gpu.ts`); the
-    L4 renders full quality at 60 fps.
-  - **Compile every shader in the lobby.** three.js compiles a material's shader the first
-    time it's drawn, so hidden things (UFO, shield, effects, a new planet) compiled mid-game.
-    That froze the cloud TV page for up to 3.7s, and the Chromecast then dropped seconds of
-    video. Prewarm at startup:
-    - make everything visible and compile;
-    - compile **against the EffectComposer's render target**, because it uses different
-      shader variants than the screen (compiling to screen still left 5 compiles mid-game);
-    - changing the number of lights also recompiles every material, so keep the light count fixed.
+Casting, the catalogue, profiles and the TV launcher are OGS's job, not the game's: **follow
+`/ogs-game`** and its contract (`~/src/open-game-system/docs/specification.md`). In short, the phone
+casts once, the launcher frames the game's TV page, people join with the TV code, and the game has
+no cast button. Stream pipeline, deploys and debugging: [references/casting.md](references/casting.md).
 
-    Verify that `renderer.info.programs` doesn't grow during play (expose it under `?debug=1`).
-- Details, commands and debugging are in [references/casting.md](references/casting.md).
+### Design the TV page for the stream
+
+- 1920×1080 at 30 fps, rendered by a cloud GPU Chrome and sent to the TV as video.
+- Nobody can click it: when `?stream` is set, start audio and music on mount (autoplay is
+  allowed there). When the launcher parks it (`ogs:suspend`), it must go silent (`/ogs-game`).
+- Keep progress on the host phone, not in the streamed TV's localStorage.
+- Use a lite render mode **only** when the WebGL renderer is software (`scene/gpu.ts`); the
+  L4 renders full quality at 60 fps.
+- **Compile every shader in the lobby.** three.js compiles a material's shader the first
+  time it's drawn, so hidden things (UFO, shield, effects, a new planet) compiled mid-game.
+  That froze the cloud TV page for up to 3.7s, and the Chromecast then dropped seconds of
+  video. Prewarm at startup:
+  - make everything visible and compile;
+  - compile **against the EffectComposer's render target**, because it uses different
+    shader variants than the screen (compiling to screen still left 5 compiles mid-game);
+  - changing the number of lights also recompiles every material, so keep the light count fixed.
+
+  Verify that `renderer.info.programs` doesn't grow during play (expose it under `?debug=1`).
 
 ## Device rules (learned the hard way; see [references/ios-gotchas.md](references/ios-gotchas.md))
 
@@ -205,33 +200,6 @@ Jon has ElevenLabs API access; the key is in the `ELEVENLABS_API_KEY` environmen
   tree, including someone else's uncommitted edits. Check `git status` before deploying, and
   coordinate before deploying shared work.
 
-## Casting lessons (from real living-room testing)
-
-- **The app's cast state must mirror the real Google Cast session, never its own guesses.**
-  The first version set "casting/stopped" locally. Symptoms:
-  - Stop looked stopped but the TV kept going.
-  - The native Cast menu still offered "Stop casting".
-  - We had to unplug the Chromecast and kill the app to recover.
-
-  The fix is one app-lifetime module (`apps/mobile/services/cast-sync.ts`, tested with a fake
-  SessionManager). It:
-  - picks up an existing session when the app reopens;
-  - follows starting/started/startFailed/suspended/resumed/ended;
-  - runs Stop as `endCurrentSession(true)`, which also stops the receiver app on the TV;
-  - starts a session on the device that was actually chosen;
-  - never re-stops a session that ended on its own.
-- **Name the cast after `session.getCastDevice()`**, not the first discovered device (it said
-  "LG TV" while casting to the Chromecast).
-- **"Sound but no video" was an overlay, not the video.** A fast (warm GPU) stream connected
-  before the receiver's setup finished, and a late status update re-showed the "Connecting…"
-  overlay on top of a playing 1080p stream. Rules:
-  - Once connected, status updates never show the overlay.
-  - The video's `playing` event always hides it.
-  - `stream-check` fails if the overlay covers the video.
-- **Ask the device instead of guessing**: the receiver answers `GET_STATE` (started, view URL,
-  overlay visible, video size, playing, decoded frames/fps). A pychromecast probe script reads
-  it from the Chromecast during a real cast.
-
 ## Conventions from the first six games (Sep 2026)
 
 These games converged on the same setup: Rocket Crew, Night Flight, Story Nook, Bake Shop,
@@ -249,7 +217,7 @@ once, run them as a studio (`/game-studio`).
   "Cost discipline".
 - Keys only from env. Kids' photos only in `private/` (gitignored).
 - Ask before adding anything not in the spec. Commit at every working milestone (Jon wants
-  nothing lost); ask before pushing to a shared remote or deploying to the OGS directory.
+  nothing lost); ask before pushing to a shared remote, deploying, or adding to the OGS catalogue.
 
 **Standard files**
 - `docs/<game>-spec.md`, `docs/tv-scene-brief.md` (scene contract plus performance rules),
@@ -263,10 +231,12 @@ once, run them as a studio (`/game-studio`).
 - One fixed dev port per game, taken from the studio registry, so games can run side by side.
 
 **Plumbing every game needs** (copy it; the skeleton still lacks these)
-- `/host`: the OGS app's start phone skips the role picker and goes straight to naming.
+- `/host`: the OGS app's start phone skips the role picker; with an OGS profile it skips naming
+  too (`useOgsProfile`, see `/ogs-game`).
 - Named kid seats (`NAME_SEAT`) shown on the TV and phones and remembered on the host phone.
   Coaching lines use the kid's name.
-- An activity beacon (`window.__ogsActivityAt`), so an abandoned cast shuts the cloud GPU down.
+- An activity beacon (`window.__ogsActivityAt`) only matters when the game's TV page is the top
+  page being streamed. Cast through OGS, the stream's top page is the launcher, which keeps its own.
 - `?stream=1` lite render for the software-GL stream server, with PNG fallbacks for 3D icons.
 - `NeutralToneMapping` (ACES washed out the key colors).
 - A shader prewarm in the lobby, and disposing replaced meshes (a GPU leak across games).
