@@ -2,7 +2,7 @@ const SECRETS: Array<[RegExp, string]> = [
   [/\bBearer\s+[^\s"']+/gi, "Bearer [redacted]"],
   [/\beyJ[\w-]+\.[\w-]+\.[\w-]*/g, "[redacted]"],
   [/\b(?:sk|pk|rk|ghp|gho|ghs|github_pat|xox[abp])[-_][\w-]{6,}/g, "[redacted]"],
-  [/\b(password|passwd|secret|token|api[-_]?key|apikey|authorization|cookie)(\s*[=:]\s*)[^\s,;&"']+/gi, "$1$2[redacted]"],
+  [/\b(password|passwd|secret|token|api[-_]?key|authorization|cookie)(\s*[=:]\s*)[^\s,;&"']+/gi, "$1$2[redacted]"],
   [/[\w.+-]+@[\w-]+\.[\w.-]+/g, "[email]"],
   [/\b\d{1,3}(?:\.\d{1,3}){3}\b/g, "[ip]"],
 ];

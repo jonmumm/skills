@@ -9,6 +9,7 @@ function memoryApi(seed: RawIssue[] = []) {
   const issues = new Map(seed.map((i) => [i.number, structuredClone(i)]));
   const comments: Array<{ n: number; body: string }> = [];
   const labelsCreated: string[] = [];
+  const labelColors = new Map<string, string>();
   let next = 100;
   const api: IssueApi = {
     async listLabeled(label) {
@@ -30,11 +31,12 @@ function memoryApi(seed: RawIssue[] = []) {
     async addLabels(n, labels) {
       issues.get(n)!.labels.push(...labels.map((name) => ({ name })));
     },
-    async ensureLabel(name) {
+    async ensureLabel(name, color) {
       labelsCreated.push(name);
+      labelColors.set(name, color);
     },
   };
-  return { api, issues, comments, labelsCreated };
+  return { api, issues, comments, labelsCreated, labelColors };
 }
 
 const group = (over: Partial<Group> = {}): Group => ({
@@ -123,5 +125,79 @@ describe("pickFixes", () => {
     already.labels.push({ name: "sre-agent:fix-attempted" });
     const { api } = memoryApi([already]);
     expect(await pickFixes(api, { created: [], updated: [], reopened: [1] }, { autonomy: 2, maxFixesPerRun: 2 })).toEqual([]);
+  });
+});
+
+/** A GitHub that fails the test if it is called at all. */
+const unreachableApi: IssueApi = {
+  listLabeled: () => Promise.reject(new Error("unexpected listLabeled")),
+  create: () => Promise.reject(new Error("unexpected create")),
+  update: () => Promise.reject(new Error("unexpected update")),
+  comment: () => Promise.reject(new Error("unexpected comment")),
+  addLabels: () => Promise.reject(new Error("unexpected addLabels")),
+  ensureLabel: () => Promise.reject(new Error("unexpected ensureLabel")),
+};
+
+describe("loadKnownIssues (labels and state)", () => {
+  it("carries each issue's label names, state and close reason", async () => {
+    const closed = seeded(1, group(), "closed");
+    closed.labels.push({ name: "sre-agent:fix-attempted" });
+    const { api } = memoryApi([closed]);
+    const [k] = await loadKnownIssues(api);
+    expect(k).toMatchObject({ number: 1, state: "closed", stateReason: "completed", labels: ["sre-agent", "sre-agent:fix-attempted"] });
+  });
+});
+
+describe("applyActions (labels and comments)", () => {
+  it("creates the sre-agent label in red only when an issue is being created", async () => {
+    const { api, labelColors } = memoryApi([seeded(1, group(), "open")]);
+    const [issue] = await loadKnownIssues(api);
+    await applyActions(api, [{ kind: "update", issue: issue!, group: group() }, { kind: "create", group: group({ fingerprint: "fp2" }) }]);
+    expect(labelColors.get("sre-agent")).toBe("d73a4a");
+  });
+
+  it("does not touch labels when only updating or reopening", async () => {
+    const { api, labelsCreated } = memoryApi([seeded(1, group(), "open"), seeded(2, group({ fingerprint: "fp2" }), "closed")]);
+    const [open, closed] = await loadKnownIssues(api);
+    await applyActions(api, [
+      { kind: "update", issue: open!, group: group() },
+      { kind: "reopen", issue: closed!, group: group({ fingerprint: "fp2" }) },
+    ]);
+    expect(labelsCreated).toEqual([]);
+  });
+
+  it("makes no GitHub calls for an empty action list", async () => {
+    expect(await applyActions(unreachableApi, [])).toEqual({ created: [], updated: [], reopened: [] });
+  });
+
+  it("explains the regression in the reopen comment with count and last-seen time", async () => {
+    const { api, comments } = memoryApi([seeded(1, group(), "closed")]);
+    const [issue] = await loadKnownIssues(api);
+    await applyActions(api, [{ kind: "reopen", issue: issue!, group: group({ count: 4, lastSeen: Date.UTC(2026, 9, 5, 12, 0) }) }]);
+    expect(comments).toEqual([{ n: 1, body: "Regression: seen 4 more time(s) after this was closed, last at 2026-10-05T12:00:00.000Z." }]);
+  });
+});
+
+describe("pickFixes (edge cases)", () => {
+  it("makes no GitHub calls when fix attempts are disabled", async () => {
+    expect(await pickFixes(unreachableApi, { created: [1], updated: [], reopened: [] }, { autonomy: 2, maxFixesPerRun: 0 })).toEqual([]);
+  });
+
+  it("makes no GitHub calls when nothing new or regressed was filed", async () => {
+    expect(await pickFixes(unreachableApi, { created: [], updated: [5], reopened: [] }, { autonomy: 2, maxFixesPerRun: 3 })).toEqual([]);
+  });
+
+  it("creates the fix-attempted label in yellow when it picks something", async () => {
+    const { api, labelColors } = memoryApi([seeded(1, group(), "open")]);
+    await pickFixes(api, { created: [1], updated: [], reopened: [] }, { autonomy: 2, maxFixesPerRun: 1 });
+    expect(labelColors.get("sre-agent:fix-attempted")).toBe("fbca04");
+  });
+
+  it("does not create the fix-attempted label when every candidate was already attempted", async () => {
+    const already = seeded(1, group(), "open");
+    already.labels.push({ name: "sre-agent:fix-attempted" });
+    const { api, labelsCreated } = memoryApi([already]);
+    await pickFixes(api, { created: [], updated: [], reopened: [1] }, { autonomy: 2, maxFixesPerRun: 2 });
+    expect(labelsCreated).toEqual([]);
   });
 });

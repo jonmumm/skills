@@ -106,3 +106,30 @@ describe("triage", () => {
     expect(actions[0]!.group.sample).toBe("n 2");
   });
 });
+
+describe("triage (details)", () => {
+  it("stays quiet for an issue closed as a duplicate (muted)", () => {
+    const { actions } = triage([ev()], [known("boom", { state: "closed", stateReason: "duplicate" })], cfg());
+    expect(actions.map((a) => a.kind)).toEqual(["muted"]);
+  });
+
+  it("reopens an issue closed with no reason", () => {
+    const { actions } = triage([ev()], [known("boom", { state: "closed", stateReason: null })], cfg());
+    expect(actions.map((a) => a.kind)).toEqual(["reopen"]);
+  });
+
+  it("records the version of a single event", () => {
+    const { actions } = triage([ev({ versionId: "v7" })], [], cfg());
+    expect(actions[0]!.group.versionIds).toEqual(["v7"]);
+  });
+
+  it("records no versions when events carry none", () => {
+    const { actions } = triage([ev(), ev()], [], cfg());
+    expect(actions[0]!.group.versionIds).toEqual([]);
+  });
+
+  it("uses the later-arriving event as the sample when timestamps tie", () => {
+    const { actions } = triage([ev({ message: "n 1", timestamp: 5 }), ev({ message: "n 2", timestamp: 5 })], [], cfg());
+    expect(actions[0]!.group.sample).toBe("n 2");
+  });
+});

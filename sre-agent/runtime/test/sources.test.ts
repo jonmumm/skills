@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { fetchCloudflareEvents } from "../src/sources/cloudflare.ts";
-import { parseNdjson } from "../src/sources/command.ts";
+import { parseNdjson, runCommandSource } from "../src/sources/command.ts";
 
 const fixture = (name: string) => JSON.parse(readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf8"));
 
@@ -80,5 +80,81 @@ describe("parseNdjson", () => {
     );
     expect(out.events).toHaveLength(1);
     expect(out.invalidLines).toBe(2);
+  });
+});
+
+describe("fetchCloudflareEvents (request and edge cases)", () => {
+  const window = { from: 1_000, to: 2_000 };
+  const ok = (events: unknown[]) => new Response(JSON.stringify({ success: true, result: { events } }));
+  const query = (fetch: (url: string, init?: RequestInit) => Promise<Response>) =>
+    fetchCloudflareEvents({ accountId: "acc", token: "tok", service: "my-worker", levels: ["error"], outcomes: [], ...window, fetch });
+
+  it("POSTs an authenticated telemetry query filtered to the service and level", async () => {
+    const requests: Array<{ url: string; method: string | undefined; headers: Headers; body: unknown }> = [];
+    await query(async (url, init) => {
+      requests.push({ url, method: init?.method, headers: new Headers(init?.headers), body: JSON.parse(String(init?.body)) });
+      return ok([]);
+    });
+    expect(requests).toHaveLength(1);
+    expect(requests[0]!.url).toBe("https://api.cloudflare.com/client/v4/accounts/acc/workers/observability/telemetry/query");
+    expect(requests[0]!.method).toBe("POST");
+    expect(Object.fromEntries(requests[0]!.headers)).toEqual({ authorization: "Bearer tok", "content-type": "application/json" });
+    expect(requests[0]!.body).toEqual({
+      queryId: "sre-agent",
+      view: "events",
+      limit: 2000,
+      timeframe: { from: 1_000, to: 2_000 },
+      parameters: {
+        filterCombination: "and",
+        filters: [
+          { key: "$metadata.service", operation: "eq", type: "string", value: "my-worker" },
+          { key: "$metadata.level", operation: "eq", type: "string", value: "error" },
+        ],
+      },
+    });
+  });
+
+  it("does not flag truncation below the limit", async () => {
+    const { truncated } = await query(async () => ok([{ $metadata: { id: "a", level: "error" }, timestamp: 1_500 }]));
+    expect(truncated).toBe(false);
+  });
+
+  it("throws when the HTTP status fails even if the body claims success", async () => {
+    await expect(query(async () => new Response(JSON.stringify({ success: true, result: { events: [] } }), { status: 500 }))).rejects.toThrow(
+      "Cloudflare 500: query failed",
+    );
+  });
+
+  it("throws when the body reports failure even on HTTP 200 with a result", async () => {
+    const body = { success: false, errors: [{ message: "bad filter" }, { message: "bad view" }], result: { events: [] } };
+    await expect(query(async () => new Response(JSON.stringify(body)))).rejects.toThrow("Cloudflare 200: bad filter; bad view");
+  });
+
+  it("throws when a successful response has no result", async () => {
+    await expect(query(async () => new Response(JSON.stringify({ success: true })))).rejects.toThrow("Cloudflare 200: query failed");
+  });
+
+  it("reads numeric metadata timestamps and fills sensible defaults for sparse events", async () => {
+    const { events } = await query(async () => ok([{ $metadata: { id: "a", timestamp: 1_700 }, $workers: { outcome: "exceededMemory" } }]));
+    expect(events).toEqual([{ id: "a", timestamp: 1_700, level: "info", message: "", service: "my-worker", outcome: "exceededMemory" }]);
+  });
+
+  it("keeps the event's own service name when Cloudflare reports one", async () => {
+    const { events } = await query(async () => ok([{ $metadata: { id: "a", level: "error", service: "tail-worker" }, timestamp: 1_500 }]));
+    expect(events[0]!.service).toBe("tail-worker");
+  });
+});
+
+describe("parseNdjson (blank lines)", () => {
+  it("skips whitespace-only lines without counting them as invalid", () => {
+    expect(parseNdjson("   \n\t\n").invalidLines).toBe(0);
+  });
+});
+
+describe("runCommandSource", () => {
+  it("passes the window to the command as SRE_FROM and SRE_TO and parses its output", async () => {
+    const run = `printf '{"id":"1","timestamp":%s,"level":"error","message":"to %s","service":"s"}\\n' "$SRE_FROM" "$SRE_TO"`;
+    const out = await runCommandSource(run, { from: 1_000, to: 2_000 });
+    expect(out).toEqual({ events: [{ id: "1", timestamp: 1_000, level: "error", message: "to 2000", service: "s" }], invalidLines: 0 });
   });
 });

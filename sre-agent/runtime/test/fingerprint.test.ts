@@ -42,3 +42,26 @@ describe("fingerprint", () => {
     expect(fingerprint("api", "boom")).toMatch(/^[0-9a-f]{12}$/);
   });
 });
+
+describe("normalizeMessage (each volatile shape)", () => {
+  it("replaces plain http urls too", () => {
+    expect(normalizeMessage("GET http://internal.svc/health failed")).toBe("GET <url> failed");
+  });
+
+  it("replaces whole emails with multi-character parts", () => {
+    expect(normalizeMessage("no account for jane.doe+x@mail.example.com")).toBe("no account for <email>");
+  });
+
+  it("replaces hex ids that start with a letter", () => {
+    expect(normalizeMessage("trace abcdef12 lost")).toBe("trace <hex> lost");
+  });
+
+  it("replaces single-quoted strings", () => {
+    expect(normalizeMessage("missing key 'user_name' in body")).toBe("missing key <str> in body");
+  });
+
+  it("trims leading and trailing whitespace", () => {
+    expect(normalizeMessage("   boom   ")).toBe("boom");
+    expect(fingerprint("api", "  boom")).toBe(fingerprint("api", "boom"));
+  });
+});
