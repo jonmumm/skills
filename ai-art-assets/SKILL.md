@@ -53,6 +53,13 @@ the `v1beta/interactions` endpoint, which the script does. Calibrate on ~20 line
 durations (chars/sec) before the full batch. Open-weight alternatives that run on the Mac for free:
 Kokoro-82M (Apache-2.0, flatter, arena ~1064). The top open model, Breeze TTS 2, needs a CUDA GPU
 and is non-commercial.
+**Master the clips after every batch** (Number Quest `scripts/master-voice.sh`): Gemini clips carry
+~0.1–0.35 s of silence at the start and ~0.3 s at the end, which a critic hears as ~2 s of dead air
+between lines, and ~20% of them decode above −1 dBFS (AAC overshoot up to +2.7) and clip on iPad
+speakers. Trim both ends (`silenceremove` + `areverse`) and limit to ~−3 dBFS at 64 kbps; count
+trailing silence only when it runs to the end of the clip, or mid-sentence pauses re-trigger it.
+**The `--dry` estimate ran ~2× low** for templated prompt lines ($0.33 estimated, $0.64 billed);
+budget on double.
 
 **Codex first for images.** `codex.mjs` uses Codex's built-in image generation (gpt-image) on the
 owner's ChatGPT plan: no per-image cost, but ~1 min per image and the plan has usage limits shared
