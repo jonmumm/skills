@@ -1,0 +1,39 @@
+name: sre-agent triage
+description: Read a service's logs, group errors by fingerprint, and file or update GitHub issues. No LLM in this step.
+inputs:
+  config:
+    description: Path to the sre-agent config in the calling repo
+    default: .github/sre-agent.yml
+  dry:
+    description: "'true' to only write the job summary"
+    default: "false"
+  github-token:
+    description: Token for issue reads and writes
+    default: ${{ github.token }}
+outputs:
+  fix_issues:
+    description: JSON array of issue numbers queued for a fix attempt
+    value: ${{ steps.run.outputs.fix_issues }}
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 24
+    - name: Install runtime
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      env:
+        COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+      run: corepack pnpm install --frozen-lockfile --prod
+    - id: run
+      name: Triage logs
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        SRE_CONFIG: ${{ inputs.config }}
+        SRE_DRY: ${{ inputs.dry }}
+      run: |
+        args=(--config "$SRE_CONFIG")
+        if [ "$SRE_DRY" = "true" ]; then args+=(--dry); fi
+        node "$GITHUB_ACTION_PATH/src/main.ts" "${args[@]}"

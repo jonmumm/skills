@@ -1,0 +1,32 @@
+# sre-agent config. Copy to .github/sre-agent.yml in the service repo.
+# Schema: ~/src/skills/sre-agent/runtime/src/schemas.ts
+
+# 0 = observe: job summary only (start here for a day or two)
+# 1 = file and update GitHub issues
+# 2 = also let Claude attempt a fix PR for new and regressed issues
+autonomy: 0
+
+# Keep this a few minutes longer than the cron interval. Overlap is safe:
+# events already counted in an issue are skipped.
+lookbackMinutes: 20
+
+minCount: 1             # ignore errors seen fewer times than this per window
+maxNewIssuesPerRun: 3   # the rest are listed in the job summary as "overflow"
+maxFixesPerRun: 1       # fix attempts per run at autonomy 2
+
+levels: [error]
+outcomes: [exception, exceededCpu, exceededMemory, scriptNotFound]
+
+# Regexes against the normalized message (numbers become <n>, ids <hex>/<uuid>, quoted text <str>).
+# Prefer closing an issue as "not planned" to mute it; use this for noise you never want filed.
+ignore: []
+#  - "^Client disconnected"
+
+sources:
+  - type: cloudflare
+    service: __WORKER_NAME__        # the Worker's name in wrangler config
+  # Any other log store: a command that prints one LogEvent JSON per line
+  # ({id, timestamp(ms), level, message, service, outcome?, versionId?}).
+  # It gets SRE_FROM and SRE_TO (epoch ms) in its environment.
+  # - type: command
+  #   run: node scripts/export-logs.mjs

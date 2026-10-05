@@ -1,0 +1,28 @@
+{
+  "success": true,
+  "errors": [],
+  "messages": [],
+  "result": {
+    "events": [
+      {
+        "$metadata": {
+          "id": "ev-1",
+          "message": "TypeError: Cannot read properties of undefined (reading 'id')",
+          "level": "error",
+          "service": "my-worker"
+        },
+        "$workers": { "scriptName": "my-worker", "outcome": "exception", "versionId": "ver-a" },
+        "timestamp": 1500
+      },
+      {
+        "$metadata": {
+          "id": "ev-2",
+          "error": "Worker exceeded CPU time limit.",
+          "service": "my-worker",
+          "timestamp": "1970-01-01T00:00:01.600Z"
+        },
+        "$workers": { "outcome": "exceededCpu" }
+      }
+    ]
+  }
+}

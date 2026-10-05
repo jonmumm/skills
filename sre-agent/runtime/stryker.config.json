@@ -1,0 +1,10 @@
+{
+  "testRunner": "command",
+  "commandRunner": { "command": "pnpm exec vitest run --bail 1" },
+  "inPlace": true,
+  "coverageAnalysis": "off",
+  "concurrency": 8,
+  "mutate": ["src/**/*.ts", "!src/main.ts"],
+  "reporters": ["clear-text"],
+  "thresholds": { "high": 95, "low": 85, "break": null }
+}
