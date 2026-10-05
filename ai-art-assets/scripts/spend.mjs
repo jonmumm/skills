@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Spend guard and ledger shared by fal.mjs, codex.mjs, meshy.mjs and procedural-3d-web-game/scripts/elevenlabs.mjs.
+// Spend guard and ledger shared by fal.mjs, codex.mjs, meshy.mjs, gemini-tts.mjs and procedural-3d-web-game/scripts/elevenlabs.mjs.
 // All three services draw on ONE wallet each, shared by every game and every agent running tonight, so:
 //   - every paid call is checked against the project's cap BEFORE it is sent (guard),
 //   - every paid call is appended to the project ledger and the global ledger (record),
@@ -20,8 +20,8 @@ import { homedir } from 'node:os';
 import { dirname, join, resolve, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const DEFAULT_CAPS = { fal_usd: 5, codex_images: 30, meshy_credits: 100, elevenlabs_credits: 10000 };
-const UNIT = { fal: 'fal_usd', codex: 'codex_images', meshy: 'meshy_credits', elevenlabs: 'elevenlabs_credits' };
+export const DEFAULT_CAPS = { fal_usd: 5, codex_images: 30, meshy_credits: 100, elevenlabs_credits: 10000, gemini_usd: 2 };
+const UNIT = { fal: 'fal_usd', codex: 'codex_images', meshy: 'meshy_credits', elevenlabs: 'elevenlabs_credits', gemini: 'gemini_usd' };
 const WINDOW = { codex: { ms: 86400e3, label: ' (last 24h)' } };
 const EXHAUSTED_TTL_MS = 30 * 60e3; // re-probe after 30 min even if nobody cleared it
 
@@ -153,6 +153,6 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   } else if (cmd === 'clear' && UNIT[arg]) {
     clearExhausted(arg); console.log(`${arg}: cleared; the next run will try again`);
   } else {
-    console.error('usage: spend.mjs <budget|report [--days N]|clear <fal|codex|meshy|elevenlabs>>'); process.exit(2);
+    console.error('usage: spend.mjs <budget|report [--days N]|clear <fal|codex|meshy|elevenlabs|gemini>>'); process.exit(2);
   }
 }

@@ -42,6 +42,18 @@ ElevenLabs month. Most of that spend was avoidable:
    existing pose with a transform: all free. Generate only what code can't make.
 4. Run serially, or at most 4 at a time. Stop the batch on the first 403/402. Don't retry.
 
+**Voice lines: Gemini TTS (`gemini-tts.mjs`).** Billed per second of audio, not per character, so
+a whole game's voice costs dollars, not an ElevenLabs month (Number Quest: 1,239 lines ≈ $1.50 on
+`gemini-3.8-flash-tts`, #4 on the Artificial Analysis TTS arena, Oct 2026). Cap: `gemini_usd`
+(default $2). `node $S/gemini-tts.mjs batch --lines lines.json --out-dir public/voice --voice
+Sulafat [--style "…"] --dry` first; existing clips are skipped, so re-runs only pay for new lines.
+**Never put the style in the text**: 3.8 TTS reads `text` verbatim, so "Say warmly: …" gets
+spoken (that mistake made 9-second clips of "Two"). Style goes in a `speech_metadata` annotation on
+the `v1beta/interactions` endpoint, which the script does. Calibrate on ~20 lines and check
+durations (chars/sec) before the full batch. Open-weight alternatives that run on the Mac for free:
+Kokoro-82M (Apache-2.0, flatter, arena ~1064). The top open model, Breeze TTS 2, needs a CUDA GPU
+and is non-commercial.
+
 **Codex first for images.** `codex.mjs` uses Codex's built-in image generation (gpt-image) on the
 owner's ChatGPT plan: no per-image cost, but ~1 min per image and the plan has usage limits shared
 by every game. Its cap is `codex_images` per project over the last 24h (default 30). A "usage

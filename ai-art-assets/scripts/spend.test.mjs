@@ -90,3 +90,47 @@ test('withLock runs callers one at a time', async () => {
   await Promise.all([job(), job(), job()]);
   assert.equal(max, 1);
 });
+
+// gemini-tts.mjs: batch text-to-speech with Gemini, guarded like the others.
+const GEMINI = join(here, 'gemini-tts.mjs');
+function geminiProject(budget, lines, existing = []) {
+  const p = project({ budget });
+  writeFileSync(join(p.root, 'lines.json'), JSON.stringify(lines));
+  mkdirSync(join(p.root, 'voice'), { recursive: true });
+  for (const id of existing) writeFileSync(join(p.root, 'voice', `${id}.m4a`), 'x');
+  return p;
+}
+const LINES = [
+  { id: 'a1', text: 'How many acorns are there?' },
+  { id: 'b2', text: 'What number comes after 39?' },
+  { id: 'c3', text: 'Nice trying! Next one.' },
+];
+
+test('gemini-tts --dry counts the lines still to make, estimates cost against gemini_usd, spends nothing', () => {
+  const p = geminiProject({ gemini_usd: 2 }, LINES, ['a1']);
+  const r = p.run(GEMINI, 'batch', '--lines', 'lines.json', '--out-dir', 'voice', '--voice', 'Sulafat', '--dry');
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /2 of 3 lines to make/);
+  assert.match(r.stdout, /\[dry\] gemini .*spent \$0\.00 of \$2\.00 gemini_usd/);
+});
+
+test('gemini-tts refuses a batch whose estimate passes the cap, before any request', () => {
+  const many = Array.from({ length: 4000 }, (_, i) => ({ id: `l${i}`, text: 'Which group has the same number as this one? '.repeat(3) }));
+  const p = geminiProject({ gemini_usd: 0.05 }, many);
+  const r = p.run(GEMINI, 'batch', '--lines', 'lines.json', '--out-dir', 'voice', '--voice', 'Sulafat');
+  assert.equal(r.status, 3, r.stdout + r.stderr);
+  assert.match(r.stderr, /Over budget/);
+});
+
+test('gemini-tts needs GEMINI_API_KEY for a real run (and never prints it)', () => {
+  const p = geminiProject({ gemini_usd: 2 }, LINES);
+  const r = spawnSync('node', [GEMINI, 'batch', '--lines', 'lines.json', '--out-dir', 'voice', '--voice', 'Sulafat'], { cwd: p.root, encoding: 'utf8', env: { ...process.env, GEMINI_API_KEY: '', GAME_ASSETS_STATE: p.state } });
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /GEMINI_API_KEY is not set/);
+});
+
+test('budget lists gemini with its default cap', () => {
+  const p = project();
+  const r = p.run(SPEND, 'budget');
+  assert.match(r.stdout, /gemini\s+0 of 2 gemini_usd/);
+});
