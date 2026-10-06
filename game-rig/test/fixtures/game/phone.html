@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Fixture phone</title>
+<style>
+  body { margin: 0; font: 22px sans-serif; display: grid; gap: 16px; padding: 24px }
+  button { appearance: none; border: 0; background: #2a6; color: #fff; font: inherit; padding: 16px; border-radius: 12px }
+  button:active { background: #185 }
+  .name { width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+</style>
+<h1>Pick a seat</h1>
+<button id="go">Ready</button>
+<script>
+  const bad = new URLSearchParams(location.search).has("bad");
+  if (bad) {
+    document.body.insertAdjacentHTML("beforeend", '<button class="dead" style="background:#888;color:#fff">Nothing</button><div class="name">Christopher Columbus the Third</div><p>Pick a seat</p>');
+  }
+  document.getElementById("go").addEventListener("pointerdown", () => { document.getElementById("go").textContent = "Ready!"; });
+</script>

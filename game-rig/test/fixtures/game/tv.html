@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Fixture TV</title>
+<style>
+  body { margin: 0; background: #112; color: #fff; font: 28px sans-serif; overflow: hidden }
+  canvas { position: fixed; inset: 0; width: 100vw; height: 100vh }
+  .hud { position: fixed; inset: 0; pointer-events: none }
+  .code { position: absolute; right: 6vw; top: 6vh }
+  .banner { position: absolute; left: 35%; top: 45%; background: #fff; color: #000; padding: 12px }
+  .corner-code { position: absolute; right: 8px; top: 8px }
+</style>
+<canvas></canvas>
+<div class="hud"><div class="code">ABCD</div></div>
+<script>
+  // A spinning square so the scene moves (and a sound on start), like a real TV.
+  const c = document.querySelector("canvas");
+  c.width = innerWidth; c.height = innerHeight;
+  const g = c.getContext("2d");
+  let a = 0;
+  (function frame() {
+    a += 0.03;
+    g.fillStyle = "#123"; g.fillRect(0, 0, c.width, c.height);
+    g.save(); g.translate(c.width / 2, c.height / 2); g.rotate(a);
+    g.fillStyle = "#f80"; g.fillRect(-80, -80, 160, 160); g.restore();
+    requestAnimationFrame(frame);
+  })();
+  window.__focalRect = () => ({ x: innerWidth * 0.3, y: innerHeight * 0.25, width: innerWidth * 0.4, height: innerHeight * 0.5 });
+  const bad = new URLSearchParams(location.search).has("bad");
+  if (bad) {
+    document.querySelector(".hud").insertAdjacentHTML("beforeend", '<div class="banner">Your turn!</div><div class="corner-code">ROOM</div>');
+  }
+  window.beep = () => {
+    const ctx = new AudioContext();
+    const o = ctx.createOscillator();
+    o.frequency.value = 440;
+    o.connect(ctx.destination);
+    o.start();
+    return ctx;
+  };
+</script>
