@@ -28,8 +28,13 @@ case "${1:-}" in
     if [ "$#" -gt 0 ]; then
       repos=("$@")
     else
-      token | gh secret set "$SECRET" --org "$ORG" --visibility all
-      echo "set org secret on $ORG (used by its public repos)"
+      if token | gh secret set "$SECRET" --org "$ORG" --visibility all; then
+        echo "set org secret on $ORG (used by its public repos)"
+      else
+        echo "Could not set the $ORG org secret. If gh asked for the admin:org scope, run:" >&2
+        echo "  gh auth refresh -h github.com -s admin:org" >&2
+        echo "then sync again. Continuing with repo secrets." >&2
+      fi
       owner_args=()
       for o in "${OWNERS[@]}"; do owner_args+=(--owner "$o"); done
       repos=()
