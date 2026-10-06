@@ -39,7 +39,7 @@ export async function run({ configPath, dry, env, now, fetch = globalThis.fetch 
   let applied: ApplyResult = { created: [], updated: [], reopened: [] };
   let fixIssues: number[] = [];
   if (writes && api) {
-    applied = await applyActions(api, actions);
+    applied = await applyActions(api, actions, cfg.issueIntro);
     fixIssues = await pickFixes(api, applied, cfg);
   }
 

@@ -15,25 +15,25 @@ export async function loadKnownIssues(api: IssueApi): Promise<KnownIssue[]> {
   });
 }
 
-export async function applyActions(api: IssueApi, actions: Action[]): Promise<ApplyResult> {
+export async function applyActions(api: IssueApi, actions: Action[], intro?: string): Promise<ApplyResult> {
   const result: ApplyResult = { created: [], updated: [], reopened: [] };
   if (actions.some((a) => a.kind === "create")) await api.ensureLabel(LABEL, "d73a4a");
 
   for (const action of actions) {
     switch (action.kind) {
       case "create": {
-        const { title, body } = renderIssue(action.group, nextMarker(null, action.group));
+        const { title, body } = renderIssue(action.group, nextMarker(null, action.group), intro);
         result.created.push(await api.create({ title, body, labels: [LABEL] }));
         break;
       }
       case "update": {
-        const { body } = renderIssue(action.group, nextMarker(action.issue.marker, action.group));
+        const { body } = renderIssue(action.group, nextMarker(action.issue.marker, action.group), intro);
         await api.update(action.issue.number, { body });
         result.updated.push(action.issue.number);
         break;
       }
       case "reopen": {
-        const { body } = renderIssue(action.group, nextMarker(action.issue.marker, action.group));
+        const { body } = renderIssue(action.group, nextMarker(action.issue.marker, action.group), intro);
         await api.update(action.issue.number, { body, state: "open" });
         await api.comment(
           action.issue.number,

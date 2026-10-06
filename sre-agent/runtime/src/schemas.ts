@@ -55,6 +55,8 @@ export const Config = z.object({
   errorFields: z
     .object({ message: z.array(z.string().min(1)).default([]), type: z.array(z.string().min(1)).default([]) })
     .default({ message: [], type: [] }),
+  /** First line of every issue body: where the error was seen. */
+  issueIntro: z.string().min(1).max(200).default("Error seen in production logs by sre-agent."),
   /** Email a summary through the sre-notify Worker when a run files, reopens, queues a fix or a source fails. */
   notify: z.object({ url: z.url({ protocol: /^https$/ }) }).optional(),
   sources: z.array(Source).min(1),

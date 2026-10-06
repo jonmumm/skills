@@ -58,3 +58,10 @@ describe("parseConfig notify", () => {
     expect(() => parseConfig("notify:\n  url: not a url\nsources:\n  - type: command\n    run: x\n")).toThrow(/notify\.url/);
   });
 });
+
+describe("parseConfig issueIntro", () => {
+  it("defaults to the production-logs line and can be overridden", () => {
+    expect(parseConfig("sources:\n  - type: command\n    run: x\n").issueIntro).toBe("Error seen in production logs by sre-agent.");
+    expect(parseConfig("issueIntro: Bug found by qa-agent.\nsources:\n  - type: command\n    run: x\n").issueIntro).toBe("Bug found by qa-agent.");
+  });
+});

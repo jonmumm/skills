@@ -1,0 +1,15 @@
+# qa-agent charters: copy to qa/charters.yml in the repo. One `e2e explore` run each, up to 4 at once.
+# target: an e2e.config.ts target name. `qa` is the QA copy (anything goes); `prod` is production and
+# must be read-only (no rooms created, no sign-ins, no submissions).
+# agent: optional e2e agent (persona) from e2e.config.ts.
+charters:
+  - goal: Host a new game on the TV page as a first-time family and play one full round from a phone. Report anything that blocks or confuses.
+    target: qa
+    agent: first-time-family
+  - goal: As the grown-up on the phone, try every host control (pause, skip, kick, restart). Check each does what it says.
+    target: qa
+  - goal: Join from a phone with a bad room code, a full room and a room that ended. Check every error message helps.
+    target: qa
+    agent: error-paths
+  - goal: Load the TV page and the phone join page and confirm both render and respond. Read-only, do not create a room.
+    target: prod

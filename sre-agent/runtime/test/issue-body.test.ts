@@ -110,3 +110,9 @@ describe("renderIssue (exact body)", () => {
     expect(renderIssue({ ...group, versionIds: [] }, nextMarker(null, group)).body).toContain("| Versions | unknown |");
   });
 });
+
+describe("renderIssue (intro)", () => {
+  it("uses a custom first line when the config gives one", () => {
+    expect(renderIssue(group, nextMarker(null, group), "Bug found by qa-agent.").body.split("\n")[0]).toBe("Bug found by qa-agent.");
+  });
+});

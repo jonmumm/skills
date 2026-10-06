@@ -26,10 +26,10 @@ export function nextMarker(prev: Marker | null, group: Group): Marker {
 
 const iso = (ms: number) => new Date(ms).toISOString();
 
-export function renderIssue(group: Group, marker: Marker): { title: string; body: string } {
+export function renderIssue(group: Group, marker: Marker, intro = "Error seen in production logs by sre-agent."): { title: string; body: string } {
   const title = `[sre] ${group.service}: ${sanitizeForIssue(group.normalized, 100)}`.slice(0, 120);
   const body = [
-    `Error seen in production logs by sre-agent.`,
+    intro,
     ``,
     `| | |`,
     `|---|---|`,

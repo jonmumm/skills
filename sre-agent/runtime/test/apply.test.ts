@@ -201,3 +201,11 @@ describe("pickFixes (edge cases)", () => {
     expect(labelsCreated).toEqual([]);
   });
 });
+
+describe("applyActions (intro)", () => {
+  it("writes the configured intro on new issues", async () => {
+    const { api, issues } = memoryApi();
+    await applyActions(api, [{ kind: "create", group: group() }], "Bug found by qa-agent.");
+    expect(issues.get(100)!.body!.startsWith("Bug found by qa-agent.")).toBe(true);
+  });
+});
