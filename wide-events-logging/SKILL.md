@@ -191,3 +191,45 @@ function shouldSample(event: WideEvent): boolean {
 - [ ] Is context (user ID, session ID, tenant ID) attached to the log rather than scattered across multiple `console.log` statements?
 - [ ] Are business metrics (cart totals, iteration counts, attempt numbers) serialized in the event payload?
 - [ ] Are you capturing feature flag states to correlate bugs with active experiments?
+
+## Cloudflare Workers: the sre-agent contract
+
+Every Cloudflare project follows this, so `/sre-agent` can read its logs. The agent queries Workers Logs
+for `error`-level events and groups them into issues by **`error.type` + `error.message`**.
+
+1. **Wrangler config.** `observability = { enabled = true, head_sampling_rate = 1 }` and a
+   `version_metadata` binding named `CF_VERSION_METADATA` (gives `version`).
+2. **One event per unit of work.** An HTTP request, a room action handled by a Durable Object, a DO
+   alarm, a queue or cron job, or one client event received from a browser.
+3. **Shape.** Pass the object itself to `console.log` (or `console.error`), not a string:
+   Workers Logs extracts and indexes its fields.
+   ```ts
+   type WideEvent = {
+     event: string;            // stable, dot-namespaced: "http.request", "room.action", "room.alarm", "client.error"
+     service: string;          // the Worker's name
+     version: string;          // env.CF_VERSION_METADATA.id
+     source: "server" | "client";
+     outcome: "ok" | "error";
+     duration_ms?: number;
+     request_id?: string; room_id?: string; session_id?: string;  // ids go in fields
+     error?: { type: string; message: string; stack?: string; code?: string };
+     // plus business context: game, phase, round, action, players, device, build …
+   };
+   ```
+4. **Errors.** Emit with `console.error` and fill `error`. `error.message` is the grouping key, so
+   keep it stable: `"Room not found"`, never `"Room r-91 not found"`. Put the id in `room_id`.
+   `error.type` is the class or a domain name (`"TypeError"`, `"InvalidMove"`).
+5. **Privacy.** Kids play these games. Never log display names, profile names, emails, tokens, OGS
+   auth tokens or free text a player typed. Ids only.
+6. **Client events.** Browsers post batches to the game's own Worker (`POST /events`). The Worker
+   parses them with Zod and re-emits each as a wide event with `source: "client"`,
+   `event: "client.<type>"`. Client errors carry `error.{type,message,stack}`. A previous session that
+   never closed is `console.error` with `error.type: "PreviousSessionCrashed"`; WebGL context loss
+   is `error.type: "WebGLContextLost"`. Use `@open-game-system/telemetry-kit` once it is published
+   (it is extracted from juneaus-number-quest's `src/telemetry.ts`); do not hand-roll a new one.
+7. **Counts (optional).** An Analytics Engine binding `EVENTS`, written from the same emit function:
+   `indexes: [service]`, `blobs: [event, outcome, version, error?.type ?? "", device ?? ""]`,
+   `doubles: [duration_ms ?? 0, 1]`. It is sampled, so use it for rates and spike or silence
+   checks, never for debugging detail.
+8. **Test it at the seam.** A failing handler emits exactly one `console.error` wide event with
+   `error.type` and `error.message`, and no names or tokens.
