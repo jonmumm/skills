@@ -55,11 +55,11 @@ async function collect(cfg: Config, window: { from: number; to: number }, env: R
         const accountId = env[source.accountIdEnv];
         const token = env[source.tokenEnv];
         if (!accountId || !token) throw new Error(`missing ${!accountId ? source.accountIdEnv : source.tokenEnv}`);
-        const out = await fetchCloudflareEvents({ accountId, token, service: source.service, levels: cfg.levels, outcomes: cfg.outcomes, ...window, fetch });
+        const out = await fetchCloudflareEvents({ accountId, token, service: source.service, levels: cfg.levels, outcomes: cfg.outcomes, errorFields: cfg.errorFields, ...window, fetch });
         events.push(...out.events);
         if (out.truncated) notes.push(`cloudflare:${source.service} hit the 2000-event query limit; counts are a floor. Lower lookbackMinutes.`);
       } else {
-        const out = await runCommandSource(source.run, window);
+        const out = await runCommandSource(source.run, window, cfg.errorFields);
         events.push(...out.events);
         if (out.invalidLines) notes.push(`command source skipped ${out.invalidLines} line(s) that were not LogEvent JSON.`);
       }

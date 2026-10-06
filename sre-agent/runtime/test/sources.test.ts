@@ -188,10 +188,25 @@ describe("fetchCloudflareEvents (structured wide events)", () => {
     expect((await run({ $metadata: { id: "1", level: "error", message }, timestamp: 1_500 })).message).toBe("db down");
   });
 
-  it("keeps the raw text for plain logs and for JSON without an error object", async () => {
+  it("keeps plain text as-is and names the fields of JSON with no message", async () => {
     expect((await run({ $metadata: { id: "1", level: "error", message: "plain boom" }, timestamp: 1_500 })).message).toBe("plain boom");
     const json = JSON.stringify({ event: "x", outcome: "error" });
-    expect((await run({ $metadata: { id: "1", level: "error", message: json }, timestamp: 1_500 })).message).toBe(json);
+    expect((await run({ $metadata: { id: "1", level: "error", message: json }, timestamp: 1_500 })).message).toMatch(/^sre-agent could not find the error message in this log line\. Fields: event, outcome\./);
     expect((await run({ $metadata: { id: "1", level: "error", message: "{not json" }, timestamp: 1_500 })).message).toBe("{not json");
+  });
+});
+
+describe("sources apply errorFields", () => {
+  it("cloudflare uses the configured paths", async () => {
+    const message = JSON.stringify({ failure: { reason: "quota exceeded" } });
+    const fetch = async () => new Response(JSON.stringify({ success: true, result: { events: [{ $metadata: { id: "1", level: "error", message }, timestamp: 1_500 }] } }));
+    const { events } = await fetchCloudflareEvents({ accountId: "a", token: "t", service: "s", levels: ["error"], outcomes: [], from: 1_000, to: 2_000, errorFields: { message: ["failure.reason"], type: [] }, fetch });
+    expect(events[0]!.message).toBe("quota exceeded");
+  });
+
+  it("command source identifies structured messages", async () => {
+    const line = JSON.stringify({ id: "1", timestamp: 1, level: "error", service: "s", message: JSON.stringify({ err: { name: "E", message: "m" } }) });
+    const out = await runCommandSource(`printf '%s\\n' '${line}'`, { from: 0, to: 2 });
+    expect(out.events[0]!.message).toBe("E: m");
   });
 });

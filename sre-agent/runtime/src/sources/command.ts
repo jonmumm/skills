@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { LogEvent } from "../schemas.ts";
+import { identifyError } from "../identify.ts";
+import { type Config, LogEvent } from "../schemas.ts";
 
 export function parseNdjson(text: string): { events: LogEvent[]; invalidLines: number } {
   const events: LogEvent[] = [];
@@ -19,11 +20,12 @@ export function parseNdjson(text: string): { events: LogEvent[]; invalidLines: n
 }
 
 /** Escape hatch for any log store: run a repo-owned command that prints NDJSON LogEvents. */
-export async function runCommandSource(run: string, window: { from: number; to: number }) {
+export async function runCommandSource(run: string, window: { from: number; to: number }, errorFields: Config["errorFields"] = { message: [], type: [] }) {
   const { stdout } = await promisify(execFile)("bash", ["-c", run], {
     env: { ...process.env, SRE_FROM: String(window.from), SRE_TO: String(window.to) },
     maxBuffer: 64 * 1024 * 1024,
     timeout: 120_000,
   });
-  return parseNdjson(stdout);
+  const out = parseNdjson(stdout);
+  return { ...out, events: out.events.map((e) => ({ ...e, message: identifyError(e.message, undefined, errorFields) })) };
 }

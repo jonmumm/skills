@@ -43,3 +43,10 @@ describe("parseConfig defaults and error messages", () => {
     expect(message.split("\n")).toEqual(["Invalid sre-agent config:", expect.stringMatching(/^ {2}autonomy: /), expect.stringMatching(/^ {2}lookbackMinutes: /)]);
   });
 });
+
+describe("parseConfig errorFields", () => {
+  it("defaults to no extra paths and accepts dotted paths", () => {
+    expect(parseConfig("sources:\n  - type: command\n    run: x\n").errorFields).toEqual({ message: [], type: [] });
+    expect(parseConfig("errorFields:\n  message: [failure.reason]\nsources:\n  - type: command\n    run: x\n").errorFields).toEqual({ message: ["failure.reason"], type: [] });
+  });
+});

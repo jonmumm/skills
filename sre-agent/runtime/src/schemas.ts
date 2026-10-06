@@ -51,6 +51,10 @@ export const Config = z.object({
   outcomes: z.array(z.string()).default(["exception", "exceededCpu", "exceededMemory", "scriptNotFound"]),
   /** Regexes tested against the normalized message. Prefer closing an issue as "not planned" to mute it. */
   ignore: z.array(Regex).default([]),
+  /** Extra dotted paths to an error's message and type in structured log lines, checked before the built-in ones. */
+  errorFields: z
+    .object({ message: z.array(z.string().min(1)).default([]), type: z.array(z.string().min(1)).default([]) })
+    .default({ message: [], type: [] }),
   sources: z.array(Source).min(1),
 });
 export type Config = z.infer<typeof Config>;

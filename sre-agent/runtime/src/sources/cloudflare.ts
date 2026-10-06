@@ -1,10 +1,11 @@
 import { z } from "zod";
-import type { LogEvent } from "../schemas.ts";
+import { identifyError } from "../identify.ts";
+import type { Config, LogEvent } from "../schemas.ts";
 
 const LIMIT = 2000;
 
 // Parsed loosely on purpose: the API documents these fields but not every one is always present.
-const CfEvent = z.object({
+const CfEvent = z.looseObject({
   $metadata: z.object({
     id: z.string(),
     message: z.string().optional(),
@@ -15,26 +16,7 @@ const CfEvent = z.object({
   }),
   $workers: z.object({ outcome: z.string().optional(), versionId: z.string().optional(), scriptName: z.string().optional() }).optional(),
   timestamp: z.number().optional(),
-  error: z.unknown().optional(),
 });
-
-const StructuredError = z.object({ type: z.string().optional(), message: z.string() });
-const WideEvent = z.object({ error: StructuredError });
-
-/** A wide event's error.type + error.message is the stable bug identity; the rest of the line is request context. */
-function structuredMessage(raw: string | undefined, extracted: unknown): string | undefined {
-  let err = StructuredError.safeParse(extracted).data;
-  if (!err && raw) {
-    try {
-      const parsed = WideEvent.safeParse(JSON.parse(raw));
-      if (parsed.success) err = parsed.data.error;
-    } catch {
-      // not JSON: a plain log line
-    }
-  }
-  if (!err) return undefined;
-  return err.type ? `${err.type}: ${err.message}` : err.message;
-}
 
 const CfResponse = z.object({
   success: z.boolean(),
@@ -54,6 +36,7 @@ export type CloudflareQuery = {
   outcomes: string[];
   from: number;
   to: number;
+  errorFields?: Config["errorFields"];
   fetch?: Fetch;
 };
 
@@ -90,21 +73,27 @@ export async function fetchCloudflareEvents(q: CloudflareQuery): Promise<{ event
     }
     const raw = Array.isArray(parsed.result.events) ? parsed.result.events : parsed.result.events.events;
     if (raw.length >= LIMIT) truncated = true;
-    for (const e of raw) byId.set(e.$metadata.id, toLogEvent(e, q.service));
+    for (const e of raw) byId.set(e.$metadata.id, toLogEvent(e, q.service, q.errorFields ?? { message: [], type: [] }));
   }
   return { events: [...byId.values()], truncated };
 }
 
-function toLogEvent(e: z.infer<typeof CfEvent>, service: string): LogEvent {
+function toLogEvent(e: z.infer<typeof CfEvent>, service: string, errorFields: Config["errorFields"]): LogEvent {
   const m = e.$metadata;
   const ts = e.timestamp ?? (typeof m.timestamp === "number" ? m.timestamp : m.timestamp ? Date.parse(m.timestamp) : Date.now());
   return {
     id: m.id,
     timestamp: ts,
     level: m.level ?? (m.error ? "error" : "info"),
-    message: structuredMessage(m.message, e.error) ?? m.message ?? m.error ?? "",
+    message: identifyError(m.message ?? m.error ?? "", extractedFields(e), errorFields),
     service: m.service ?? service,
     ...(e.$workers?.outcome ? { outcome: e.$workers.outcome } : {}),
     ...(e.$workers?.versionId ? { versionId: e.$workers.versionId } : {}),
   };
+}
+
+/** Fields Workers Logs extracted from a structured log line: everything outside its own $-prefixed metadata. */
+function extractedFields(e: z.infer<typeof CfEvent>): Record<string, unknown> | undefined {
+  const entries = Object.entries(e).filter(([k]) => !k.startsWith("$") && k !== "timestamp");
+  return entries.length ? Object.fromEntries(entries) : undefined;
 }
