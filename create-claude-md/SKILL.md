@@ -7,6 +7,8 @@ description: >
   asked to "create CLAUDE.md", "bootstrap project", or "set up agent context".
 dependsOn:
   - jonmumm/skills@adr-keeper
+  - jonmumm/skills@wide-events-logging
+  - jonmumm/skills@client-telemetry
 ---
 
 # Create CLAUDE.md
@@ -41,6 +43,7 @@ Before generating anything, detect and report.
 | Source layout | Scan top-level directories (`src/`, `app/`, `lib/`, `services/`, `db/`, `e2e/`, etc.) |
 | Existing agent docs | Check for `CLAUDE.md`, `AGENTS.md`, `CODEX.md`, `spec/`, `docs/` |
 | Existing gitignore | Check `.gitignore` for `.swarm/`, `.claude/` |
+| Cloudflare Workers | `wrangler.toml`/`.json`/`.jsonc` present → note Worker names, whether `observability.enabled` is on, whether `.github/workflows/sre-agent.yml` exists |
 
 #### 2. Detect Feedback Commands
 
@@ -73,6 +76,7 @@ Will generate:
   docs/agents/harness-engineering.md        (continuous improvement loop)
   docs/agents/testing-principles.md         (project testing conventions)
   docs/agents/code-style.md                 (language/framework style rules)
+  docs/agents/observability.md              (logging, client telemetry, sre-agent)
   docs/ARCHITECTURE.md                      (system map)
   docs/product-specs/index.md               (product requirements catalog)
   docs/acceptance/index.md                  (acceptance test catalog)
@@ -99,7 +103,8 @@ docs/
 ├── agents/                        ← agent-specific guidance
 │   ├── harness-engineering.md     ← continuous improvement loop
 │   ├── testing-principles.md      ← project testing conventions
-│   └── code-style.md             ← language & framework style rules
+│   ├── code-style.md             ← language & framework style rules
+│   └── observability.md          ← logging, client telemetry, sre-agent
 ├── ARCHITECTURE.md                ← system map
 ├── QUALITY.md                     ← quality grades per domain/layer
 ├── lessons.md                     ← persistent project lessons (meta)
@@ -215,6 +220,7 @@ Start here. Load deeper docs **only when working on the relevant domain.**
 | Topic | Location |
 |-------|----------|
 | Agent guidance | [docs/agents/](docs/agents/) — harness engineering, testing, code style |
+| Observability | [docs/agents/observability.md](docs/agents/observability.md) — how this project logs, client telemetry, sre-agent |
 | Architecture | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | Product specs | [docs/product-specs/index.md](docs/product-specs/index.md) |
 | Acceptance tests | [docs/acceptance/index.md](docs/acceptance/index.md) |
@@ -256,6 +262,8 @@ Stale docs are worse than no docs. Updating docs is part of completing any task.
 | Fix a platform gotcha | docs/agents/code-style.md or docs/design-docs/ |
 | Change the tech stack | This file (CLAUDE.md header) |
 | Learn from a mistake | docs/lessons.md |
+| Add a route, Durable Object action, alarm or job | Emit one wide event (see docs/agents/observability.md) |
+| Add a client error path or product event | docs/agents/observability.md |
 
 ## Off-Limits
 
@@ -378,6 +386,52 @@ existing file style first, then run the formatter.
 
 - [e.g. "Remix: loader/action functions in route files, business logic in services/"]
 - [e.g. "React Native: no @tailwind base with NativeWind v4"]
+```
+
+### `docs/agents/observability.md`
+
+```markdown
+# Observability
+
+How this project logs, what the client reports, and how /sre-agent watches it.
+
+## Workers
+
+| Worker | Name (wrangler) | Observability on |
+|--------|-----------------|------------------|
+| ... | ... | yes / no |
+
+## Server wide events
+
+One wide event per request, Durable Object action, alarm or job, emitted with `console.log(obj)`
+(`console.error(obj)` on failure). Shape and rules: /wide-events-logging. Emit function lives in
+[path].
+
+## Client telemetry
+
+Errors, session lifecycle and product events are buffered on the device and posted to
+`POST /events`, which re-emits each as `event: "client.<type>"`, `source: "client"`.
+Approach: /client-telemetry. Client code: [path]. Route: [path].
+
+## Event names
+
+| Event | Source | Level | Fields | Meaning |
+|-------|--------|-------|--------|---------|
+| http.request | server | info/error | route, status, duration_ms | ... |
+| client.error | client | error | error.type, error.message | ... |
+| ... | ... | ... | ... | ... |
+
+## sre-agent
+
+- Status: [not installed | autonomy 0 / 1 / 2]
+- Config: [.github/sre-agent.yml](../../.github/sre-agent.yml)
+- `errorFields` mapping: [none | fields and why this project's lines differ from the recommended shape]
+- Notification: sre-agent emails Jon through the shared `sre-notify` Worker.
+
+## Privacy
+
+Kids use these apps. Never log display names, profile names, emails, tokens or anything a player
+typed. Ids, counts, flags and enum values only.
 ```
 
 ### `docs/ARCHITECTURE.md`

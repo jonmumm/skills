@@ -109,3 +109,77 @@ describe("run (end to end with a command source and a fake GitHub)", () => {
     expect(gh.issues).toHaveLength(2); // the healthy source still files issues
   });
 });
+
+describe("run (email notification)", () => {
+  const logs = [err("1", "timeout for user 1"), err("2", "db down")];
+  const notifyEnv = { ...env, ACTIONS_ID_TOKEN_REQUEST_URL: "https://oidc.example/t?a=1", ACTIONS_ID_TOKEN_REQUEST_TOKEN: "r", GITHUB_SERVER_URL: "https://github.com", GITHUB_RUN_ID: "99" };
+
+  function withNotifier() {
+    const gh = fakeGitHub();
+    const posts: unknown[] = [];
+    const fetch = async (url: string, init?: RequestInit) => {
+      if (url.startsWith("https://oidc.example")) return Response.json({ value: "jwt" });
+      if (url === "https://notify.example/notify") {
+        posts.push(JSON.parse(String(init!.body)));
+        return new Response(null, { status: 202 });
+      }
+      return gh.fetch(url, init);
+    };
+    return { gh, posts, fetch };
+  }
+
+  it("emails new issues with their titles, counts and the run link", async () => {
+    const { posts, fetch } = withNotifier();
+    const config = workspace("autonomy: 1\nnotify:\n  url: https://notify.example/notify\nsources:\n  - type: command\n    run: cat $DIR/logs.ndjson\n", logs);
+    await run({ configPath: config, dry: false, env: notifyEnv, now: NOW, fetch });
+    expect(posts).toEqual([
+      {
+        repo: "o/r",
+        runUrl: "https://github.com/o/r/actions/runs/99",
+        created: [
+          { number: 1, title: "[sre] api: timeout for user <n>", count: 1 },
+          { number: 2, title: "[sre] api: db down", count: 1 },
+        ],
+        reopened: [],
+        fixQueued: [],
+        sourceErrors: [],
+      },
+    ]);
+  });
+
+  it("stays quiet when a run only updates known issues", async () => {
+    const { posts, fetch } = withNotifier();
+    const config = workspace("autonomy: 1\nnotify:\n  url: https://notify.example/notify\nsources:\n  - type: command\n    run: cat $DIR/logs.ndjson\n", logs);
+    await run({ configPath: config, dry: false, env: notifyEnv, now: NOW, fetch });
+    await run({ configPath: config, dry: false, env: notifyEnv, now: NOW + 1, fetch });
+    expect(posts).toHaveLength(1);
+  });
+
+  it("never emails at autonomy 0 or in a dry run", async () => {
+    const { posts, fetch } = withNotifier();
+    await run({ configPath: workspace("notify:\n  url: https://notify.example/notify\nsources:\n  - type: command\n    run: cat $DIR/logs.ndjson\n", logs), dry: false, env: notifyEnv, now: NOW, fetch });
+    await run({ configPath: workspace("autonomy: 1\nnotify:\n  url: https://notify.example/notify\nsources:\n  - type: command\n    run: cat $DIR/logs.ndjson\n", logs), dry: true, env: notifyEnv, now: NOW, fetch });
+    expect(posts).toEqual([]);
+  });
+
+  it("emails a failing log source and notes notification problems in the summary", async () => {
+    const { posts, fetch } = withNotifier();
+    const out = await run({
+      configPath: workspace("autonomy: 1\nnotify:\n  url: https://notify.example/notify\nsources:\n  - type: cloudflare\n    service: api\n", []),
+      dry: false,
+      env: notifyEnv,
+      now: NOW,
+      fetch,
+    });
+    expect(posts).toMatchObject([{ sourceErrors: ["cloudflare:api: missing CLOUDFLARE_ACCOUNT_ID"] }]);
+    const noOidc = await run({
+      configPath: workspace("autonomy: 1\nnotify:\n  url: https://notify.example/notify\nsources:\n  - type: cloudflare\n    service: api\n", []),
+      dry: false,
+      env,
+      now: NOW,
+      fetch,
+    });
+    expect(out.summary).not.toMatch(/notification/i);
+    expect(noOidc.summary).toMatch(/id-token: write/);
+  });
+});

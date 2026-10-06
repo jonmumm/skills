@@ -3,6 +3,8 @@ import { parseArgs } from "node:util";
 import { applyActions, type ApplyResult, loadKnownIssues, pickFixes } from "./apply.ts";
 import { parseConfig } from "./config.ts";
 import { restIssueApi } from "./github.ts";
+import { nextMarker, renderIssue } from "./issue-body.ts";
+import { type NotifyItem, sendNotification } from "./notify.ts";
 import type { Action, Config, KnownIssue, LogEvent } from "./schemas.ts";
 import { fetchCloudflareEvents } from "./sources/cloudflare.ts";
 import { runCommandSource } from "./sources/command.ts";
@@ -39,6 +41,15 @@ export async function run({ configPath, dry, env, now, fetch = globalThis.fetch 
   if (writes && api) {
     applied = await applyActions(api, actions);
     fixIssues = await pickFixes(api, applied, cfg);
+  }
+
+  if (writes && cfg.notify && repo && (applied.created.length || applied.reopened.length || fixIssues.length || sourceErrors.length)) {
+    const item = (group: Action["group"], number: number): NotifyItem => ({ number, title: renderIssue(group, nextMarker(null, group)).title, count: group.count });
+    const created = actions.filter((a) => a.kind === "create").flatMap((a, i) => (applied.created[i] === undefined ? [] : [item(a.group, applied.created[i])]));
+    const reopened = actions.flatMap((a) => (a.kind === "reopen" ? [item(a.group, a.issue.number)] : []));
+    const runUrl = `${env.GITHUB_SERVER_URL ?? "https://github.com"}/${repo}/actions/runs/${env.GITHUB_RUN_ID ?? ""}`;
+    const note = await sendNotification({ url: cfg.notify.url, payload: { repo, runUrl, created, reopened, fixQueued: fixIssues, sourceErrors }, env, fetch });
+    if (note) notes.push(note);
   }
 
   const summary = renderSummary({ cfg, dry, window, events, actions, applied, fixIssues, notes, sourceErrors });

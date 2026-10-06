@@ -50,3 +50,11 @@ describe("parseConfig errorFields", () => {
     expect(parseConfig("errorFields:\n  message: [failure.reason]\nsources:\n  - type: command\n    run: x\n").errorFields).toEqual({ message: ["failure.reason"], type: [] });
   });
 });
+
+describe("parseConfig notify", () => {
+  it("is off by default and needs an https URL", () => {
+    expect(parseConfig("sources:\n  - type: command\n    run: x\n").notify).toBeUndefined();
+    expect(parseConfig("notify:\n  url: https://n.example/notify\nsources:\n  - type: command\n    run: x\n").notify).toEqual({ url: "https://n.example/notify" });
+    expect(() => parseConfig("notify:\n  url: not a url\nsources:\n  - type: command\n    run: x\n")).toThrow(/notify\.url/);
+  });
+});

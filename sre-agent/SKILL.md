@@ -54,7 +54,8 @@ Work in the service repo. Steps 1–3 can be done without asking. Step 4 needs t
    (`git -C ~/src/skills status -sb` shows no "ahead"). Use the full 40-char SHA, never `@main`:
    this action holds an issues-write token.
 3. **Write files.**
-   - `templates/sre-agent.config.yml` → `.github/sre-agent.yml`; set `service`.
+   - `templates/sre-agent.config.yml` → `.github/sre-agent.yml`; set `service`. Keep the `notify`
+     block so Jon gets email.
    - `templates/sre-agent.workflow.yml` → `.github/workflows/sre-agent.yml`; replace `__SKILLS_SHA__`.
    - If the repo does not use pnpm, edit the fix job's setup steps.
 4. **Secrets.** Never ask for or print the values. Give the user these exact commands:
@@ -75,6 +76,39 @@ Work in the service repo. Steps 1–3 can be done without asking. Step 4 needs t
 6. **Ship and verify.** Commit, push, then `gh workflow run sre-agent -f dry=true` and read the run's
    job summary (`gh run view --log` or the web UI). Report the observed summary, not the expectation.
 7. Leave it at autonomy 0. Tell the user when to promote, using the ladder above.
+
+## Email
+
+Runs at autonomy 1 and above email Jon from `sre@mumm.dev` when they file or reopen an issue,
+queue a fix attempt, or a log source fails. Quiet runs and plain count updates send nothing.
+
+- The sender is the shared **sre-notify** Worker (`notifier/`, deployed at
+  `https://sre-notify.jonathanrmumm.workers.dev`). It uses the same Cloudflare `send_email`
+  binding as juneaus-number-quest.
+- No secret is shared between repos. The triage job's GitHub OIDC token (`id-token: write`,
+  audience `sre-notify`) proves which repo is calling. The Worker only accepts repos owned by
+  `jonmumm` or `open-game-system` (`ALLOWED_OWNERS`), and only payloads that name the token's own repo.
+- The Worker writes the email itself from structured fields, escaping the issue titles. Callers
+  cannot send arbitrary content.
+- A failed email never fails the run. It shows as a note in the job summary.
+- To change the recipient or the allowed owners, edit `notifier/wrangler.toml`, then run
+  `pnpm test && pnpm run deploy` in `notifier/`.
+
+## Log formats
+
+Projects may log in any shape; the recommended one is in `wide-events-logging`. For each error
+line, sre-agent groups by "type: message":
+
+- **Plain text** is used as-is, after volatile values are normalized.
+- **Structured (JSON) lines:** the message comes from `error.message`, `err.message`,
+  `exception.message`, `error` (a string), `message` or `msg`. The type comes from the matching
+  `*.type` / `*.name`, `errorType`, `event` or `type`. Fields Workers Logs extracted are checked
+  before the raw line.
+- **A repo's own paths** go under `errorFields: { message: [...], type: [...] }` in
+  `.github/sre-agent.yml`. They are checked first.
+- **A structured line with no recognizable message** becomes one issue: "sre-agent could not find
+  the error message in this log line. Fields: …". Fix it with an `errorFields` mapping, or make
+  the code emit `error: { type, message }`. At autonomy 2 the fix job does that itself.
 
 ## Operating it
 

@@ -192,10 +192,14 @@ function shouldSample(event: WideEvent): boolean {
 - [ ] Are business metrics (cart totals, iteration counts, attempt numbers) serialized in the event payload?
 - [ ] Are you capturing feature flag states to correlate bugs with active experiments?
 
-## Cloudflare Workers: the sre-agent contract
+## Cloudflare Workers: the recommended shape for sre-agent
 
-Every Cloudflare project follows this, so `/sre-agent` can read its logs. The agent queries Workers Logs
-for `error`-level events and groups them into issues by **`error.type` + `error.message`**.
+New Cloudflare projects should follow this shape. `/sre-agent` queries Workers Logs for `error`-level
+events and groups them into issues by **error type + error message**. It adapts to other shapes: it
+looks for the message in `error.message`, `err.message`, `exception.message`, `error` (a string),
+`message` and `msg`, and for the type in the matching `*.type` / `*.name` fields, `errorType`,
+`event` and `type`. A project can map its own fields with `errorFields` in `.github/sre-agent.yml`.
+A structured line with no recognizable message becomes one issue asking for that mapping.
 
 1. **Wrangler config.** `observability = { enabled = true, head_sampling_rate = 1 }` and a
    `version_metadata` binding named `CF_VERSION_METADATA` (gives `version`).
@@ -225,8 +229,8 @@ for `error`-level events and groups them into issues by **`error.type` + `error.
    parses them with Zod and re-emits each as a wide event with `source: "client"`,
    `event: "client.<type>"`. Client errors carry `error.{type,message,stack}`. A previous session that
    never closed is `console.error` with `error.type: "PreviousSessionCrashed"`; WebGL context loss
-   is `error.type: "WebGLContextLost"`. Use `@open-game-system/telemetry-kit` once it is published
-   (it is extracted from juneaus-number-quest's `src/telemetry.ts`); do not hand-roll a new one.
+   is `error.type: "WebGLContextLost"`. Use the /client-telemetry skill: copy its reference code
+   in (each project owns its copy).
 7. **Counts (optional).** An Analytics Engine binding `EVENTS`, written from the same emit function:
    `indexes: [service]`, `blobs: [event, outcome, version, error?.type ?? "", device ?? ""]`,
    `doubles: [duration_ms ?? 0, 1]`. It is sampled, so use it for rates and spike or silence

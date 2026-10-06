@@ -1,0 +1,21 @@
+# sre-notify: emails Jon when an sre-agent run files, reopens or queues something, or a log source fails.
+# Callers authenticate with their GitHub Actions OIDC token (audience "sre-notify"); no shared secret.
+name = "sre-notify"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+account_id = "ccf4d9a0a3b76ffae0b6ee048de66f07"
+workers_dev = true
+preview_urls = false
+
+[[send_email]]
+name = "MAILER"
+destination_address = "jonathanrmumm@gmail.com"
+
+[vars]
+FROM = "SRE Agent <sre@mumm.dev>"
+TO = "jonathanrmumm@gmail.com"
+ALLOWED_OWNERS = "jonmumm,open-game-system"
+
+[observability]
+enabled = true
+head_sampling_rate = 1

@@ -22,6 +22,19 @@ outcomes: [exception, exceededCpu, exceededMemory, scriptNotFound]
 ignore: []
 #  - "^Client disconnected"
 
+# Where to find the error message and type in structured (JSON) log lines, checked before the
+# built-in paths (error.message, err.message, exception.message, error, message, msg; type from
+# error.type, error.name, err.*, exception.*, errorType, event, type). Only needed when sre-agent
+# files an issue saying it "could not find the error message".
+errorFields:
+  message: []
+  type: []
+
+# Email Jon (via the shared sre-notify Worker) when a run files or reopens an issue, queues a fix,
+# or a log source fails. Needs `id-token: write` on the triage job (already in the template).
+notify:
+  url: https://sre-notify.jonathanrmumm.workers.dev/notify
+
 sources:
   - type: cloudflare
     service: __WORKER_NAME__        # the Worker's name in wrangler config

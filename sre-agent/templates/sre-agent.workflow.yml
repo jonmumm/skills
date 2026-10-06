@@ -28,6 +28,7 @@ jobs:
     permissions:
       contents: read
       issues: write
+      id-token: write   # proves this repo to the sre-notify email Worker; no shared secret
     outputs:
       fix_issues: ${{ steps.triage.outputs.fix_issues }}
     env:
@@ -89,7 +90,12 @@ jobs:
                Comment on the issue instead: likely root cause with file:line evidence, what you tried,
                and the suggested next step.
 
-            Do not edit anything under .github/, and do not change existing tests to make them pass.
+            If the issue title starts with "sre-agent could not find the error message", the bug is the log
+            format, not the code. Either make the code emit `error: { type, message }` (see the
+            wide-events-logging skill's recommended shape), or add the right dotted paths under `errorFields`
+            in .github/sre-agent.yml. That file is the only thing under .github/ you may edit.
+
+            Do not edit anything else under .github/, and do not change existing tests to make them pass.
           claude_args: |
             --max-turns 60
             --allowedTools Read,Edit,Write,Glob,Grep,Bash(pnpm:*),Bash(node:*),Bash(git:*),Bash(gh issue view:*),Bash(gh issue comment:*),Bash(gh pr create:*)
