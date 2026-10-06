@@ -15,7 +15,26 @@ const CfEvent = z.object({
   }),
   $workers: z.object({ outcome: z.string().optional(), versionId: z.string().optional(), scriptName: z.string().optional() }).optional(),
   timestamp: z.number().optional(),
+  error: z.unknown().optional(),
 });
+
+const StructuredError = z.object({ type: z.string().optional(), message: z.string() });
+const WideEvent = z.object({ error: StructuredError });
+
+/** A wide event's error.type + error.message is the stable bug identity; the rest of the line is request context. */
+function structuredMessage(raw: string | undefined, extracted: unknown): string | undefined {
+  let err = StructuredError.safeParse(extracted).data;
+  if (!err && raw) {
+    try {
+      const parsed = WideEvent.safeParse(JSON.parse(raw));
+      if (parsed.success) err = parsed.data.error;
+    } catch {
+      // not JSON: a plain log line
+    }
+  }
+  if (!err) return undefined;
+  return err.type ? `${err.type}: ${err.message}` : err.message;
+}
 
 const CfResponse = z.object({
   success: z.boolean(),
@@ -83,7 +102,7 @@ function toLogEvent(e: z.infer<typeof CfEvent>, service: string): LogEvent {
     id: m.id,
     timestamp: ts,
     level: m.level ?? (m.error ? "error" : "info"),
-    message: m.message ?? m.error ?? "",
+    message: structuredMessage(m.message, e.error) ?? m.message ?? m.error ?? "",
     service: m.service ?? service,
     ...(e.$workers?.outcome ? { outcome: e.$workers.outcome } : {}),
     ...(e.$workers?.versionId ? { versionId: e.$workers.versionId } : {}),

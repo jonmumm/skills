@@ -158,3 +158,40 @@ describe("runCommandSource", () => {
     expect(out).toEqual({ events: [{ id: "1", timestamp: 1_000, level: "error", message: "to 2000", service: "s" }], invalidLines: 0 });
   });
 });
+
+describe("fetchCloudflareEvents (structured wide events)", () => {
+  const window = { from: 1_000, to: 2_000 };
+  const run = async (event: object) => {
+    const fetch = async () => new Response(JSON.stringify({ success: true, result: { events: [event] } }));
+    const { events } = await fetchCloudflareEvents({ accountId: "a", token: "t", service: "s", levels: ["error"], outcomes: [], ...window, fetch });
+    return events[0]!;
+  };
+
+  it("uses error.type and error.message from a JSON log line, so ids in other fields never split or merge groups", async () => {
+    const message = JSON.stringify({ event: "room.action", room_id: "r-91", players: 3, error: { type: "TypeError", message: "score of undefined", stack: "at x" } });
+    expect((await run({ $metadata: { id: "1", level: "error", message }, timestamp: 1_500 })).message).toBe("TypeError: score of undefined");
+  });
+
+  it("uses an error object Cloudflare extracted to the top level of the event", async () => {
+    const ev = await run({ $metadata: { id: "1", level: "error", message: "room.action" }, error: { type: "RangeError", message: "bad round" }, timestamp: 1_500 });
+    expect(ev.message).toBe("RangeError: bad round");
+  });
+
+  it("prefers the extracted error object over the raw line when both are present", async () => {
+    const message = JSON.stringify({ error: { type: "Raw", message: "from line" } });
+    const ev = await run({ $metadata: { id: "1", level: "error", message }, error: { type: "Extracted", message: "from fields" }, timestamp: 1_500 });
+    expect(ev.message).toBe("Extracted: from fields");
+  });
+
+  it("uses the message alone when the error has no type", async () => {
+    const message = JSON.stringify({ error: { message: "db down" } });
+    expect((await run({ $metadata: { id: "1", level: "error", message }, timestamp: 1_500 })).message).toBe("db down");
+  });
+
+  it("keeps the raw text for plain logs and for JSON without an error object", async () => {
+    expect((await run({ $metadata: { id: "1", level: "error", message: "plain boom" }, timestamp: 1_500 })).message).toBe("plain boom");
+    const json = JSON.stringify({ event: "x", outcome: "error" });
+    expect((await run({ $metadata: { id: "1", level: "error", message: json }, timestamp: 1_500 })).message).toBe(json);
+    expect((await run({ $metadata: { id: "1", level: "error", message: "{not json" }, timestamp: 1_500 })).message).toBe("{not json");
+  });
+});
