@@ -42,6 +42,20 @@ Crafted World for papercraft), an **anchor for 6, 8 and 10 on every row**, and t
 "8 = a first-party art director would sign off shipping it". Then grade the *current* build with
 a fresh critic. Expect previous 7s and 8s to land at 4–6. That drop is the point.
 
+**Rows come from the game, not from Story Nook.** Write the game's audience (kids / family /
+adults) at the top of the scorecard and pick rows for it: kid-UX and "Calm (bedtime)" rows only
+when kids play it (Trivia Jam is for adults; the user had to say so twice). Every scorecard keeps
+the **Onboarding & legibility** row: a first-time player can say what caused each outcome.
+Pocket Draft scored 6–7 on craft while a new player "had no clue what is going on".
+
+**The user's taste outranks the critic.** Before round 00, write `critic/TASTE.md`: vetoes (from
+the global CLAUDE.md "Taste" list and anything the user has said about this game) and **things
+the user already liked**, each with a shot. The critic reads it and any round that breaks a veto
+or loses a liked thing is reverted, whatever it scored. Rocket Crew's critic added faces to the
+rockets and made the planets "look less like real planets"; both had been liked or vetoed.
+A redesign of an existing game always keeps the pre-climb look as option 1 (Trivia Jam: "I kind
+of like the existing one the best").
+
 **Read the baseline's largest gap literally.** If the critic says "the art itself is the
 ceiling", no amount of lighting or shaders will fix it: change the asset pipeline first
 (`ai-art-assets`: style bible + prompt prefix, 4-image calibration, character sheet → poses with

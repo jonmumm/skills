@@ -78,6 +78,22 @@ toddler seat). Each file has four sections:
 The map is the list a proof must cover. Driving one convenient entry point is incomplete when the
 map lists others.
 
+**Every map also has `features/lifecycle.md`.** First-run happy paths pass while the family hits
+the second run: the user found every one of these on a real device after a "verified" fix.
+
+- Stop casting, then cast again; switch which phone casts; kill and reopen the app mid-game.
+- Permission already granted, and already denied (motion, mic), before the first tap.
+- Rejoin from the same browser or profile (must get the same seat, not a second one).
+- A long session: play-again ×3 and a full veteran run (Rocket Crew's TV went white "after the
+  8th or 9th" problem).
+- Cold load on the slowest device with an empty cache (Number Quest's robot voice only played
+  before the clip list loaded on the iPad).
+- Home / park in the OGS launcher: game audio stops.
+
+**TV safe area.** Real TVs overscan: at the renderer's 1280×720, every piece of content must sit
+inside a 5% inset (the OGS TV was "offset and didn't all fit" on a real screen). Evidence for a
+TV page includes that check.
+
 ### 4. Prove it before handing over
 
 Run the new skill's own steps once: Launch → Doctor → drive **one** mapped feature → capture

@@ -11,6 +11,9 @@ source code (no src/, scripts/, e2e/). Grade only from evidence.
 Read, in [repo path]:
 - critic/aaa/SCORECARD.md (rubric, anchors, log; grade against the named references, never
   against previous rounds)
+- critic/TASTE.md (the owner's vetoes and the things they already liked). These outrank the
+  references: never recommend a fix that breaks a veto, and fail any row where a liked thing
+  was lost or a veto broken, citing the shot.
 - [docs/spec.md] (skim) and [docs/art-style.md]
 - Evidence in critic/rounds/[NN]/: tv-contact-sheet.png (labeled shots; full-size shots in
   [recordings/shots/] — view many at full size), session.mp4 ([panel layout] with real audio),
@@ -21,6 +24,10 @@ Read, in [repo path]:
   name could mislead, e.g. "harshClicks is a harshness detector (want ≈0), not a foley count".]
   [State what the audio is made of, e.g. "produced lullaby beds; kid sounds are samples".]
 - [Where the game's text can be read, e.g. "the story text in the phone frames".]
+
+Before scoring, watch session.mp4 once as a first-time player who has never seen the rules.
+For the Onboarding & legibility row, write what caused each score change or outcome you saw.
+If you can't explain three of them from the screens alone, the row is at most 5.
 
 Output (final message only):
 1. A table: every scorecard row, score 1–10, 1–2 sentences of concrete evidence (shot name /

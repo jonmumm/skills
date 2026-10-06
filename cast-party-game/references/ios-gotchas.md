@@ -32,3 +32,17 @@ Hand-me-down iPads (e.g. iPad Air 2, stuck on iOS 15.8) run Safari 15. Things th
   overrides using layered gradients (`linear-gradient(#000a, #000a), var(--c)`) and plain shadows.
 - **Shaking a heavy iPad** rarely passes a phone-sized threshold (12 m/s²); use ~7 for tablets.
 - **Fullscreen**: `requestFullscreen` works on iPad Safari, never on iPhone Safari (video only).
+  Don't show a full-screen button on iPhones at all (Rocket Crew `kidLock.ts`).
+
+## Shake games and full screen on iPad (Oct 2026, Rocket Crew)
+
+Playwright has no iOS status bar, safe area, shake-to-undo or full-screen warning, so none of
+these show up in `ui-matrix` runs. Each one was found by the user on the real iPad.
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| "Undo Typing" popup when the kid shakes | iOS shake-to-undo remembers anything typed on the page (the name form) | After Join, reload the page once (seat and name survive); the only way to clear the undo history. Grown-ups can also turn off Settings › Accessibility › Touch › Shake to Undo. In the OGS app there is no name form, which avoids it. |
+| "It looks like you are trying to type while in full screen" | Keyboard input or a focused field while full screen | Leave full screen before showing any text box; blur everything before `requestFullscreen` |
+| Name badge or HUD under the battery / Wi-Fi icons | Full screen on iPad still draws the status bar over the top ~24 px | Pad fixed top UI with `env(safe-area-inset-top)` plus 24 px in full screen |
+| Name sits under the full-screen close (X) button | Safari draws its own X in the top-left corner in full screen | Keep the top-left 56×56 px clear |
+| "I don't see the full-screen button" on one role | Each role's header was laid out separately | Test the button's presence on every role × size in `ui-matrix`, not just one screen |

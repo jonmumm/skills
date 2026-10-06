@@ -31,6 +31,15 @@ references, never against the previous round. Stop when every row ≥ 8.
 | Replay & payoff | shelf exists | the ending and shelf feel like a reward; covers you want to collect | kids ask for tomorrow |
 | Performance & stability | ok | 30 fps stream at 1080p, no hitches, no glitches | — |
 
+**Required on every game** (add it even though Story Nook's table predates it):
+
+| Row | 6 | 8 (ship bar) | 10 |
+|---|---|---|---|
+| Onboarding & legibility | a new player needs the rules explained | a first-time player learns by playing and can say what caused every outcome on screen | you understand it from across the room |
+
+The Story Nook rows assume kids at bedtime. Write the game's audience (kids / family / adults)
+above the table and drop kid rows for games kids don't play.
+
 Adapt rows to the game: an action game swaps "Calm" for "Game feel / responsiveness" and "Story
 & read-aloud" for "Readability of threats"; a puzzle game adds "Puzzle clarity"; a multi-screen
 cast game keeps "Phone UI polish" and "Kid UX". Keep Performance as the one row graded mostly by
