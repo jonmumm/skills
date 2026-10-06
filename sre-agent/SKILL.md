@@ -61,8 +61,11 @@ Work in the service repo. Steps 1–3 can be done without asking. Step 4 needs t
 4. **Secrets.** Never ask for or print the values. Give the user these exact commands:
    - Cloudflare token: dashboard → My Profile → API Tokens → Create Custom Token → Account →
      **Workers Observability: Edit** (the query endpoint needs it, although it only reads).
-   - `! gh secret set SRE_CLOUDFLARE_API_TOKEN` (prompts for the value)
-   - `! gh variable set CLOUDFLARE_ACCOUNT_ID --body <account id>` (an id, not a secret: `wrangler whoami`)
+   - Already stored? `! ~/src/skills/sre-agent/scripts/cloudflare-token.sh sync <owner/repo>` sets the
+     secret and `CLOUDFLARE_ACCOUNT_ID` on that repo. Public open-game-system repos already read both from
+     the org; private org repos and personal (jonmumm) repos need their own copy (free plan).
+   - First time: create the token, `cloudflare-token.sh store` (hidden paste into the Keychain), then `sync`.
+     After a Roll in Cloudflare: `store` then `sync` updates every repo.
    - Autonomy 2 only:
      - The Claude token: `! ~/src/skills/sre-agent/scripts/claude-token.sh sync <owner/repo>` (once per
        year, `claude setup-token` then `claude-token.sh store` refreshes it everywhere)
