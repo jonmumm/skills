@@ -115,3 +115,43 @@ describe("sre-notify", () => {
     expect((await app(new Request("https://x/other", { method: "POST" }))).status).toBe(404);
   });
 });
+
+describe("sre-notify (architecture PRs)", () => {
+  const arch = {
+    kind: "arch-pr",
+    event: "opened",
+    repo: "open-game-system/trivia-jam",
+    runUrl: "https://github.com/open-game-system/trivia-jam/actions/runs/2",
+    pr: { number: 41, title: "Deepen the <Round> module", url: "https://github.com/open-game-system/trivia-jam/pull/41" },
+    summary: "Merges RoundTimer, RoundScorer and RoundState behind one Round module.",
+  };
+
+  it("emails a new proposal with its link and how to give feedback", async () => {
+    const { sent, post } = setup();
+    expect((await post(arch, await token())).status).toBe(202);
+    const m = sent[0]!;
+    expect(m.subject).toBe("[arch] trivia-jam: Deepen the <Round> module");
+    expect(m.text).toContain("https://github.com/open-game-system/trivia-jam/pull/41");
+    expect(m.text).toContain("Merges RoundTimer");
+    expect(m.text).toMatch(/comment on the PR/i);
+    expect(m.html).toContain("&lt;Round&gt;");
+  });
+
+  it("says when a proposal was revised after feedback", async () => {
+    const { sent, post } = setup();
+    await post({ ...arch, event: "revised" }, await token());
+    expect(sent[0]!.subject).toBe("[arch] trivia-jam: revised: Deepen the <Round> module");
+  });
+
+  it("only links PRs in the token's own repo", async () => {
+    const { post } = setup();
+    const res = await post({ ...arch, pr: { ...arch.pr, url: "https://github.com/mallory/x/pull/1" } }, await token());
+    expect(res.status).toBe(400);
+  });
+
+  it("strips line breaks from the subject", async () => {
+    const { sent, post } = setup();
+    await post({ ...arch, pr: { ...arch.pr, title: "a\r\nBcc: x@y.z" } }, await token());
+    expect(sent[0]!.subject).toBe("[arch] trivia-jam: a Bcc: x@y.z");
+  });
+});

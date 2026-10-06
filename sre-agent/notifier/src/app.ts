@@ -18,6 +18,36 @@ const Payload = z.object({
 });
 type Payload = z.infer<typeof Payload>;
 
+const ArchPayload = z.object({
+  kind: z.literal("arch-pr"),
+  event: z.enum(["opened", "revised"]),
+  repo: Payload.shape.repo,
+  runUrl: Payload.shape.runUrl,
+  pr: z.object({ number: z.number().int().positive(), title: z.string().min(1).max(300), url: z.url() }),
+  summary: z.string().max(3000),
+});
+type ArchPayload = z.infer<typeof ArchPayload>;
+
+const oneLine = (s: string) => s.replace(/[\r\n]+/g, " ").trim();
+
+export function archEmail(p: ArchPayload): { subject: string; text: string } {
+  const name = p.repo.split("/")[1];
+  const subject = `[arch] ${name}: ${p.event === "revised" ? "revised: " : ""}${oneLine(p.pr.title)}`;
+  const text = [
+    p.event === "revised" ? `The architecture proposal for ${p.repo} was revised after your feedback.` : `New architecture proposal for ${p.repo}.`,
+    "",
+    `#${p.pr.number} ${p.pr.title}`,
+    p.pr.url,
+    "",
+    p.summary,
+    "",
+    "Give feedback with a comment on the PR. The agent revises it and learns from what you say there.",
+    "",
+    `Run: ${p.runUrl}`,
+  ].join("\n");
+  return { subject, text };
+}
+
 export type Env = { FROM: string; TO: string; ALLOWED_OWNERS: string };
 export type Sent = { from: string; to: string; subject: string; text: string; html: string; raw: string };
 export type Deps = { jwks: JWTVerifyGetKey; send: (m: Sent) => Promise<void>; now?: () => Date; id?: () => string };
@@ -71,15 +101,27 @@ export function createApp(env: Env, deps: Deps) {
     } catch {
       return json(400, { error: "body must be JSON" });
     }
-    const parsed = Payload.safeParse(body);
-    if (!parsed.success) return json(400, { error: parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ") });
-    const p = parsed.data;
-    if (p.repo !== claims.repository) return json(403, { error: "payload repo does not match token" });
-    if (!p.created.length && !p.reopened.length && !p.fixQueued.length && !p.sourceErrors.length) return new Response(null, { status: 204 });
+    const issues = (e: z.ZodError) => json(400, { error: e.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ") });
+    let subject: string;
+    let text: string;
+    if (typeof body === "object" && body !== null && "kind" in body) {
+      const parsed = ArchPayload.safeParse(body);
+      if (!parsed.success) return issues(parsed.error);
+      const p = parsed.data;
+      if (p.repo !== claims.repository) return json(403, { error: "payload repo does not match token" });
+      if (!p.pr.url.startsWith(`https://github.com/${p.repo}/pull/`)) return json(400, { error: "pr.url must be a PR in the token's repo" });
+      ({ subject, text } = archEmail(p));
+    } else {
+      const parsed = Payload.safeParse(body);
+      if (!parsed.success) return issues(parsed.error);
+      const p = parsed.data;
+      if (p.repo !== claims.repository) return json(403, { error: "payload repo does not match token" });
+      if (!p.created.length && !p.reopened.length && !p.fixQueued.length && !p.sourceErrors.length) return new Response(null, { status: 204 });
+      subject = subjectFor(p);
+      text = textFor(p);
+    }
 
     const from = env.FROM.replace(/.*<|>.*/g, "");
-    const subject = subjectFor(p);
-    const text = textFor(p);
     const html = toHtml(text);
     const raw = mime({ from: env.FROM, to: env.TO, subject, text, html, id: deps.id?.() ?? crypto.randomUUID(), date: deps.now?.() ?? new Date() });
     await deps.send({ from, to: env.TO, subject, text, html, raw });

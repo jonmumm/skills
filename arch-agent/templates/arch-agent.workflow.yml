@@ -1,0 +1,214 @@
+# arch-agent: copy to .github/workflows/arch-agent.yml
+# Weekly: if the repo changed in the last 7 days and no arch-agent PR is open, run
+# improve-codebase-architecture without a human, implement the strongest candidate test-first and
+# open a draft PR, then email Jon the link. Jon's comments on that PR make the agent revise it,
+# and every later run reads past arch-agent PRs' comments before choosing.
+# Kill switch: gh variable set ARCH_AGENT_ENABLED --body false
+name: arch-agent
+
+on:
+  schedule:
+    - cron: "0 13 * * 1"   # Mondays 13:00 UTC
+  workflow_dispatch:
+  issue_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+
+concurrency:
+  group: arch-agent-${{ github.event.issue.number || github.event.pull_request.number || 'propose' }}
+  cancel-in-progress: false
+
+permissions: {}
+
+env:
+  # mattpocock/skills (MIT), pinned. Bump deliberately after reading the diff.
+  MATT_SKILLS_SHA: 4588b32ecab9ecc9fc8cc6b6c5e7d675b6004b0d
+  NOTIFY_URL: https://sre-notify.jonathanrmumm.workers.dev/notify
+
+jobs:
+  propose:
+    if: (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && vars.ARCH_AGENT_ENABLED != 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: gate
+        name: Changed this week, and no proposal open?
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          recent=$(git log --since="7 days ago" --oneline | wc -l | tr -d ' ')
+          open=$(gh pr list --label arch-agent --state open --json number --jq length)
+          if [ "$EVENT" = "workflow_dispatch" ]; then recent=1; fi
+          if [ "$recent" -gt 0 ] && [ "$open" -eq 0 ]; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; fi
+          echo "arch-agent gate: $recent commit(s) in 7 days, $open open proposal(s)" >> "$GITHUB_STEP_SUMMARY"
+      - if: steps.gate.outputs.run == 'true'
+        name: Load architecture skills
+        run: |
+          mkdir -p .claude/skills "$RUNNER_TEMP/mp"
+          curl -sSfL "https://codeload.github.com/mattpocock/skills/tar.gz/$MATT_SKILLS_SHA" | tar -xz -C "$RUNNER_TEMP/mp" --strip-components=1
+          for s in improve-codebase-architecture codebase-design domain-modeling; do cp -r "$RUNNER_TEMP/mp/skills/engineering/$s" .claude/skills/; done
+          echo ".claude/skills/" >> .git/info/exclude
+      - if: steps.gate.outputs.run == 'true'
+        uses: pnpm/action-setup@v4
+      - if: steps.gate.outputs.run == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - if: steps.gate.outputs.run == 'true'
+        run: pnpm install --frozen-lockfile
+      - if: steps.gate.outputs.run == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh label create arch-agent --color 5319e7 --description "Architecture proposals from arch-agent" --force
+      - if: steps.gate.outputs.run == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            You are the weekly architecture agent for ${{ github.repository }}. Nobody is here to answer
+            questions: make the calls yourself and write them down.
+
+            Read .claude/skills/improve-codebase-architecture/SKILL.md and .claude/skills/codebase-design/SKILL.md
+            and follow them, with these changes for an unattended run:
+            - Instead of an HTML report and asking "which would you like to explore", implement the single
+              strongest candidate as a draft PR. The PR description is the report.
+            - Instead of the grilling loop, list the questions it would have asked, with the answer you chose and why.
+
+            First, learn from past feedback. Run `gh pr list --label arch-agent --state all --limit 30 --json number,title,state`
+            and read each one with `gh pr view <n> --comments`. Never re-propose something Jon rejected, and follow
+            any preference he stated there. Also read CLAUDE.md, docs/agents/, GLOSSARY.md and any ADRs.
+
+            1. Explore as the skill describes, weighted to the files changed in recent weeks.
+            2. Pick the strongest candidate. If none is rated Strong, open no PR: write the candidates as
+               markdown to the file named by $GITHUB_STEP_SUMMARY and stop.
+            3. Implement it test-first on a new branch `arch-agent/<yyyy-mm-dd>-<short-slug>`. Behavior must not
+               change. Never modify an existing test to make it pass; if a test has to move because the shallow
+               module it tested is gone, say so for each one in the PR. Run the repo's feedback commands from
+               CLAUDE.md and make them all pass.
+            4. Open a draft PR with the label `arch-agent`: `gh pr create --draft --label arch-agent`. Description:
+               the candidate card (Files, Problem, Solution, Benefits in terms of locality and leverage,
+               Before/After as Mermaid diagrams, Recommendation strength), the other candidates in a few lines each,
+               "Decisions I made without asking you", and how you verified it. End with: "Comment on this PR to give
+               feedback. The agent revises it, and future runs read what you say here."
+            5. Write a plain 2 to 4 sentence summary of the proposal to /tmp/arch-summary.txt (it goes in the email).
+
+            Never push to the default branch, never merge, never edit .github/, never commit anything under .claude/.
+          claude_args: |
+            --max-turns 120
+            --allowedTools Read,Edit,Write,Glob,Grep,Agent,Task,Skill,Bash(pnpm:*),Bash(node:*),Bash(npx tsc:*),Bash(git:*),Bash(gh pr list:*),Bash(gh pr view:*),Bash(gh pr create:*),Bash(ls:*),Bash(mkdir:*)
+      - if: steps.gate.outputs.run == 'true'
+        name: Email Jon the proposal
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          pr=$(gh pr list --label arch-agent --state open --json number,title,url --jq '.[0] // empty')
+          if [ -z "$pr" ]; then echo "No proposal opened this week."; exit 0; fi
+          summary=$(cat /tmp/arch-summary.txt 2>/dev/null || echo "")
+          token=$(curl -sSf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sre-notify" | jq -r .value)
+          jq -n --argjson pr "$pr" --arg repo "$GITHUB_REPOSITORY" --arg run "$RUN_URL" --arg summary "$summary" \
+            '{kind:"arch-pr", event:"opened", repo:$repo, runUrl:$run, pr:$pr, summary:$summary[0:3000]}' \
+            | curl -sSf -X POST "$NOTIFY_URL" -H "Authorization: Bearer $token" -H "content-type: application/json" --data @-
+
+  revise:
+    if: >-
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request && !endsWith(github.event.comment.user.login, '[bot]')
+        && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
+      || (github.event_name == 'pull_request_review' && github.event.review.body != '' && !endsWith(github.event.review.user.login, '[bot]')
+        && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.review.author_association))
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+    steps:
+      - id: pr
+        name: Is this an open arch-agent PR?
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
+        run: |
+          info=$(gh pr view "$NUMBER" --repo "$GITHUB_REPOSITORY" --json state,labels,headRefName,headRefOid,title,url)
+          ours=$(echo "$info" | jq -r '(([.labels[].name] | index("arch-agent")) != null) and .state == "OPEN"')
+          {
+            echo "ours=$ours"
+            echo "number=$NUMBER"
+            echo "branch=$(echo "$info" | jq -r .headRefName)"
+            echo "head=$(echo "$info" | jq -r .headRefOid)"
+          } >> "$GITHUB_OUTPUT"
+      - if: steps.pr.outputs.ours == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr.outputs.branch }}
+          fetch-depth: 0
+      - if: steps.pr.outputs.ours == 'true'
+        name: Load architecture skills
+        run: |
+          mkdir -p .claude/skills "$RUNNER_TEMP/mp"
+          curl -sSfL "https://codeload.github.com/mattpocock/skills/tar.gz/$MATT_SKILLS_SHA" | tar -xz -C "$RUNNER_TEMP/mp" --strip-components=1
+          for s in improve-codebase-architecture codebase-design domain-modeling; do cp -r "$RUNNER_TEMP/mp/skills/engineering/$s" .claude/skills/; done
+          echo ".claude/skills/" >> .git/info/exclude
+      - if: steps.pr.outputs.ours == 'true'
+        uses: pnpm/action-setup@v4
+      - if: steps.pr.outputs.ours == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - if: steps.pr.outputs.ours == 'true'
+        run: pnpm install --frozen-lockfile
+      - if: steps.pr.outputs.ours == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Jon left feedback on architecture proposal PR #${{ steps.pr.outputs.number }} in ${{ github.repository }}.
+            You are on its branch `${{ steps.pr.outputs.branch }}`. Read the whole conversation:
+            `gh pr view ${{ steps.pr.outputs.number }} --comments` and the inline review comments with
+            `gh api repos/${{ github.repository }}/pulls/${{ steps.pr.outputs.number }}/comments`.
+            Use the vocabulary in .claude/skills/codebase-design/SKILL.md.
+
+            Act on his newest feedback:
+            - Changes requested: make them test-first, keep behavior identical, run the repo's feedback commands
+              until they pass, push to this branch, and update the PR description so it matches the code.
+            - A question: answer it in a PR comment, changing code only if the answer calls for it.
+            - He rejects the direction: reply acknowledging it in one or two sentences, and close the PR with
+              `gh pr close`. If his reason should stop future proposals of the same kind, say so in the comment;
+              future runs read it.
+            Always finish with one PR comment saying what you did. If you pushed, also write a plain 1 to 3 sentence
+            summary of what changed to /tmp/arch-summary.txt.
+
+            Never push to the default branch, never merge, never edit .github/, never commit anything under .claude/.
+          claude_args: |
+            --max-turns 80
+            --allowedTools Read,Edit,Write,Glob,Grep,Agent,Task,Skill,Bash(pnpm:*),Bash(node:*),Bash(npx tsc:*),Bash(git:*),Bash(gh pr view:*),Bash(gh pr comment:*),Bash(gh pr edit:*),Bash(gh pr close:*),Bash(gh api repos/*/pulls/*/comments),Bash(ls:*)
+      - if: steps.pr.outputs.ours == 'true'
+        name: Email Jon if the proposal changed
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ steps.pr.outputs.number }}
+          BEFORE: ${{ steps.pr.outputs.head }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          pr=$(gh pr view "$NUMBER" --json number,title,url,headRefOid,state)
+          if [ "$(echo "$pr" | jq -r .headRefOid)" = "$BEFORE" ] || [ "$(echo "$pr" | jq -r .state)" != "OPEN" ]; then echo "No new commits; no email."; exit 0; fi
+          summary=$(cat /tmp/arch-summary.txt 2>/dev/null || echo "")
+          token=$(curl -sSf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sre-notify" | jq -r .value)
+          jq -n --argjson pr "$(echo "$pr" | jq '{number,title,url}')" --arg repo "$GITHUB_REPOSITORY" --arg run "$RUN_URL" --arg summary "$summary" \
+            '{kind:"arch-pr", event:"revised", repo:$repo, runUrl:$run, pr:$pr, summary:$summary[0:3000]}' \
+            | curl -sSf -X POST "$NOTIFY_URL" -H "Authorization: Bearer $token" -H "content-type: application/json" --data @-
