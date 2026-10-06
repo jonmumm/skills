@@ -46,7 +46,8 @@ Jon comments on the PR ─▶ revise job: change the code / answer / close if re
      can't verify its own refactor, so run `/create-claude-md` first.
 2. **Copy** `templates/arch-agent.workflow.yml` to `.github/workflows/arch-agent.yml`.
 3. **Secrets** (give the user the exact commands; never ask for values):
-   - `! claude setup-token`, then `! gh secret set CLAUDE_CODE_OAUTH_TOKEN`. Same token as sre-agent's fix job.
+   - The Claude token: `! ~/src/skills/sre-agent/scripts/claude-token.sh sync <owner/repo>`. Same token as
+     sre-agent's fix job, kept in the Keychain; public open-game-system repos already get it from the org secret.
    - Install the Claude GitHub app (`/install-github-app` in an interactive `claude`). PRs opened with
      the default `GITHUB_TOKEN` don't trigger CI, and their comments don't trigger workflows.
 4. **Prove it.** Commit, push, run `gh workflow run arch-agent`, and watch it with `gh run watch`.

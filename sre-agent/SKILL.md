@@ -64,7 +64,8 @@ Work in the service repo. Steps 1–3 can be done without asking. Step 4 needs t
    - `! gh secret set SRE_CLOUDFLARE_API_TOKEN` (prompts for the value)
    - `! gh variable set CLOUDFLARE_ACCOUNT_ID --body <account id>` (an id, not a secret: `wrangler whoami`)
    - Autonomy 2 only:
-     - `! claude setup-token`, then `! gh secret set CLAUDE_CODE_OAUTH_TOKEN`
+     - The Claude token: `! ~/src/skills/sre-agent/scripts/claude-token.sh sync <owner/repo>` (once per
+       year, `claude setup-token` then `claude-token.sh store` refreshes it everywhere)
      - Install the Claude GitHub app (`/install-github-app` in an interactive `claude`).
        PRs opened with the default `GITHUB_TOKEN` do not trigger CI.
 5. **Prove it locally first** (dry, read-only):
