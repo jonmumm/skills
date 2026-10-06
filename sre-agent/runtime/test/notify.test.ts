@@ -46,3 +46,12 @@ describe("sendNotification", () => {
     expect(await sendNotification({ url: "https://n/notify", payload, env: oidcEnv, fetch })).toBe("Email notification failed: ECONNRESET");
   });
 });
+
+describe("sendNotification (local key)", () => {
+  it("uses SRE_NOTIFY_KEY directly, without asking GitHub for an OIDC token", async () => {
+    const { calls, fetch } = fakeFetch();
+    expect(await sendNotification({ url: "https://notify.example/notify", payload, env: { SRE_NOTIFY_KEY: "local-key" }, fetch })).toBeNull();
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatchObject({ url: "https://notify.example/notify", method: "POST", auth: "Bearer local-key", body: payload });
+  });
+});

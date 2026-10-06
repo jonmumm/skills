@@ -95,6 +95,10 @@ queue a fix attempt, or a log source fails. Quiet runs and plain count updates s
 - The Worker writes the email itself from structured fields, escaping the issue titles. Callers
   cannot send arbitrary content.
 - A failed email never fails the run. It shows as a note in the job summary.
+- Local routines (qa-agent, arch-agent) email through the same Worker with a key instead of OIDC:
+  `scripts/notify-local.sh`, using Keychain item `sre-notify-local-key`, which matches the
+  Worker secret `LOCAL_NOTIFY_KEY`. The key still only works for `ALLOWED_OWNERS` repos. The
+  runtime uses it when `SRE_NOTIFY_KEY` is set.
 - To change the recipient or the allowed owners, edit `notifier/wrangler.toml`, then run
   `pnpm test && pnpm run deploy` in `notifier/`.
 

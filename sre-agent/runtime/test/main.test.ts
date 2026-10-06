@@ -183,3 +183,22 @@ describe("run (email notification)", () => {
     expect(noOidc.summary).toMatch(/id-token: write/);
   });
 });
+
+describe("run (email from Jon's Mac)", () => {
+  it("emails with the local key and a local run link when not in GitHub Actions", async () => {
+    const gh = fakeGitHub();
+    const posts: Array<{ auth: string | null; body: { runUrl: string } }> = [];
+    const fetch = async (url: string, init?: RequestInit) => {
+      if (url === "https://notify.example/notify") {
+        posts.push({ auth: new Headers(init?.headers).get("authorization"), body: JSON.parse(String(init!.body)) });
+        return new Response(null, { status: 202 });
+      }
+      return gh.fetch(url, init);
+    };
+    const config = workspace("autonomy: 1\nnotify:\n  url: https://notify.example/notify\nsources:\n  - type: command\n    run: cat $DIR/logs.ndjson\n", [err("1", "db down")]);
+    await run({ configPath: config, dry: false, env: { ...env, SRE_NOTIFY_KEY: "k", SRE_RUN_LABEL: "qa-agent daily" }, now: NOW, fetch });
+    expect(posts).toHaveLength(1);
+    expect(posts[0]!.auth).toBe("Bearer k");
+    expect(posts[0]!.body.runUrl).toBe("local:qa-agent daily");
+  });
+});

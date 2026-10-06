@@ -10,7 +10,10 @@ const Claims = z.object({ repository: z.string(), repository_owner: z.string() }
 const Item = z.object({ number: z.number().int().positive(), title: z.string().max(300), count: z.number().int().nonnegative() });
 const Payload = z.object({
   repo: z.string().regex(/^[\w.-]+\/[\w.-]+$/),
-  runUrl: z.url().refine((u) => u.startsWith("https://github.com/"), { message: "must be a github.com run URL" }),
+  runUrl: z.union([
+    z.url().refine((u) => u.startsWith("https://github.com/"), { message: "must be a github.com run URL" }),
+    z.string().regex(/^local:[\w .:/-]{1,80}$/, { message: "must be a github.com run URL or local:<routine>" }),
+  ]),
   created: z.array(Item).max(20).default([]),
   reopened: z.array(Item).max(20).default([]),
   fixQueued: z.array(z.number().int().positive()).max(20).default([]),
@@ -48,7 +51,7 @@ export function archEmail(p: ArchPayload): { subject: string; text: string } {
   return { subject, text };
 }
 
-export type Env = { FROM: string; TO: string; ALLOWED_OWNERS: string };
+export type Env = { FROM: string; TO: string; ALLOWED_OWNERS: string; LOCAL_NOTIFY_KEY?: string };
 export type Sent = { from: string; to: string; subject: string; text: string; html: string; raw: string };
 export type Deps = { jwks: JWTVerifyGetKey; send: (m: Sent) => Promise<void>; now?: () => Date; id?: () => string };
 
@@ -78,6 +81,14 @@ export function textFor(p: Payload): string {
 
 const json = (status: number, body: object) => Response.json(body, { status });
 
+/** Constant-time string comparison for the local key. */
+function sameKey(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 export function createApp(env: Env, deps: Deps) {
   const owners = new Set(env.ALLOWED_OWNERS.split(",").map((s) => s.trim()).filter(Boolean));
   return async function handle(req: Request): Promise<Response> {
@@ -86,14 +97,19 @@ export function createApp(env: Env, deps: Deps) {
 
     const bearer = req.headers.get("authorization")?.match(/^Bearer (.+)$/)?.[1];
     if (!bearer) return json(401, { error: "missing GitHub OIDC token" });
-    let claims: z.infer<typeof Claims>;
-    try {
-      const { payload } = await jwtVerify(bearer, deps.jwks, { issuer: ISSUER, audience: AUDIENCE });
-      claims = Claims.parse(payload);
-    } catch {
-      return json(401, { error: "invalid GitHub OIDC token" });
+    // Two callers: GitHub Actions (OIDC token, proves the repo) and Jon's Mac (the local key).
+    let claims: z.infer<typeof Claims> | null = null;
+    const local = env.LOCAL_NOTIFY_KEY !== undefined && env.LOCAL_NOTIFY_KEY.length >= 32 && sameKey(bearer, env.LOCAL_NOTIFY_KEY);
+    if (!local) {
+      try {
+        const { payload } = await jwtVerify(bearer, deps.jwks, { issuer: ISSUER, audience: AUDIENCE });
+        claims = Claims.parse(payload);
+      } catch {
+        return json(401, { error: "invalid GitHub OIDC token" });
+      }
+      if (!owners.has(claims.repository_owner)) return json(403, { error: "repo owner not allowed" });
     }
-    if (!owners.has(claims.repository_owner)) return json(403, { error: "repo owner not allowed" });
+    const repoAllowed = (repo: string) => (claims ? repo === claims.repository : owners.has(repo.split("/")[0] ?? ""));
 
     let body: unknown;
     try {
@@ -108,14 +124,14 @@ export function createApp(env: Env, deps: Deps) {
       const parsed = ArchPayload.safeParse(body);
       if (!parsed.success) return issues(parsed.error);
       const p = parsed.data;
-      if (p.repo !== claims.repository) return json(403, { error: "payload repo does not match token" });
+      if (!repoAllowed(p.repo)) return json(403, { error: "repo not allowed for this caller" });
       if (!p.pr.url.startsWith(`https://github.com/${p.repo}/pull/`)) return json(400, { error: "pr.url must be a PR in the token's repo" });
       ({ subject, text } = archEmail(p));
     } else {
       const parsed = Payload.safeParse(body);
       if (!parsed.success) return issues(parsed.error);
       const p = parsed.data;
-      if (p.repo !== claims.repository) return json(403, { error: "payload repo does not match token" });
+      if (!repoAllowed(p.repo)) return json(403, { error: "repo not allowed for this caller" });
       if (!p.created.length && !p.reopened.length && !p.fixQueued.length && !p.sourceErrors.length) return new Response(null, { status: 204 });
       subject = subjectFor(p);
       text = textFor(p);

@@ -16,16 +16,20 @@ const OidcResponse = z.object({ value: z.string().min(1) });
 
 /**
  * Post a run summary to the sre-notify Worker, which emails it. Authenticates with the job's GitHub
- * OIDC token, so no secret is shared between repos. Returns null on success, or a note for the
+ * OIDC token (no secret shared between repos), or with SRE_NOTIFY_KEY when run from Jon's Mac. Returns null on success, or a note for the
  * job summary; a failed email never fails the run.
  */
 export async function sendNotification(opts: { url: string; payload: NotifyPayload; env: Record<string, string | undefined>; fetch: Fetch }): Promise<string | null> {
   const requestUrl = opts.env.ACTIONS_ID_TOKEN_REQUEST_URL;
   const requestToken = opts.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
-  if (!requestUrl || !requestToken) return "Email notification skipped: no GitHub OIDC token. Add `id-token: write` to the triage job's permissions.";
+  const localKey = opts.env.SRE_NOTIFY_KEY; // on Jon's Mac: the key kept in the Keychain
+  if (!localKey && (!requestUrl || !requestToken)) return "Email notification skipped: no GitHub OIDC token. Add `id-token: write` to the triage job's permissions.";
   try {
-    const tokenRes = await opts.fetch(`${requestUrl}&audience=sre-notify`, { headers: { authorization: `bearer ${requestToken}` } });
-    const { value } = OidcResponse.parse(await tokenRes.json());
+    let value = localKey;
+    if (!value) {
+      const tokenRes = await opts.fetch(`${requestUrl}&audience=sre-notify`, { headers: { authorization: `bearer ${requestToken}` } });
+      value = OidcResponse.parse(await tokenRes.json()).value;
+    }
     const res = await opts.fetch(opts.url, {
       method: "POST",
       headers: { authorization: `Bearer ${value}`, "content-type": "application/json" },

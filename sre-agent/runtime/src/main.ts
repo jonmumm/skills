@@ -47,7 +47,9 @@ export async function run({ configPath, dry, env, now, fetch = globalThis.fetch 
     const item = (group: Action["group"], number: number): NotifyItem => ({ number, title: renderIssue(group, nextMarker(null, group)).title, count: group.count });
     const created = actions.filter((a) => a.kind === "create").flatMap((a, i) => (applied.created[i] === undefined ? [] : [item(a.group, applied.created[i])]));
     const reopened = actions.flatMap((a) => (a.kind === "reopen" ? [item(a.group, a.issue.number)] : []));
-    const runUrl = `${env.GITHUB_SERVER_URL ?? "https://github.com"}/${repo}/actions/runs/${env.GITHUB_RUN_ID ?? ""}`;
+    const runUrl = env.GITHUB_RUN_ID
+      ? `${env.GITHUB_SERVER_URL ?? "https://github.com"}/${repo}/actions/runs/${env.GITHUB_RUN_ID}`
+      : `local:${env.SRE_RUN_LABEL ?? "sre-agent"}`;
     const note = await sendNotification({ url: cfg.notify.url, payload: { repo, runUrl, created, reopened, fixQueued: fixIssues, sourceErrors }, env, fetch });
     if (note) notes.push(note);
   }

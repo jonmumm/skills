@@ -19,6 +19,11 @@ config="$repo_dir/qa/qa-agent.yml"
 remote="$(git -C "$repo_dir" remote get-url origin)"
 slug="$(printf '%s' "$remote" | sed -E 's#.*github\.com[:/]##; s#\.git$##')"
 
+# Email through sre-notify with the local key when it exists (see sre-agent/scripts/notify-local.sh).
+SRE_NOTIFY_KEY="$(security find-generic-password -s sre-notify-local-key -a "$USER" -w 2>/dev/null || true)"
+export SRE_NOTIFY_KEY
+export SRE_RUN_LABEL="${SRE_RUN_LABEL:-qa-agent daily}"
+
 GITHUB_TOKEN="$(gh auth token)" \
 GITHUB_REPOSITORY="$slug" \
 GITHUB_ACTION_PATH="$RUNTIME" \

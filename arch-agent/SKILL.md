@@ -1,72 +1,122 @@
 ---
 name: arch-agent
 description: >
-  Install a weekly architecture agent on a repo: a GitHub Actions cron that runs
-  improve-codebase-architecture unattended on repos changed that week, implements the strongest
-  deepening opportunity test-first as a draft PR, emails Jon the link from sre@mumm.dev, and revises
-  the PR when Jon comments on it. Future runs read past proposals' comments so they learn from
-  feedback. Use when asked to "run improve-codebase-architecture on a cron", "weekly architecture
-  PRs", "architecture agent", "propose refactors automatically", or "arch-agent".
+  Local routine that runs improve-codebase-architecture unattended on Jon's recently active repos:
+  once a week per repo it implements the strongest deepening opportunity test-first as a draft PR
+  and emails Jon the link from sre@mumm.dev; every day it revises open proposals Jon commented on.
+  Past proposals' PR comments are its memory. Use when asked to "run improve-codebase-architecture
+  regularly", "weekly architecture PRs", "architecture agent", "propose refactors automatically",
+  "arch-agent", or "/arch-agent run" (the scheduled run).
 dependsOn:
   - jonmumm/skills@sre-agent
 ---
 
 # arch-agent
 
-`improve-codebase-architecture` (from mattpocock/skills) is built for a live conversation: a report,
-"which would you like to explore?", then a grilling loop. arch-agent runs it with nobody there and
-turns that conversation into a PR conversation:
+`improve-codebase-architecture` (mattpocock/skills, installed in `~/.claude/skills`) is built for a live
+conversation: a report, "which would you like to explore?", then a grilling loop. arch-agent runs it
+with nobody there and turns that conversation into a PR conversation.
 
 ```
-Monday cron ─▶ gate: commits in the last 7 days? no open arch-agent PR? ─▶ skip if not
-            ─▶ read every past arch-agent PR and its comments (what Jon rejected or asked for)
-            ─▶ explore, pick the strongest "Strong" candidate (none Strong: summary only, no PR)
-            ─▶ implement test-first, behavior unchanged ─▶ draft PR labeled arch-agent ─▶ email Jon
-
-Jon comments on the PR ─▶ revise job: change the code / answer / close if rejected ─▶ reply on the PR
-                       ─▶ email Jon only if new commits landed
+Mac, 07:00 local routine "arch-agent daily"  (prompt: /arch-agent run)
+  1. revise: for each open arch-agent PR with new comments from Jon
+       worktree on its branch ─▶ act on the feedback ─▶ push the branch ─▶ reply on the PR ─▶ email if code changed
+  2. propose: for each recently active repo with no open proposal and none in the last 7 days
+       read past arch-agent PRs + comments ─▶ worktree of origin/main ─▶ explore ─▶ strongest "Strong" candidate
+       ─▶ implement test-first, behavior unchanged ─▶ draft PR labeled arch-agent ─▶ email Jon the link
 ```
 
-- **Feedback lives in PR comments, in public.** Jon reads the email (personal Gmail, from
-  `sre@mumm.dev`) and replies on GitHub. The comments are the agent's memory: every proposal run reads
-  them first, so a rejected idea stays rejected.
-- **One open proposal per repo.** No new proposal is opened until the current one is merged or closed.
-- **Skills are pinned.** The workflow downloads `improve-codebase-architecture`, `codebase-design` and
-  `domain-modeling` from mattpocock/skills at `MATT_SKILLS_SHA` (MIT) into `.claude/skills/` on the
-  runner, and excludes them from git. Bump the SHA deliberately, after reading the upstream diff.
-- **Who can steer it:** comments and reviews from the repo owner, org members and collaborators. Bot
-  comments never trigger it.
+**Why it runs locally:** it runs on Jon's Claude subscription through Claude Code itself. It needs no
+per-repo workflow files, no Claude GitHub app, and no `CLAUDE_CODE_OAUTH_TOKEN` secret. It
+pushes and opens PRs with Jon's own `gh` login.
 
-## Install on a repo
+**Feedback lives in PR comments, in public.** Jon reads the email and replies on the PR. Every
+proposal run reads all past arch-agent PRs and their comments first, so a rejected idea stays
+rejected.
 
-1. **Prerequisites.**
-   - GitHub remote under `jonmumm` or `open-game-system`; those are the owners the email Worker accepts.
-   - pnpm project. Otherwise edit the setup steps.
-   - CLAUDE.md lists the feedback commands, and the agent must make them pass. Without that list it
-     can't verify its own refactor, so run `/create-claude-md` first.
-2. **Copy** `templates/arch-agent.workflow.yml` to `.github/workflows/arch-agent.yml`.
-3. **Secrets** (give the user the exact commands; never ask for values):
-   - The Claude token: `! ~/src/skills/sre-agent/scripts/claude-token.sh sync <owner/repo>`. Same token as
-     sre-agent's fix job, kept in the Keychain; public open-game-system repos already get it from the org secret.
-   - Install the Claude GitHub app (`/install-github-app` in an interactive `claude`). PRs opened with
-     the default `GITHUB_TOKEN` don't trigger CI, and their comments don't trigger workflows.
-4. **Prove it.** Commit, push, run `gh workflow run arch-agent`, and watch it with `gh run watch`.
-   - Report the draft PR it opened, or the job summary if no candidate was Strong.
-   - Confirm the email arrived.
-   - Leave a test comment on the PR and confirm the revise job ran and replied.
+## Rules
 
-## Cost and limits
+- **Allowed pushes:** only branches named `arch-agent/<date>-<slug>`. Never push to the default
+  branch, never merge, never force-push someone else's commits. Never edit `.github/`.
+- **Jon's working copies stay untouched:** always work in a fresh worktree under `$TMPDIR`.
+- **Behavior must not change.** Never modify an existing test to make it pass. If a test has to
+  move because the shallow module it tested is gone, explain each one in the PR. Every feedback
+  command in the repo's CLAUDE.md must pass before pushing.
+- **One open proposal per repo.** At most 2 new proposals per run, to keep usage reasonable.
+- **Who steers it:** only comments and reviews by Jon (`gh api user --jq .login`). Ignore bots and
+  anyone else.
 
-- **Usage.** Each proposal is one long Claude run, up to 120 turns on Jon's subscription token. Each
-  feedback comment adds a shorter run. Inactive repos cost one quick shell step.
-- **Kill switch.** `gh variable set ARCH_AGENT_ENABLED --body false` stops new proposals. Feedback on
-  open PRs is still handled.
-- **Limits.** The agent never pushes to the default branch, never merges, never edits `.github/`, and
-  never changes existing tests to make them pass. A moved test must be explained in the PR.
+## The run ("/arch-agent run")
 
-## Changing it
+State: `~/.config/arch-agent/state.json`: `{ "<owner/repo>": { "lastProposalAt": iso, "lastSeenFeedbackAt": iso } }`.
 
-- **Email format:** `../sre-agent/notifier` (`kind: "arch-pr"`). Change it test-first, then
-  `pnpm run deploy` there.
-- **Repo installs:** each repo carries its own copy of the workflow, so a template change needs
-  re-copying. Find installs with `gh search code "name: arch-agent" --owner open-game-system --owner jonmumm`.
+**Recently active repos.** Every git repo directly under `~/src`:
+- whose `origin` is under `jonmumm/` or `open-game-system/`
+- with any commits in the last 7 days (`git log --all --since="7 days ago" --oneline | head -1`). Not
+  filtered by author: Jon's agents commit under several emails.
+- excluding `jonmumm/skills`
+
+**1. Revise** (for every open PR found with
+`gh pr list --repo <r> --label arch-agent --state open --json number,headRefName,title,url`):
+- Collect Jon's comments and reviews newer than `lastSeenFeedbackAt`:
+  - `gh pr view <n> --comments --json comments,reviews`
+  - inline review comments via `gh api repos/<r>/pulls/<n>/comments`
+
+  If there are none, skip the PR.
+- Make a worktree on the PR branch (`git fetch origin <branch>`,
+  `git worktree add "$TMPDIR/arch-<repo>-<n>" origin/<branch>`, then `git switch -c <branch>`
+  inside it), and run `pnpm install --frozen-lockfile`.
+- Act on the newest feedback:
+  - **Changes requested:** make them test-first, run the feedback commands until they pass, push
+    the branch, and update the PR description to match.
+  - **A question:** answer it in a PR comment.
+  - **He rejects the direction:** acknowledge it in one or two sentences, `gh pr close`, and say in
+    the comment whether the reason should stop similar proposals.
+- Always reply with one PR comment saying what you did, then update `lastSeenFeedbackAt`.
+- If you pushed, email:
+  `~/src/skills/sre-agent/scripts/notify-local.sh <file>` with
+  `{kind:"arch-pr", event:"revised", repo, runUrl:"local:arch-agent daily", pr:{number,title,url}, summary}`.
+
+**2. Propose** (for each recently active repo with no open arch-agent PR and `lastProposalAt` older than 7 days):
+- **Learn first.** Read past proposals with
+  `gh pr list --repo <r> --label arch-agent --state all --limit 30 --json number,title,state`, then
+  `gh pr view <n> --comments` for each. Never re-propose what Jon rejected, and follow the
+  preferences he stated. Read CLAUDE.md, docs/agents/, GLOSSARY.md and the ADRs.
+- **Worktree.** `git worktree add --detach "$TMPDIR/arch-<repo>-<date>" origin/<default branch>`, then
+  `pnpm install --frozen-lockfile`.
+- **Explore.** Follow `~/.claude/skills/improve-codebase-architecture/SKILL.md` and `codebase-design`,
+  weighted to recently changed files, with these changes for an unattended run:
+  - No HTML report and no "which would you like to explore?": pick the single strongest candidate.
+  - No grilling: list the questions it would have asked, with the answer you chose and why.
+
+  If no candidate is rated Strong, open nothing and record why in the report.
+- **Implement it test-first** on branch `arch-agent/<yyyy-mm-dd>-<slug>`, following the Rules above.
+  Push the branch.
+- **Open the draft PR.** First run `gh label create arch-agent --repo <r> --color 5319e7 --force`, then
+  `gh pr create --draft --label arch-agent`. The description covers:
+  - the candidate card: Files, Problem, Solution, Benefits in terms of locality and leverage,
+    Before/After as Mermaid diagrams, Recommendation strength
+  - the other candidates, a few lines each
+  - "Decisions I made without asking you"
+  - how you verified it
+
+  End it with: "Comment on this PR to give feedback. The agent revises it the next morning, and
+  future proposals read what you say here."
+- **Email:** run `notify-local.sh` with `event:"opened"` and a 2 to 4 sentence summary. Update
+  `lastProposalAt`. Remove the worktree.
+
+**3. Report**, one line per repo:
+- what was revised or proposed, with PR links
+- what was skipped and why: no activity, proposal already open, nothing Strong
+- anything that failed
+
+## Schedule and notifications
+
+- **Schedule.** The Claude desktop routine **arch-agent daily** runs at 07:00 local with the prompt
+  `/arch-agent run`. It runs only while the Mac is awake and the Claude app is open. A missed day
+  runs at the next launch.
+- **Notifications.** `sre-agent/scripts/notify-local.sh` emails Jon from `sre@mumm.dev` through the
+  sre-notify Worker. It authenticates with the key in the Keychain item `sre-notify-local-key`,
+  matching the Worker's `LOCAL_NOTIFY_KEY` secret. To rotate the key, delete that Keychain item,
+  rerun the key setup from `sre-agent/SKILL.md`, then `wrangler secret put LOCAL_NOTIFY_KEY` in
+  `sre-agent/notifier`.

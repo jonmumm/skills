@@ -4,6 +4,8 @@ autonomy: 1               # file and update issues (fix PRs are a GitHub job; no
 issueIntro: Bug found by qa-agent's daily exploration of the app.
 maxNewIssuesPerRun: 5
 lookbackMinutes: 1440     # unused by this source; findings carry their own time
+notify:                   # emails Jon via sre-notify with the Mac's Keychain key
+  url: https://sre-notify.jonathanrmumm.workers.dev/notify
 sources:
   - type: command
     run: node "$GITHUB_ACTION_PATH/src/qa-findings.ts" "$QA_FINDINGS_FILE"

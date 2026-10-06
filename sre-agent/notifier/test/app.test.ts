@@ -155,3 +155,38 @@ describe("sre-notify (architecture PRs)", () => {
     expect(sent[0]!.subject).toBe("[arch] trivia-jam: a Bcc: x@y.z");
   });
 });
+
+describe("sre-notify (local key from Jon's Mac)", () => {
+  const KEY = "k".repeat(64);
+  function setupLocal() {
+    const sent: Sent[] = [];
+    const app = createApp({ ...env, LOCAL_NOTIFY_KEY: KEY }, { jwks, send: async (m) => void sent.push(m), now: () => new Date(0), id: () => "id1" });
+    const post = (body: unknown, auth: string) => app(new Request("https://x/notify", { method: "POST", headers: { authorization: `Bearer ${auth}` }, body: JSON.stringify(body) }));
+    return { sent, post };
+  }
+
+  it("accepts the local key for repos owned by an allowed owner", async () => {
+    const { sent, post } = setupLocal();
+    expect((await post(payload, KEY)).status).toBe(202);
+    expect(sent).toHaveLength(1);
+  });
+
+  it("still limits the local key to allowed owners", async () => {
+    const { sent, post } = setupLocal();
+    expect((await post({ ...payload, repo: "mallory/x", runUrl: "https://github.com/mallory/x/actions/runs/1" }, KEY)).status).toBe(403);
+    expect(sent).toEqual([]);
+  });
+
+  it("rejects a wrong key, and any key when none is configured", async () => {
+    const { post } = setupLocal();
+    expect((await post(payload, "k".repeat(63) + "x")).status).toBe(401);
+    const { post: postNoKey } = setup();
+    expect((await postNoKey(payload, KEY)).status).toBe(401);
+  });
+
+  it("accepts a local run link instead of a GitHub run URL", async () => {
+    const { sent, post } = setupLocal();
+    expect((await post({ ...payload, runUrl: "local:qa-agent daily" }, KEY)).status).toBe(202);
+    expect(sent[0]!.text).toContain("Run: local:qa-agent daily");
+  });
+});
