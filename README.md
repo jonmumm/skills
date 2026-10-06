@@ -25,7 +25,7 @@ Personal AI agent skills. Install with [skpm](https://skpm.sh) — dependencies 
 | [code-judo](code-judo/) | Harsh maintainability review hunting restructurings that delete complexity: spaghetti special cases, 1k-line files, shallow wrappers, silent fallbacks. (pstack thermo-nuclear review) |
 | [how](how/) | Explain how a subsystem works (flow, ownership, seams, gotchas) with parallel read-only explorers for broad questions. (pstack) |
 | [interrogate](interrogate/) | Adversarial review by three model families (fable, opus, Codex) on one rubric, synthesized into a verified verdict. (pstack) |
-| [qa-agent](qa-agent/) | Daily AI exploratory QA: tester-army/e2e `explore` on the Mac (ChatGPT plan) against each app's QA copy plus a read-only prod check, findings verified with failing tests, confirmed bugs filed through sre-agent's issue machinery and emailed. |
+| [qa-agent](qa-agent/) | Daily AI exploratory QA, all on the Mac: a local scheduled task deploys each app's QA copy, runs tester-army/e2e `explore` on the ChatGPT plan, verifies findings with failing tests, and files confirmed bugs as deduplicated GitHub issues through sre-agent's runtime with your gh login. |
 | [reflect](reflect/) | End-of-session pass: three reviewers read the transcript, a synthesizer routes learnings to skill/CLAUDE.md edits and enforceable checks to a backlog; applied with approval. (pstack) |
 | [show-me-your-work](show-me-your-work/) | Append-only decision log (TSV + log.sh) for unattended runs, audited against the transcript and reviewed by another model family. (pstack) |
 | [what-did-i-get-done](what-did-i-get-done/) | Summarize your commits across ~/src for a time window into a status update or morning report. (pstack) |

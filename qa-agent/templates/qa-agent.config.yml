@@ -1,13 +1,9 @@
-# qa-agent's GitHub side: copy to .github/qa-agent.yml. Same schema as .github/sre-agent.yml
-# (~/src/skills/sre-agent/runtime/src/schemas.ts): QA bugs become sre-agent issues.
-autonomy: 1               # 1 = file issues; 2 = also let Claude attempt a fix PR from the repro steps
+# qa-agent filing config: copy to qa/qa-agent.yml. Same schema as sre-agent's config
+# (~/src/skills/sre-agent/runtime/src/schemas.ts); qa-agent/scripts/file-findings.sh runs it from the Mac.
+autonomy: 1               # file and update issues (fix PRs are a GitHub job; not used for QA)
 issueIntro: Bug found by qa-agent's daily exploration of the app.
 maxNewIssuesPerRun: 5
-maxFixesPerRun: 1
 lookbackMinutes: 1440     # unused by this source; findings carry their own time
-notify:
-  url: https://sre-notify.jonathanrmumm.workers.dev/notify
 sources:
   - type: command
-    # findings.json is the batch the Mac run sent (see the workflow); qa-findings.ts turns it into events.
     run: node "$GITHUB_ACTION_PATH/src/qa-findings.ts" "$QA_FINDINGS_FILE"
