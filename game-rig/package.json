@@ -1,0 +1,30 @@
+{
+  "name": "game-rig",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared evidence/QA rig for the family cast-party games",
+  "bin": {
+    "game-rig": "./bin/game-rig.mjs"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:py": "python3 -m unittest discover -s scripts/cast -p 'test_*.py'",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "playwright": "^1.63.0",
+    "pngjs": "^7.0.0",
+    "tsx": "^4.23.15",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "@types/pngjs": "^6.0.5",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}
