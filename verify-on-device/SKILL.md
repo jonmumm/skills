@@ -35,7 +35,9 @@ Answer from the code; ask the user only for what you can't observe.
 
 - **Surfaces**: what each player touches (TV scene, grown-up phone, kid iPad, toddler seat,
   cast receiver, native app). Every role is a surface.
-- **Run**: the repo's own dev/preview command, ports, HTTPS (`dev-https.sh`), env, seed/room setup.
+- **Run**: the repo's own dev/preview command, ports, HTTPS (`game-rig https`), env, seed/room setup.
+  Game repos drive their surfaces through `~/src/skills/game-rig` (`game-rig.config.ts`: `check`,
+  `record`, `cast`); call it from the verify skill instead of writing a new harness.
 - **Drive**: harnesses that already exist first: `e2e/record-mission.ts`, `scripts/*-check.ts`,
   `launch-room`, scenario hooks (`?hook`, `?scenario=`), Playwright device contexts, pychromecast
   probes, receiver `GET_STATE`. Write a new one only when nothing covers the surface.
@@ -136,4 +138,6 @@ or **blocked** (say precisely what stopped it).
 ## Files
 
 - `scripts/av-verdict.mjs`: AV gate for any recorded clip (JSON verdict, exit 1 on failure).
+  `--expect-smooth` fails camera jerks and pop-ins, `--busy spans.jsonl` excuses harness time,
+  `--expect-speech words.txt` checks speech with a local ASR ("unverified" when none is installed).
   Tests: `node --test scripts/`.

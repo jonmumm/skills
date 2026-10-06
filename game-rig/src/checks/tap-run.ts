@@ -8,6 +8,8 @@ import { TAP_BUDGET_MS, judgeTap, type TapResult } from "./tap-feedback.ts";
 export type TapOpts = {
   ignore?: string[];
   holdSelector?: string;
+  /** What counts as a control (default "button, [role=button]"). */
+  selector?: string;
   /** Close each page after its tap (true when `open` makes a fresh context per call). */
   close?: boolean;
   maxButtons?: number;
@@ -97,7 +99,7 @@ async function tapOne(page: Page, target: Tappable, opts: TapOpts): Promise<TapR
  * changes the screen, so the next button must start from the same state).
  */
 export async function checkTapFeedback(open: () => Promise<Page>, opts: TapOpts = {}) {
-  const arg = { ignore: opts.ignore ?? [], ...(opts.holdSelector ? { holdSelector: opts.holdSelector } : {}) };
+  const arg = { ignore: opts.ignore ?? [], ...(opts.holdSelector ? { holdSelector: opts.holdSelector } : {}), ...(opts.selector ? { selector: opts.selector } : {}) };
   const first = await open();
   const targets = (await probe(first, "tappables", arg, z.array(Tappable))).slice(0, opts.maxButtons ?? 16);
   if (opts.close) await first.close();

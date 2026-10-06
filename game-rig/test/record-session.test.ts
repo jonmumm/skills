@@ -27,6 +27,7 @@ test("records every on-camera role side by side with the TV's real audio, then j
     roles: { tv: { kind: "tv", viewports: [{ width: 640, height: 360 }] }, mom: { kind: "phone", label: "Mom phone" }, baby: { kind: "phone", offCamera: true } },
     record: { out: join(dir, "latest.mp4"), height: 360 },
     session: async (rig) => {
+      await rig.wait(2500); // the bot setting up: blank screens before the first page loads are not the game's
       await rig.pages.tv?.goto(`${rig.baseUrl}/tv`);
       await rig.pages.tv?.evaluate("window.beep()");
       rig.mark("beep");
@@ -49,4 +50,7 @@ test("records every on-camera role side by side with the TV's real audio, then j
   const marks = JSON.parse(readFileSync(join(dir, "raw", "marks.json"), "utf8"));
   expect(marks.marks.map((m: { label: string }) => m.label)).toEqual(["beep", "ready"]);
   expect(existsSync(join(dir, "raw", "verdict.json"))).toBe(true);
+  const busy = readFileSync(join(dir, "raw", "busy.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
+  expect(busy[0]).toMatchObject({ start: 0, what: "before the first page load" });
+  expect(busy[0].end).toBeGreaterThan(2);
 }, 120_000);

@@ -11,7 +11,7 @@ import { checkTapFeedback } from "./checks/tap-run.ts";
 import { tileSheet } from "./sheet.ts";
 
 export type Failure = { code: string } & Record<string, unknown>;
-export type ScreenResult = { screen: string; role: string; viewport: string; shot: string; failures: Failure[]; errors: string[] };
+export type ScreenResult = { screen: string; role: string; viewport: string; shot: string; failures: Failure[]; errors: string[]; tapped: string[] };
 export type Report = { pass: boolean; results: ScreenResult[]; sheet?: string };
 
 export const FAKE_MOTION = `DeviceMotionEvent.requestPermission = async () => "granted";
@@ -85,7 +85,7 @@ export async function runChecks(config: GameRigConfig, opts: RunOpts): Promise<R
         const dir = join(opts.out, screen.name);
         mkdirSync(dir, { recursive: true });
         const shot = join(dir, `${screen.role}-${size(viewport)}.png`);
-        const result: ScreenResult = { screen: screen.name, role: screen.role, viewport: size(viewport), shot, failures: [], errors: [] };
+        const result: ScreenResult = { screen: screen.name, role: screen.role, viewport: size(viewport), shot, failures: [], errors: [], tapped: [] };
         results.push(result);
         let opened: Opened | null = null;
         try {
@@ -109,9 +109,10 @@ export async function runChecks(config: GameRigConfig, opts: RunOpts): Promise<R
                 pending.push(o);
                 return o.page;
               },
-              { ignore: config.ignore.tap, holdSelector: config.holdSelector, maxButtons: config.maxTapsPerScreen, close: false },
+              { ignore: config.ignore.tap, holdSelector: config.holdSelector, selector: config.tapSelector, maxButtons: config.maxTapsPerScreen, close: false },
             );
             await Promise.all(pending.map(closeAll));
+            result.tapped = tap.results.map((t) => t.label);
             add(tap);
           }
         } catch (e) {
@@ -119,7 +120,7 @@ export async function runChecks(config: GameRigConfig, opts: RunOpts): Promise<R
         } finally {
           if (opened) await closeAll(opened);
         }
-        log(`${result.failures.length ? "FAIL" : "ok  "} ${screen.name} @ ${result.viewport}${result.failures.map((f) => `\n     - ${describe(f)}`).join("")}`);
+        log(`${result.failures.length ? "FAIL" : "ok  "} ${screen.name} @ ${result.viewport}${result.tapped.length ? ` (tapped ${result.tapped.length}: ${result.tapped.join(", ")})` : ""}${result.failures.map((f) => `\n     - ${describe(f)}`).join("")}`);
       }
     }
   } finally {

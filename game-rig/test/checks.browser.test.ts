@@ -31,6 +31,12 @@ describe("overlay vs focal", () => {
     expect(v.failures[0]).toMatchObject({ code: "overlay_covers_focal", text: "Your turn, Juneau!" });
     await page.close();
   });
+  test("a panel over the focal rect is one finding, not one per child", async () => {
+    const page = await pageWith(tv(`<div class="chip" style="left:30%;top:30%;width:40%"><h1>Bake Shop</h1><p>Scan to join <b>ABCD</b></p></div>`));
+    const v = await checkOverlayFocal(page, {});
+    expect(v.failures).toHaveLength(1);
+    await page.close();
+  });
   test("a corner chip and a transparent full-screen HUD wrapper pass", async () => {
     const page = await pageWith(tv(`<div class="chip" style="left:16px;top:16px">3</div><div style="position:absolute;inset:0"></div>`));
     expect(await checkOverlayFocal(page, {})).toEqual({ pass: true, failures: [] });
@@ -83,6 +89,12 @@ describe("tap feedback", () => {
     <button id="hold" data-hold>Hold to launch</button>
     <button id="hint" data-hold onpointerup="document.getElementById('msg').textContent='Keep holding!'">Hold me</button>
     <p id="msg"></p>`;
+  test("game-specific controls (not buttons) are tapped when the selector names them", async () => {
+    const page = () => pageWith(`<div data-key="cake" style="width:120px;height:120px;background:#c96">cake</div>`, { width: 600, height: 400 });
+    expect((await checkTapFeedback(page, { close: true })).results).toEqual([]);
+    const v = await checkTapFeedback(page, { close: true, selector: "[data-key]" });
+    expect(v.failures.map((f) => f.code)).toEqual(["no_tap_feedback"]);
+  });
   test("dead button and silent hold-only control fail; lit, beep and hinted hold pass", async () => {
     const v = await checkTapFeedback(async () => pageWith(html, { width: 900, height: 700 }), { close: true });
     const byLabel = Object.fromEntries(v.results.map((r) => [r.label, r]));

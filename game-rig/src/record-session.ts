@@ -61,6 +61,9 @@ export async function recordSession(config: GameRigConfig, opts: RecordOpts = {}
       contexts.push({ role, ctx, startedAt, onCamera: !r.offCamera });
     }
     t0 = Math.max(...contexts.map((c) => c.startedAt));
+    // Until the bot loads its first page every panel is blank: harness time, not a frozen game.
+    let firstLoad: number | null = null;
+    for (const p of Object.values(pages)) p.once("load", () => (firstLoad ??= Date.now()));
     const rig: SessionRig = {
       pages,
       baseUrl: config.baseUrl,
@@ -97,8 +100,11 @@ export async function recordSession(config: GameRigConfig, opts: RecordOpts = {}
     const maps = captured ? ["-map", "[out]", "-map", `${recorded.length}:a`, "-c:a", "aac", "-b:a", "192k"] : ["-map", "[out]"];
     execFileSync("ffmpeg", ["-y", "-loglevel", "error", ...inputs, ...audioArgs, "-filter_complex", panelFilter(recorded.map((r) => r.label), config.record.height), ...maps, "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "20", "-r", "30", "-shortest", out]);
 
+    const busyPath = join(raw, "busy.jsonl");
+    const busyEnd = ((firstLoad ?? last) - last) / 1000 + 0.5;
+    writeFileSync(busyPath, `${JSON.stringify({ start: 0, end: Math.max(0, busyEnd), what: "before the first page load" })}\n`);
     const verdictPath = join(raw, "verdict.json");
-    const args = [AV_VERDICT, out, "--expect-motion", "--out", verdictPath];
+    const args = [AV_VERDICT, out, "--expect-motion", "--busy", busyPath, "--out", verdictPath];
     if (captured) args.push("--expect-audio");
     if (opts.expectSmooth) args.push("--expect-smooth");
     if (config.record.expectSpeech) args.push("--expect-speech", config.record.expectSpeech);

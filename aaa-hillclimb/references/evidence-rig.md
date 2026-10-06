@@ -1,7 +1,9 @@
 # Evidence rig
 
-One command per round. Reference implementation: `~/src/story-nook/scripts/round.sh`,
-`scripts/contact-sheet.ts`, `e2e/record-session.ts`, `e2e/phones-shot.ts`, `scripts/evidence.py`,
+One command per round. The shared tools live in `~/src/skills/game-rig` (see its SKILL.md): the
+game writes one `game-rig.config.ts` (roles, screens, the session bot) and calls
+`game-rig check` (contact sheet + automatic checks), `game-rig sheet` and `game-rig record`. Do
+not copy scripts from another game. Still per game: `story-nook/scripts/evidence.py` and
 `scripts/audio-report.py`.
 
 ```zsh
@@ -11,10 +13,9 @@ set -euo pipefail
 cd "${0:A:h}/.."
 OUT=critic/rounds/${1:?round}; mkdir -p $OUT
 pnpm -s build:client > /dev/null
-pnpm exec tsx scripts/contact-sheet.ts > $OUT/contact-sheet.log 2>&1 || true   # checks may fail; shots still count
-cp recordings/contact-sheet.png $OUT/tv-contact-sheet.png
-STORY_TV_SIZE=1920x1080 STORY_OUT=$OUT/session.mp4 pnpm exec tsx e2e/record-session.ts > $OUT/session.log 2>&1
-cp recordings/raw/perf.json recordings/raw/marks.json $OUT/
+RIG=~/src/skills/game-rig/bin/game-rig.mjs
+$RIG check --out $OUT/check > $OUT/check.log 2>&1 || true   # findings fail the check; shots still count
+$RIG record --no-open --out $OUT/session.mp4 > $OUT/session.log 2>&1 || true
 ffmpeg -v error -y -i $OUT/session.mp4 -vf "fps=1/6,scale=720:-1,tile=4x8" -frames:v 1 $OUT/session-tiles.png
 python3 scripts/evidence.py $OUT        # phones sheet, luma per mark, spectrogram
 python3 scripts/audio-report.py $OUT    # loudness / low / treble share / harsh transients per section

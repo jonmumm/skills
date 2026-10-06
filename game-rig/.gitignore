@@ -2,3 +2,4 @@ node_modules/
 .venv/
 recordings/
 test-output/
+__pycache__/

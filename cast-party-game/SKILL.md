@@ -188,8 +188,9 @@ Jon has ElevenLabs API access; the key is in the `ELEVENLABS_API_KEY` environmen
   contexts, with the TV's Web Audio captured, stitched by ffmpeg into one video.
   - Fake phones must emit **resting** `devicemotion` readings continuously, like real devices.
   - Look at the frames (ffmpeg tile sheets) before claiming a UI change works.
-- `scripts/stream-check.ts`: streams the deployed TV through the real pipeline into the
-  receiver page and prints received fps over time **and inbound audio energy** (≈0 = silent).
+- `game-rig stream-check` (~/src/skills/game-rig): streams the deployed TV through the real
+  pipeline into the receiver page and prints received fps over time **and inbound audio energy**
+  (≈0 = silent). It bills a GPU stream: `--confirm-paid`.
 - CRAP < 8 and mutation testing per the global engineering rules.
 - **Random mission order makes tests flaky.** A test that acts on "the first problem" of a
   shuffled mission fails whenever that problem ignores its input (ask-the-kid, shake). Move to
@@ -255,15 +256,14 @@ A 2.5D painted diorama: fal-generated character sheets and poses as cutouts, pai
 pop-ups, placed in a lit Three.js scene with depth of field, a grade and paper or felt materials.
 It beat both vector clip-art and generated 3D. See `ai-art-assets` → "Art kit pipeline".
 
-**Evidence each round** (the best versions to copy until a shared kit exists)
-- Recorder: `story-nook/e2e/record-session.ts`. It drives every device, records a 3-panel video
-  with TV audio and marks, and uses `--disable-audio-output` so a hung CoreAudio doesn't make a
-  silent take.
-- Evidence and audio: `story-nook/scripts/evidence.py` and `scripts/audio-report.py` (loudness,
-  spectrogram, luma at each mark, bass and harshness share), `night-flight-owls/scripts/evidence.sh`,
-  `bake-shop/scripts/critic-pack.py`.
-- Contact and phone sheets: `bake-shop/e2e/contact-sheet.ts` and `e2e/phones-sheet.ts`.
-- Stream: `scripts/stream-check.ts` (fps, audio energy, overlay, startup timeline).
+**Evidence each round**: use `~/src/skills/game-rig` (one `game-rig.config.ts` per game; don't
+copy scripts between repos). `game-rig check` (screen × viewport sheet plus overlay-on-focal,
+clipped/repeated text, tap feedback, TV safe area), `game-rig record` (every device side by side
+with real TV audio, av-verdict, `open`), `game-rig crap`, `game-rig https`, `game-rig cast`
+(Chromecast, hard timeout), `game-rig stream-check` (paid; `--confirm-paid`). Expose
+`window.__focalRect()` on the TV so the overlay check knows what to protect.
+- Still per game: `story-nook/scripts/evidence.py` and `scripts/audio-report.py` (loudness,
+  spectrogram, luma at each mark), `bake-shop/scripts/critic-pack.py`.
 - Trailer: `rocket-crew/scripts/trailer/` (cut points from marks, the game engine renders the
   score, a voiceover, cards) and `night-flight-owls/scripts/trailer.py` (clean audio layers).
 - Check the rig before trusting a critic. See `procedural-3d-web-game/references/critic-loop.md`

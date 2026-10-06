@@ -97,6 +97,8 @@ export const ConfigSchema = z
     ignore: Ignore.default({ overlay: [], text: [], tap: [], safeArea: [] }),
     allowRepeatedLabels: z.array(z.string()).default([]),
     holdSelector: z.string().optional(),
+    /** Controls for the tap check; add the game's own (e.g. "button, [role=button], [data-key]"). */
+    tapSelector: z.string().default("button, [role=button]"),
     safeAreaInset: z.number().min(0).max(0.2).default(0.05),
     maxTapsPerScreen: z.number().int().positive().default(12),
     /** Chrome flags for WebGL games (e.g. ["--use-angle=metal", "--ignore-gpu-blocklist"]). */

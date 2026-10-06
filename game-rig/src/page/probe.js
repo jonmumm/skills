@@ -93,11 +93,18 @@
   function overlays({ ignore = [] } = {}) {
     const scene = sceneCanvas();
     const out = [];
+    const taken = new Set();
+    // Report a panel once: its painted children are part of it, not separate overlays.
+    const insideTaken = (el) => { for (let e = el.parentElement; e; e = e.parentElement) if (taken.has(e)) return true; return false; };
     for (const el of document.body.querySelectorAll("*")) {
       if (el === scene || (scene && el.contains(scene)) || ignored(el, ignore) || !visible(el) || !inOverlayLayer(el)) continue;
       if (el.closest("svg") && el.tagName.toUpperCase() !== "SVG") continue;
+      if (insideTaken(el)) continue;
       const rect = paintedRect(el);
-      if (rect) out.push(describe(el, rect));
+      if (rect) {
+        taken.add(el);
+        out.push(describe(el, rect));
+      }
     }
     return out;
   }
@@ -160,9 +167,9 @@
   }
 
   const TAPPABLE = "button, [role=button]";
-  function tappables({ ignore = [], holdSelector = "[data-hold], [data-hold-only]" } = {}) {
+  function tappables({ ignore = [], holdSelector = "[data-hold], [data-hold-only]", selector = TAPPABLE } = {}) {
     const out = [];
-    const all = [...document.querySelectorAll(TAPPABLE)];
+    const all = [...document.querySelectorAll(selector)];
     all.forEach((el, index) => {
       if (ignored(el, ignore) || !visible(el) || el.disabled || el.getAttribute("aria-disabled") === "true") return;
       const r = el.getBoundingClientRect();
