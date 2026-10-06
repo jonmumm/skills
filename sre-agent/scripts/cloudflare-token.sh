@@ -21,7 +21,7 @@ token() { security find-generic-password -s "$SERVICE" -a "$USER" -w; }
 
 case "${1:-}" in
   store)
-    echo "Paste the Cloudflare API token, then press Return (input is hidden)."
+    echo "Paste the Cloudflare API token and press Return, then paste it again when asked to retype (input is hidden)."
     security add-generic-password -U -s "$SERVICE" -a "$USER" -j "saved $(date +%Y-%m-%d)" -w
     echo "Saved to the Keychain as '$SERVICE'. Next: $0 sync"
     ;;
