@@ -19,6 +19,12 @@ dependsOn:
 first; this skill is the checklist, not a copy.** If the two disagree, the schemas in
 `packages/ogs-protocol/src/` win, then the spec, then this file: fix whichever is stale.
 
+**Developer docs site: https://ogs-docs.pages.dev** (source `apps/docs` in open-game-system; agents:
+`/llms.txt`, `/llms-full.txt`, any page + `.md`). It renders the contract from the spec and has the
+public, self-contained versions of this checklist (`/quickstart.md`), the profile-kit and message
+references (checked against the code by its tests) and the seam-test patterns (`/testing.md`). Point
+outside developers and their agents there; the reference games below are private.
+
 The model: the phone casts **once**; the TV launcher (`apps/tv`) frames every game's TV page in one
 stream; people join the couch with the **TV code**. A game never casts.
 
