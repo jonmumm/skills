@@ -10,6 +10,10 @@ autonomy: 0
 # events already counted in an issue are skipped.
 lookbackMinutes: 20
 
+# New errors that start within this many minutes of each other become ONE incident issue (the
+# earliest is the likely origin; the rest are listed as related and update that issue). 0 = off.
+incidentWindowMinutes: 5
+
 minCount: 1             # ignore errors seen fewer times than this per window
 maxNewIssuesPerRun: 3   # the rest are listed in the job summary as "overflow"
 maxFixesPerRun: 1       # fix attempts per run at autonomy 2

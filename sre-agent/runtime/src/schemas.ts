@@ -9,6 +9,8 @@ export const LogEvent = z.object({
   service: z.string(),
   outcome: z.string().optional(),
   versionId: z.string().optional(),
+  /** Structured fields of the line, when the source has them (evidence for the issue). */
+  fields: z.record(z.string(), z.unknown()).optional(),
 });
 export type LogEvent = z.infer<typeof LogEvent>;
 
@@ -55,6 +57,8 @@ export const Config = z.object({
   errorFields: z
     .object({ message: z.array(z.string().min(1)).default([]), type: z.array(z.string().min(1)).default([]) })
     .default({ message: [], type: [] }),
+  /** New errors that start within this many minutes of each other become one incident issue. 0 = off. */
+  incidentWindowMinutes: z.number().int().min(0).max(120).default(0),
   /** First line of every issue body: where the error was seen. */
   issueIntro: z.string().min(1).max(200).default("Error seen in production logs by sre-agent."),
   /** Email a summary through the sre-notify Worker when a run files, reopens, queues a fix or a source fails. */
@@ -70,6 +74,8 @@ export const Marker = z.object({
   total: z.number().int().nonnegative(),
   firstSeen: z.number(),
   lastSeen: z.number(),
+  /** Fingerprints of errors grouped into this incident; their occurrences update this issue. */
+  related: z.array(z.string()).optional(),
 });
 export type Marker = z.infer<typeof Marker>;
 
@@ -79,6 +85,7 @@ export type KnownIssue = {
   stateReason: string | null;
   labels: string[];
   marker: Marker;
+  body?: string;
 };
 
 export type Group = {
@@ -90,10 +97,13 @@ export type Group = {
   firstSeen: number;
   lastSeen: number;
   versionIds: string[];
+  /** Structured fields of the latest event, when the source had them. */
+  sampleFields?: Record<string, unknown>;
 };
 
 export type Action =
-  | { kind: "create"; group: Group }
+  | { kind: "create"; group: Group; related?: Group[] }
+  | { kind: "related"; issue: KnownIssue; group: Group }
   | { kind: "update"; issue: KnownIssue; group: Group }
   | { kind: "reopen"; issue: KnownIssue; group: Group }
   | { kind: "muted"; issue: KnownIssue; group: Group }

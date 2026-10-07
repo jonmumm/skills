@@ -80,15 +80,17 @@ export async function fetchCloudflareEvents(q: CloudflareQuery): Promise<{ event
 
 function toLogEvent(e: z.infer<typeof CfEvent>, service: string, errorFields: Config["errorFields"]): LogEvent {
   const m = e.$metadata;
+  const fields = extractedFields(e);
   const ts = e.timestamp ?? (typeof m.timestamp === "number" ? m.timestamp : m.timestamp ? Date.parse(m.timestamp) : Date.now());
   return {
     id: m.id,
     timestamp: ts,
     level: m.level ?? (m.error ? "error" : "info"),
-    message: identifyError(m.message ?? m.error ?? "", extractedFields(e), errorFields),
+    message: identifyError(m.message ?? m.error ?? "", fields, errorFields),
     service: m.service ?? service,
     ...(e.$workers?.outcome ? { outcome: e.$workers.outcome } : {}),
     ...(e.$workers?.versionId ? { versionId: e.$workers.versionId } : {}),
+    ...(fields ? { fields } : {}),
   };
 }
 

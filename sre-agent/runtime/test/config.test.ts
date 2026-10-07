@@ -65,3 +65,10 @@ describe("parseConfig issueIntro", () => {
     expect(parseConfig("issueIntro: Bug found by qa-agent.\nsources:\n  - type: command\n    run: x\n").issueIntro).toBe("Bug found by qa-agent.");
   });
 });
+
+describe("parseConfig incidentWindowMinutes", () => {
+  it("is off by default", () => {
+    expect(parseConfig("sources:\n  - type: command\n    run: x\n").incidentWindowMinutes).toBe(0);
+    expect(parseConfig("incidentWindowMinutes: 5\nsources:\n  - type: command\n    run: x\n").incidentWindowMinutes).toBe(5);
+  });
+});

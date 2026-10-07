@@ -3,6 +3,7 @@
 autonomy: 1               # file and update issues (fix PRs are a GitHub job; not used for QA)
 issueIntro: Bug found by qa-agent's daily exploration of the app.
 maxNewIssuesPerRun: 5
+incidentWindowMinutes: 0  # QA findings are separate bugs; never group them
 lookbackMinutes: 1440     # unused by this source; findings carry their own time
 notify:                   # emails Jon via sre-notify with the Mac's Keychain key
   url: https://sre-notify.jonathanrmumm.workers.dev/notify

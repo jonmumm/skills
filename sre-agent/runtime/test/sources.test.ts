@@ -210,3 +210,17 @@ describe("sources apply errorFields", () => {
     expect(out.events[0]!.message).toBe("E: m");
   });
 });
+
+describe("sources carry structured fields", () => {
+  it("cloudflare keeps the extracted fields of each event", async () => {
+    const fetch = async () =>
+      new Response(JSON.stringify({ success: true, result: { events: [{ $metadata: { id: "1", level: "error", message: "room.action" }, route: "/x", error: { type: "E", message: "m" }, timestamp: 1_500 }] } }));
+    const { events } = await fetchCloudflareEvents({ accountId: "a", token: "t", service: "s", levels: ["error"], outcomes: [], from: 1_000, to: 2_000, fetch });
+    expect(events[0]!.fields).toEqual({ route: "/x", error: { type: "E", message: "m" } });
+  });
+
+  it("command sources may pass fields through", () => {
+    const line = JSON.stringify({ id: "1", timestamp: 1, level: "error", message: "m", service: "s", fields: { route: "/x" } });
+    expect(parseNdjson(line).events[0]!.fields).toEqual({ route: "/x" });
+  });
+});

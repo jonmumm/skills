@@ -1,5 +1,5 @@
 import type { IssueApi } from "./github.ts";
-import { nextMarker, parseMarker, renderIssue } from "./issue-body.ts";
+import { nextMarker, parseMarker, renderIssue, replaceMarker } from "./issue-body.ts";
 import type { Action, Config, KnownIssue } from "./schemas.ts";
 
 export const LABEL = "sre-agent";
@@ -11,7 +11,9 @@ export async function loadKnownIssues(api: IssueApi): Promise<KnownIssue[]> {
   const issues = await api.listLabeled(LABEL);
   return issues.flatMap((i) => {
     const marker = parseMarker(i.body);
-    return marker ? [{ number: i.number, state: i.state, stateReason: i.state_reason, labels: i.labels.map((l) => l.name), marker }] : [];
+    return marker
+      ? [{ number: i.number, state: i.state, stateReason: i.state_reason, labels: i.labels.map((l) => l.name), marker, ...(i.body ? { body: i.body } : {}) }]
+      : [];
   });
 }
 
@@ -22,7 +24,8 @@ export async function applyActions(api: IssueApi, actions: Action[], intro?: str
   for (const action of actions) {
     switch (action.kind) {
       case "create": {
-        const { title, body } = renderIssue(action.group, nextMarker(null, action.group), intro);
+        const related = action.related ?? [];
+        const { title, body } = renderIssue(action.group, nextMarker(null, action.group, related), intro, related);
         result.created.push(await api.create({ title, body, labels: [LABEL] }));
         break;
       }
@@ -40,6 +43,15 @@ export async function applyActions(api: IssueApi, actions: Action[], intro?: str
           `Regression: seen ${action.group.count} more time(s) after this was closed, last at ${new Date(action.group.lastSeen).toISOString()}.`,
         );
         result.reopened.push(action.issue.number);
+        break;
+      }
+      case "related": {
+        // Another error of an open incident: count it on the incident's issue, quietly.
+        if (!action.issue.body) break;
+        const m = action.issue.marker;
+        const marker = { ...m, total: m.total + action.group.count, lastSeen: Math.max(m.lastSeen, action.group.lastSeen) };
+        await api.update(action.issue.number, { body: replaceMarker(action.issue.body, marker) });
+        result.updated.push(action.issue.number);
         break;
       }
       case "muted":

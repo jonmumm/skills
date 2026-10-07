@@ -102,6 +102,27 @@ queue a fix attempt, or a log source fails. Quiet runs and plain count updates s
 - To change the recipient or the allowed owners, edit `notifier/wrangler.toml`, then run
   `pnpm test && pnpm run deploy` in `notifier/`.
 
+## Incidents and evidence
+
+- **Incidents.** With `incidentWindowMinutes` (5 in the template), new errors that start within that
+  window of the first one become ONE issue. The earliest error is the likely origin; the others are
+  listed as related. Their fingerprints go in the marker, so later occurrences quietly update that
+  issue's counts while it is open. After it's closed, a related error that comes back gets its own
+  issue. Errors that already have an issue are never folded in.
+- **Evidence.** New issues carry an `## Evidence` section with numbered items:
+  - first seen, and on which versions
+  - errors that started in the same incident
+  - stack locations
+  - the latest failing event's structured fields, redacted (keys like name, email, token and session
+    are blanked, and the stack is shown only as locations)
+
+  The fix job is told to fix the origin and to check recent history on those files.
+- **Ideas from SREGym's Jev-driven diagnosis** (2026-10-06) not built yet:
+  - a cheap Workers AI model choosing origin, victim or unrelated, plus the key evidence, before
+    the Claude fix job
+  - multi-service causes (retry loops)
+  - a fault-injection eval on the QA copy that scores diagnoses
+
 ## Log formats
 
 Projects may log in any shape; the recommended one is in `wide-events-logging`. For each error

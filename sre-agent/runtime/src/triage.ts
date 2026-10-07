@@ -1,7 +1,8 @@
 import { fingerprint, normalizeMessage } from "./fingerprint.ts";
 import type { Action, Config, Group, KnownIssue, LogEvent } from "./schemas.ts";
 
-type TriageConfig = Pick<Config, "levels" | "outcomes" | "ignore" | "minCount" | "maxNewIssuesPerRun">;
+type TriageConfig = Pick<Config, "levels" | "outcomes" | "ignore" | "minCount" | "maxNewIssuesPerRun"> &
+  Partial<Pick<Config, "incidentWindowMinutes">>;
 
 const MUTED_REASONS = new Set(["not_planned", "duplicate"]);
 
@@ -13,6 +14,8 @@ export function isError(event: LogEvent, cfg: Pick<Config, "levels" | "outcomes"
 export function triage(events: LogEvent[], known: KnownIssue[], cfg: TriageConfig): { actions: Action[] } {
   const ignore = cfg.ignore.map((s) => new RegExp(s));
   const byFp = new Map(known.map((k) => [k.marker.fp, k]));
+  // Related errors of an open incident update that incident's issue.
+  for (const k of known) if (k.state === "open") for (const fp of k.marker.related ?? []) if (!byFp.has(fp)) byFp.set(fp, k);
   const groups = new Map<string, Group & { versions: Set<string> }>();
 
   for (const event of events) {
@@ -34,6 +37,7 @@ export function triage(events: LogEvent[], known: KnownIssue[], cfg: TriageConfi
         firstSeen: event.timestamp,
         lastSeen: event.timestamp,
         versionIds: [],
+        ...(event.fields ? { sampleFields: event.fields } : {}),
         versions: new Set(event.versionId ? [event.versionId] : []),
       });
       continue;
@@ -43,6 +47,7 @@ export function triage(events: LogEvent[], known: KnownIssue[], cfg: TriageConfi
     if (event.timestamp >= g.lastSeen) {
       g.lastSeen = event.timestamp;
       g.sample = event.message;
+      if (event.fields) g.sampleFields = event.fields;
     }
     if (event.versionId) g.versions.add(event.versionId);
   }
@@ -52,13 +57,46 @@ export function triage(events: LogEvent[], known: KnownIssue[], cfg: TriageConfi
     .sort((a, b) => b.count - a.count)
     .map(({ versions, ...g }): Group => ({ ...g, versionIds: [...versions] }));
 
+  const incidents = groupIncidents(
+    ranked.filter((g) => !byFp.has(g.fingerprint)),
+    (cfg.incidentWindowMinutes ?? 0) * 60_000,
+  );
+
   let created = 0;
-  const actions = ranked.map((group): Action => {
+  const actions = ranked.flatMap((group): Action[] => {
     const issue = byFp.get(group.fingerprint);
-    if (!issue) return created++ < cfg.maxNewIssuesPerRun ? { kind: "create", group } : { kind: "overflow", group };
-    if (issue.state === "open") return { kind: "update", issue, group };
-    if (issue.stateReason !== null && MUTED_REASONS.has(issue.stateReason)) return { kind: "muted", issue, group };
-    return { kind: "reopen", issue, group };
+    if (!issue) {
+      const related = incidents.get(group.fingerprint);
+      if (related === undefined) return []; // folded into an earlier error's incident
+      if (created++ >= cfg.maxNewIssuesPerRun) return [{ kind: "overflow", group }];
+      return [related.length ? { kind: "create", group, related } : { kind: "create", group }];
+    }
+    if (issue.marker.fp !== group.fingerprint) return [{ kind: "related", issue, group }];
+    if (issue.state === "open") return [{ kind: "update", issue, group }];
+    if (issue.stateReason !== null && MUTED_REASONS.has(issue.stateReason)) return [{ kind: "muted", issue, group }];
+    return [{ kind: "reopen", issue, group }];
   });
   return { actions };
+}
+
+/**
+ * New errors that start within `windowMs` of an incident's first error belong to it. Returns the
+ * origin (earliest) of each incident → the others; errors folded into an incident are absent.
+ */
+function groupIncidents(fresh: Group[], windowMs: number): Map<string, Group[]> {
+  const out = new Map<string, Group[]>();
+  if (windowMs <= 0) {
+    for (const g of fresh) out.set(g.fingerprint, []);
+    return out;
+  }
+  let origin: Group | null = null;
+  for (const g of [...fresh].sort((a, b) => a.firstSeen - b.firstSeen)) {
+    if (origin && g.firstSeen - origin.firstSeen <= windowMs) {
+      out.get(origin.fingerprint)?.push(g);
+      continue;
+    }
+    origin = g;
+    out.set(g.fingerprint, []);
+  }
+  return out;
 }
