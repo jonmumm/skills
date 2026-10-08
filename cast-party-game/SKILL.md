@@ -277,6 +277,18 @@ with real TV audio, av-verdict, `open`), `game-rig crap`, `game-rig https`, `gam
   every timed state (move on, or re-arm the heartbeat). Test it with a helper that persists the
   snapshot, creates a fresh actor from it, and sends `RESUME`. Don't name a client event `RESUME`
   either (a pause button did): the restore handler caught it. Guard on `event.caller.type === "system"`.
+- **RESUME alone isn't enough: a sleeping room never wakes by itself** (Run Set Jimmy, Oct 2026).
+  actor-kit uses hibernating WebSockets, so between messages the Durable Object can be evicted and
+  only restores (and sends `RESUME`) on the *next* message. When everyone is waiting on a timer (a
+  3 s buy window), nobody sends one and the room freezes. It never showed locally, only on
+  production. Fix: keep each deadline in the context (`windowEndsAt`), use a named delay that
+  computes the time left (`delays: { buyWindow: ({context}) => max(0, endsAt - Date.now()) }`), on
+  `RESUME` close the phase if the deadline passed or re-enter to re-arm it, and have every screen
+  send a `TICK` once a deadline is ~0.5 s past; the room checks it against its own clock.
+- **Run the playtest seam tests against the deployed URL too.** Production latency exposed driver
+  races that localhost never did (a click landing as the screen re-renders, stale views after a
+  hook): count a move as done when the phone's state moved on, and save every phone's screen, view
+  and the full Playwright log when a move fails.
 - **The found moment must keep continuity.** Same camera angle, ease toward the spot under the lens,
   the critter pops out of its own cover, and the lens turns into the spotlight. A cut to a new angle
   read as "the one revealed isn't the one the glass was over".
