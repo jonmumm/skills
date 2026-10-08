@@ -7,7 +7,7 @@ import { mkdtempSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { falEstimate, withLock } from './spend.mjs';
+import { falEstimate, elevenlabsEstimate, withLock } from './spend.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const FAL = join(here, 'fal.mjs');
@@ -81,6 +81,15 @@ test('falEstimate: price table, quality tiers, 4K, num_images and project overri
   assert.equal(falEstimate('fal-ai/birefnet/v2', {}), 0.01);
   assert.equal(falEstimate('someone/new-model', {}), 0.2);
   assert.equal(falEstimate('someone/new-model', {}, { 'someone/new-model': 0.04 }), 0.04);
+});
+
+test('elevenlabsEstimate: characters for tts, seconds for sfx and music, project overrides', () => {
+  assert.equal(elevenlabsEstimate('tts', { text: 'Your turn!' }), 10);
+  assert.equal(elevenlabsEstimate('sfx', {}), 100);
+  assert.equal(elevenlabsEstimate('sfx', { duration_seconds: 1.5 }), 60);
+  assert.equal(elevenlabsEstimate('sfx', { duration_seconds: 2 }, { elevenlabs_sfx_per_s: 11 }), 22);
+  assert.equal(elevenlabsEstimate('music', { music_length_ms: 30000 }), 500);
+  assert.equal(elevenlabsEstimate('music', {}, { elevenlabs_music_per_min: 800 }), 800);
 });
 
 test('withLock runs callers one at a time', async () => {

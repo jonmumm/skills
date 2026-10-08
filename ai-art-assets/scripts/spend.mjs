@@ -70,6 +70,18 @@ export function falEstimate(model, input = {}, prices = {}) {
   return each * big * n;
 }
 
+// ElevenLabs credits per request, used when the response carries no cost header and the account
+// counter hasn't moved yet (it updates seconds late). Deliberately high: TTS is 1 credit per character
+// (eleven_multilingual_v2; flash/turbo bill half), sound effects 100 per auto-length generation or
+// ≈40/s with a duration (docs vary, Oct 2026), music a rough 1000 per minute. Override per project
+// with "prices": { "elevenlabs_sfx_per_s": 11, "elevenlabs_music_per_min": 800 }.
+export function elevenlabsEstimate(kind, body = {}, prices = {}) {
+  if (kind === 'tts') return String(body.text ?? '').length;
+  if (kind === 'sfx') return body.duration_seconds ? Math.ceil(body.duration_seconds * (prices.elevenlabs_sfx_per_s ?? 40)) : (prices.elevenlabs_sfx_auto ?? 100);
+  if (kind === 'music') return Math.ceil(((body.music_length_ms ?? 60000) / 60000) * (prices.elevenlabs_music_per_min ?? 1000));
+  return 0;
+}
+
 const sentinel = (service) => join(stateDir(), `${service}.exhausted`);
 export function isExhausted(service) {
   const f = sentinel(service);
@@ -148,7 +160,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     const rows = readLedger(join(stateDir(), 'spend.jsonl')).filter((e) => Date.parse(e.date) >= since);
     const t = {};
     for (const e of rows) { const k = `${e.project}\t${e.unit}`; t[k] = t[k] ?? { n: 0, sum: 0 }; t[k].n++; t[k].sum += e.amount ?? 0; }
-    console.log(`last ${days} days (estimates for fal; measured for meshy and elevenlabs)`);
+    console.log(`last ${days} days (estimates for fal; measured for meshy; elevenlabs measured, or estimated when the counter lagged)`);
     for (const [k, v] of Object.entries(t).sort()) console.log(`  ${k.replace('\t', '  ')}  ${Math.round(v.sum * 100) / 100}  (${v.n} calls)`);
   } else if (cmd === 'clear' && UNIT[arg]) {
     clearExhausted(arg); console.log(`${arg}: cleared; the next run will try again`);

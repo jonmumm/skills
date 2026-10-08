@@ -15,14 +15,16 @@
 //
 // Spend: paid calls run one at a time across every agent on this machine (the plan's concurrency limit is
 // 2-4, and parallel calls just fail with 429), are checked against the project's elevenlabs_credits cap
-// (.asset-budget.json, see ai-art-assets/scripts/spend.mjs), and log the credits they actually used
-// (the subscription counter before and after) to assets/SPEND.jsonl. --dry prints the budget and exits.
+// (.asset-budget.json, see ai-art-assets/scripts/spend.mjs) with the request's estimated cost, and log what
+// they cost to assets/SPEND.jsonl: the response's cost header if there is one, else the change in the
+// subscription counter (which updates seconds after the call, so it is polled until it moves), else the
+// estimate (estimated: true). --dry prints the budget and exits.
 // Music is the expensive kind: keep loops 30-60 s and crossfade them, rather than asking for 120 s.
 import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { guard, record, withLock, looksExhausted, markExhausted, clearExhausted } from '../../ai-art-assets/scripts/spend.mjs';
+import { guard, record, withLock, looksExhausted, markExhausted, clearExhausted, elevenlabsEstimate, loadBudget } from '../../ai-art-assets/scripts/spend.mjs';
 
-const BASE = 'https://api.elevenlabs.io/v1';
+const BASE = process.env.ELEVENLABS_BASE ?? 'https://api.elevenlabs.io/v1'; // tests point this at a fake
 const [cmd, ...rest] = process.argv.slice(2);
 const args = {};
 for (let i = 0; i < rest.length; i++) if (rest[i].startsWith('--')) { const k = rest[i].slice(2); args[k] = rest[i + 1] && !rest[i + 1].startsWith('--') ? rest[++i] : true; }
@@ -50,16 +52,34 @@ async function call(method, path, body, accept = 'audio/mpeg') {
 }
 const used = async () => (await (await call('GET', '/user/subscription', null, 'application/json')).json()).character_count ?? 0;
 
-/** One paid generation: budget check, then (under the machine-wide lock) measure credits around the call. */
-async function paid(label, run) {
-  const spend = guard({ service: 'elevenlabs', label, dry: !!args.dry });
+const POLL_MS = Number(process.env.ELEVENLABS_POLL_MS ?? 1000);
+const SETTLE_MS = Number(process.env.ELEVENLABS_SETTLE_MS ?? 20000);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** The credits a generation cost: a cost header, else the counter once it moves, else the estimate. */
+async function costOf(res, before, estimate) {
+  const header = Number(res.headers.get('character-cost') ?? res.headers.get('x-character-count'));
+  if (Number.isFinite(header) && header > 0) return { amount: header, source: 'header' };
+  for (const end = Date.now() + SETTLE_MS; Date.now() < end; await sleep(POLL_MS)) {
+    const delta = (await used()) - before;
+    if (delta > 0) return { amount: delta, source: 'counter' };
+  }
+  return { amount: estimate, source: 'estimate' };
+}
+
+/** One paid generation: budget check with the estimate, then (under the machine-wide lock) the call and its cost. */
+async function paid(label, kind, path, body, meta) {
+  const p = outPath();
+  const estimate = elevenlabsEstimate(kind, body, loadBudget().prices);
+  const spend = guard({ service: 'elevenlabs', estimate, label, dry: !!args.dry });
   await withLock('elevenlabs', async () => {
     const before = await used();
-    await run();
-    const cost = (await used()) - before;
+    const res = await call('POST', path, body);
+    await save(res, p, meta);
+    const { amount, source } = await costOf(res, before, estimate);
     clearExhausted('elevenlabs');
-    record(spend, { amount: cost, estimated: false, label, files: [args.out] });
-    console.log(`  ${cost} credits`);
+    record(spend, { amount, estimated: source === 'estimate', label, files: [args.out], meta: { source } });
+    console.log(`  ${amount} credits (${source})`);
   });
 }
 
@@ -94,26 +114,23 @@ if (cmd === 'check') {
   for (const v of voices) console.log(`${v.voice_id}  ${v.name}${v.labels ? '  ' + Object.values(v.labels).join(', ') : ''}`);
 } else if (cmd === 'sfx') {
   need(args.prompt, '--prompt is required');
-  const p = outPath();
   const body = { text: args.prompt, prompt_influence: Number(args.influence ?? 0.4) };
   if (args.duration) body.duration_seconds = Number(args.duration);
   if (args.loop) body.loop = true;
-  await paid(`sfx ${args.out}`, async () => save(await call('POST', '/sound-generation', body), p, { kind: 'sfx', prompt: args.prompt }));
+  await paid(`sfx ${args.out}`, 'sfx', '/sound-generation', body, { kind: 'sfx', prompt: args.prompt });
 } else if (cmd === 'music') {
   need(args.prompt, '--prompt is required');
-  const p = outPath();
   const body = { prompt: args.prompt };
   if (args.duration) {
     const d = Number(args.duration);
     need(d >= 3 && d <= 600, '--duration must be 3–600 seconds');
     body.music_length_ms = Math.round(d * 1000);
   }
-  await paid(`music ${args.out}`, async () => save(await call('POST', '/music', body), p, { kind: 'music', prompt: args.prompt }));
+  await paid(`music ${args.out}`, 'music', '/music', body, { kind: 'music', prompt: args.prompt });
 } else if (cmd === 'tts') {
   need(args.voice && args.text, '--voice <voice_id> and --text are required (list voices with `voices`)');
-  const p = outPath();
   const body = { text: args.text, model_id: args.model ?? 'eleven_multilingual_v2' };
-  await paid(`tts ${args.out}`, async () => save(await call('POST', `/text-to-speech/${encodeURIComponent(args.voice)}`, body), p, { kind: 'voice', voice: args.voice, text: args.text }));
+  await paid(`tts ${args.out}`, 'tts', `/text-to-speech/${encodeURIComponent(args.voice)}`, body, { kind: 'voice', voice: args.voice, text: args.text });
 } else {
   need(false, `unknown command ${cmd}`);
 }

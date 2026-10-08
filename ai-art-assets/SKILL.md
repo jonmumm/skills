@@ -76,6 +76,17 @@ after a top-up. **Project kit scripts must go through these scripts** (shell out
 Bake Shop does) **or import `guard`/`record` from `spend.mjs`.** A kit script that calls fal
 directly (Story Nook's `generate.mjs`) is invisible to the caps.
 
+**ElevenLabs spend is measured late (Little Vigilante, Oct 7 2026).** The account's
+`character_count` updates seconds after a generation, so reading it right after each call logged
+194 credits for a run that used ~1,875 (26,303 → 28,178), and the `elevenlabs_credits` cap let ~10×
+the spend through. `elevenlabs.mjs` now checks the cap with the request's estimate
+(`elevenlabsEstimate`: characters for TTS; 100 per auto-length sfx or ≈40/s; ~1000 per music
+minute, all deliberately high) and records the response's cost header if any, else the counter
+polled until it moves (20 s), else the estimate (`estimated: true`, `source` in each ledger row).
+Cross-check a big run against the account counter (`elevenlabs.mjs check` before and after); if the
+estimates are off, set `prices.elevenlabs_sfx_per_s` / `elevenlabs_music_per_min` per project. Any
+new generator that measures a provider's usage counter must poll it the same way.
+
 ```json
 // .asset-budget.json at the project root. The owner sets it.
 { "fal_usd": 15, "codex_images": 30, "meshy_credits": 0, "elevenlabs_credits": 8000 }
