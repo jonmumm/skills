@@ -108,8 +108,9 @@ export async function recordSession(config: GameRigConfig, opts: RecordOpts = {}
     if (captured) args.push("--expect-audio");
     if (opts.expectSmooth) args.push("--expect-smooth");
     if (config.record.expectSpeech) args.push("--expect-speech", config.record.expectSpeech);
-    const r = spawnSync(process.execPath, args, { encoding: "utf8" });
-    const verdict = Verdict.parse(JSON.parse(r.stdout));
+    spawnSync(process.execPath, args, { encoding: "utf8" });
+    // Read the file, not stdout: a child's piped stdout is cut at 64 KB when it calls process.exit.
+    const verdict = Verdict.parse(JSON.parse(readFileSync(verdictPath, "utf8")));
     if (opts.open) spawnSync("open", [out]);
     return { out, panels: recorded.map((r) => r.role), verdict, marks };
   } finally {
