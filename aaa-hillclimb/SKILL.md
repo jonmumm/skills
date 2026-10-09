@@ -190,6 +190,20 @@ polish.
   outline ballooning into a black disc on resize, smoke whiteouts in tall windows, a 16:9-stage HUD
   over a window-aspect 3D camera).
 
+- **"Amateur" from the owner on a 3D game means the asset pipeline, not more lighting** (Bobberbrook,
+  "match WoW"). Six scene rounds of light, fog and camera left min 4; one Codex sheet of nine painted
+  swatches (3×3, black gutters; ground, moss, path, bark, rock, stone, lakebed, two alpha leaf cards),
+  sliced and made seamless in code (`slice-textures.py`: cross-fade with the half-offset copy, key leaf
+  cards off black), then world-space ground blending and leaf-card canopies, moved the look more than
+  any of them. Then paint the props too: half-painted worlds read as two styles.
+- **The harshness detector counts birds and bright chimes.** Synth birdsong at 3–8 kHz, triangle stings
+  two octaves up and TTS sibilants were most of 24–54 "harsh"/min. Birds 1.7–2.5 kHz with 30 ms
+  attacks, sine stings an octave lower, an sfx low-pass ~4 kHz and a −10 dB narrator high shelf.
+- **Check rigs: never open a 3D TV in the same browser as the phone screens.** It starves the shared
+  GPU process and every later `goto` times out; start the room from `/host` for controller screens.
+- **Read a child's verdict JSON from its `--out` file, not stdout**: piped stdout is cut at 64 KB on
+  `process.exit`.
+
 ## References
 
 - `references/scorecard-aaa.md` — the AAA scorecard template (rows, anchors, log format).

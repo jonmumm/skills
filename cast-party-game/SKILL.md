@@ -334,3 +334,17 @@ down. Give every family game an optional **toddler seat** from day one:
   the user twice. If a TV is missing from the picker, it is usually its `_googlecast._tcp` mDNS
   record: `dns-sd -B _googlecast._tcp`, `curl http://<tv>:8008/setup/eureka_info`; power-cycle
   the TV. Quote the probe's output before saying what a device can or can't do.
+
+## Lessons from Bobberbrook (Oct 2026)
+
+- **The big button must always lead to the core verb.** Juneau stood at the shore for 8 minutes and
+  never cast: the rules' 2.6 m reach was narrower than the bank the TV showed. Near the water the
+  button now shows the rod and a press walks the fisher down the bank and casts (a `fishSpot` the
+  room steers toward; the stick cancels it). Catches went from 1 to 10 per session.
+- **Two fishers on one spot read as one on the TV.** Keep players ≥ 2.8 m apart and spawn them
+  wider than that, or the camera makes them a blob and nobody can tell whose bite it is.
+- **Every off-screen system change needs a TV moment**: rod upgrades, time of day, boarding
+  ("all aboard" ring filling), each catch's banner (queued, never dropped), the campfire recap.
+  A critic can't explain what only Dad's phone said.
+- **A missed bite needs a reason on every screen**: the coach line for the grown-up, a wordless
+  fish darting off in the kid's bobber window.
