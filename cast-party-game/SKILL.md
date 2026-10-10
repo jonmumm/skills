@@ -348,3 +348,7 @@ down. Give every family game an optional **toddler seat** from day one:
   A critic can't explain what only Dad's phone said.
 - **A missed bite needs a reason on every screen**: the coach line for the grown-up, a wordless
   fish darting off in the kid's bobber window.
+- **Voice clips and music files ship as MP3, not AAC/m4a** (Bobberbrook, Oct 2026): the OGS cloud
+  renderer's Chrome isn't verified to decode AAC, `decodeAudioData` fails and the narrator is silently
+  skipped on the TV. Give the TV a small "no sound" marker when its AudioContext isn't running or its
+  clock doesn't advance, so a silent game can be told apart from a silent stream.
