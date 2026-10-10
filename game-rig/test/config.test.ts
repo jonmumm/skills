@@ -28,6 +28,11 @@ describe("config", () => {
   test("a screen for an unknown role is rejected with the role's name", () => {
     expect(() => parseConfig({ ...minimal, screens: [{ name: "x", role: "grandma" }] })).toThrow(/grandma/);
   });
+  test("browser defaults to real Chrome; a WebGL game can pick Playwright's Chromium", () => {
+    expect(parseConfig(minimal).browser).toBe("chrome");
+    expect(parseConfig({ ...minimal, browser: "chromium" }).browser).toBe("chromium");
+    expect(() => parseConfig({ ...minimal, browser: "firefox" })).toThrow(/browser/);
+  });
   test("BASE URL can be overridden from the environment", () => {
     expect(parseConfig(minimal, { GAME_RIG_URL: "http://127.0.0.1:1234" }).baseUrl).toBe("http://127.0.0.1:1234");
   });

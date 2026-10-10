@@ -24,6 +24,7 @@ const size = (v: Viewport) => `${v.width}x${v.height}`;
 export async function launchChrome(config: GameRigConfig, extra: string[] = []): Promise<Browser> {
   const args = ["--autoplay-policy=no-user-gesture-required", ...config.chromeArgs, ...extra];
   // Real Chrome when installed (codecs, GPU paths like the user's); Playwright's Chromium otherwise.
+  if (config.browser === "chromium") return chromium.launch({ args });
   return chromium.launch({ channel: "chrome", args }).catch(() => chromium.launch({ args }));
 }
 

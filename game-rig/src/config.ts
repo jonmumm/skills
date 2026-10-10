@@ -103,6 +103,11 @@ export const ConfigSchema = z
     maxTapsPerScreen: z.number().int().positive().default(12),
     /** Chrome flags for WebGL games (e.g. ["--use-angle=metal", "--ignore-gpu-blocklist"]). */
     chromeArgs: z.array(z.string()).default([]),
+    /**
+     * "chrome" (default): the installed Chrome, closest to the user's. "chromium": Playwright's own
+     * build; headless Chrome took ~19 s per 1080p WebGL screenshot (Settlewood, Oct 2026), Chromium <1 s.
+     */
+    browser: z.enum(["chrome", "chromium"]).default("chrome"),
     session: fn<SessionFn>("session").optional(),
     /** Expression in the TV page returning the game's master-bus MediaStream; default: the rig's Web Audio tap. */
     audioTap: z.string().optional(),
