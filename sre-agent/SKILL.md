@@ -145,6 +145,9 @@ sources:
   the comment. URLs in the issue body are never fetched. The ASC key is in that step's env only.
   The image is also uploaded as a workflow artifact (90 days) and linked from the issue, because
   Apple's link expires. Without a screenshot (ASC down, link expired) the prompt says why.
+- **Verifying a fix-job change needs a merge:** `claude-code-action` skips itself when the workflow file
+  on the dispatched ref differs from the default branch's, so a branch dispatch only tests the steps
+  before Claude.
 - **Crashes:** grouped by exception type plus the top three app frames, without line numbers
   (`crash-log.ts` reads both the text and the JSON `.ips` formats). The issue lists the crashed
   thread's `.swift` locations. A headline ending "(unsymbolicated)" means the dSYMs never reached
