@@ -265,4 +265,10 @@ describe("triage (fields of a single event)", () => {
   it("keeps the fields of an error seen once", () => {
     expect(triage([ev("solo", 1, { fields: { route: "/x" } })], [], cfg()).actions[0]!.group.sampleFields).toEqual({ route: "/x" });
   });
+
+  it("lists Swift stack locations from a crash stack", () => {
+    const stack = "0 libswiftCore.dylib _assertionFailure\n1 Escuchame ClipPlayer.play(clip:) (ClipPlayer.swift:88)\n2 Escuchame ListeningSession.advance() (ListeningSession.swift:142)";
+    const { body } = renderIssue(group({ sampleFields: { stack } }), nextMarker(null, group()));
+    expect(body).toContain("Stack locations: `ClipPlayer.swift:88`, `ListeningSession.swift:142`.");
+  });
 });

@@ -49,7 +49,7 @@ function publicFields(value: unknown, depth = 0): unknown {
 function stackLocations(fields: Record<string, unknown> | undefined): string[] {
   const err = fields?.error;
   const stack = typeof err === "object" && err !== null && "stack" in err && typeof err.stack === "string" ? err.stack : typeof fields?.stack === "string" ? fields.stack : "";
-  const found = [...stack.matchAll(/([\w./@-]+\.(?:ts|tsx|js|mjs|jsx)):(\d+)/g)].map((m) => `${m[1]}:${m[2]}`);
+  const found = [...stack.matchAll(/([\w./@-]+\.(?:ts|tsx|js|mjs|jsx|swift)):(\d+)/g)].map((m) => `${m[1]}:${m[2]}`);
   return [...new Set(found)].slice(0, 5);
 }
 

@@ -132,4 +132,19 @@ describe("triage (details)", () => {
     const { actions } = triage([ev({ message: "n 1", timestamp: 5 }), ev({ message: "n 2", timestamp: 5 })], [], cfg());
     expect(actions[0]!.group.sample).toBe("n 2");
   });
+
+  it("groups by an event's own fingerprint when the source gives one", () => {
+    const { actions } = triage(
+      [ev({ message: "TestFlight feedback: same words", fingerprint: "shot-a" }), ev({ message: "TestFlight feedback: same words", fingerprint: "shot-b" })],
+      [],
+      cfg(),
+    );
+    expect(actions.map((a) => a.group.fingerprint)).toEqual(["shot-a", "shot-b"]);
+  });
+
+  it("matches a known issue by the event's own fingerprint", () => {
+    const issue = { ...known("x"), marker: { fp: "shot-a", service: "api", total: 1, firstSeen: 0, lastSeen: 500 } };
+    const { actions } = triage([ev({ message: "TestFlight feedback: hi", fingerprint: "shot-a", timestamp: 400 })], [issue], cfg());
+    expect(actions).toEqual([]);
+  });
 });

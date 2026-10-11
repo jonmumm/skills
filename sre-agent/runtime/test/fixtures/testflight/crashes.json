@@ -1,0 +1,23 @@
+{
+  "data": [
+    {
+      "type": "betaFeedbackCrashSubmissions",
+      "id": "AK7UjG-qL5QxXf3gIOGjbpQ",
+      "attributes": {
+        "createdDate": "2026-10-11T16:00:00.000Z",
+        "comment": "It crashed when I tapped next",
+        "email": "tester@example.com",
+        "deviceModel": "iPhone16,2",
+        "osVersion": "26.0",
+        "locale": "en-US",
+        "connectionType": "CELLULAR",
+        "appUptimeInMilliseconds": 64000,
+        "batteryPercentage": 40,
+        "buildBundleId": "com.escuchame"
+      },
+      "relationships": { "build": { "data": { "type": "builds", "id": "build-1" } } }
+    }
+  ],
+  "included": [{ "type": "builds", "id": "build-1", "attributes": { "version": "202610110652" } }],
+  "links": { "self": "https://api.appstoreconnect.apple.com/v1/apps/app-1/betaFeedbackCrashSubmissions" }
+}

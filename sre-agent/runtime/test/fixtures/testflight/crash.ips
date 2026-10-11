@@ -1,0 +1,20 @@
+{"app_name":"Escuchame","timestamp":"2026-10-11 09:12:44.00 -0700","app_version":"1.0","slice_uuid":"1a2b3c4d-5e6f-7081-9a2b-3c4d5e6f7081","build_version":"202610110652","platform":2,"bundleID":"com.escuchame","os_version":"iPhone OS 26.0 (23A341)","incident_id":"6B1C9F3A-2D4E-4F1B-9C3A-1E2D3F4A5B6C","name":"Escuchame"}
+{
+  "procName" : "Escuchame",
+  "exception" : {"codes":"0x0000000000000001, 0x0000000000000000","rawCodes":[1,0],"type":"EXC_BAD_ACCESS","signal":"SIGSEGV","subtype":"KERN_INVALID_ADDRESS at 0x0000000000000000"},
+  "faultingThread" : 2,
+  "threads" : [
+    {"id":1,"frames":[{"imageOffset":4096,"symbol":"mach_msg2_trap","imageIndex":1}]},
+    {"id":2,"frames":[{"imageOffset":4096,"symbol":"__workq_kernreturn","imageIndex":1}]},
+    {"triggered":true,"id":3,"frames":[
+      {"imageOffset":20480,"symbol":"objc_msgSend","symbolLocation":32,"imageIndex":2},
+      {"imageOffset":113348,"sourceLine":57,"sourceFile":"SyncQueue.swift","symbol":"SyncQueue.flush()","imageIndex":0,"symbolLocation":200},
+      {"imageOffset":115952,"sourceLine":12,"sourceFile":"AppModel.swift","symbol":"AppModel.sceneDidEnterBackground()","imageIndex":0,"symbolLocation":40}
+    ]}
+  ],
+  "usedImages" : [
+    {"source":"P","arch":"arm64","base":4305453056,"size":2097152,"name":"Escuchame"},
+    {"source":"P","arch":"arm64e","base":8000000000,"size":100000,"name":"libsystem_kernel.dylib"},
+    {"source":"P","arch":"arm64e","base":7000000000,"size":100000,"name":"libobjc.A.dylib"}
+  ]
+}

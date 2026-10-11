@@ -72,3 +72,25 @@ describe("parseConfig incidentWindowMinutes", () => {
     expect(parseConfig("incidentWindowMinutes: 5\nsources:\n  - type: command\n    run: x\n").incidentWindowMinutes).toBe(5);
   });
 });
+
+describe("testflight source", () => {
+  it("defaults to a 72-hour lookback, 25 crash logs per run and the ASC_* secrets", () => {
+    const cfg = parseConfig("sources:\n  - type: testflight\n    bundleId: com.example\n    service: example-ios\n");
+    expect(cfg.sources[0]).toEqual({
+      type: "testflight",
+      bundleId: "com.example",
+      service: "example-ios",
+      lookbackHours: 72,
+      maxCrashLogs: 25,
+      keyIdEnv: "ASC_KEY_ID",
+      issuerIdEnv: "ASC_ISSUER_ID",
+      privateKeyEnv: "ASC_PRIVATE_KEY",
+    });
+  });
+
+  it("needs a bundle id and a service name", () => {
+    expect(() => parseConfig("sources:\n  - type: testflight\n    service: x\n")).toThrow(/bundleId/);
+    expect(() => parseConfig("sources:\n  - type: testflight\n    bundleId: x\n")).toThrow(/service/);
+  });
+});
+

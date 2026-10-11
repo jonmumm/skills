@@ -1,0 +1,42 @@
+{
+  "data": [
+    {
+      "type": "betaFeedbackScreenshotSubmissions",
+      "id": "AD8JvKbr0BK0Cj9OnM6WO6I",
+      "attributes": {
+        "createdDate": "2026-10-11T15:20:00.000Z",
+        "comment": "The play button does nothing after the second clip.\nHappens every time.",
+        "email": "tester@example.com",
+        "deviceModel": "iPhone16,2",
+        "osVersion": "26.0",
+        "locale": "en-US",
+        "timeZone": "America/Los_Angeles",
+        "architecture": "arm64e",
+        "connectionType": "WIFI",
+        "appUptimeInMilliseconds": 182000,
+        "batteryPercentage": 81,
+        "screenWidthInPoints": 393,
+        "screenHeightInPoints": 852,
+        "appPlatform": "IOS",
+        "devicePlatform": "IOS",
+        "deviceFamily": "IPHONE",
+        "buildBundleId": "com.escuchame",
+        "screenshots": [
+          { "url": "https://tf-feedback.itunes.apple.com/eimg/abc/shot1.jpg", "width": 1179, "height": 2556, "expirationDate": "2026-10-12T15:20:00.000Z" }
+        ]
+      },
+      "relationships": { "build": { "data": { "type": "builds", "id": "build-1" } } }
+    },
+    {
+      "type": "betaFeedbackScreenshotSubmissions",
+      "id": "AOLD000000000000000000",
+      "attributes": { "createdDate": "2026-10-01T00:00:00.000Z", "comment": "old", "screenshots": [] },
+      "relationships": { "build": { "data": { "type": "builds", "id": "build-0" } } }
+    }
+  ],
+  "included": [
+    { "type": "builds", "id": "build-1", "attributes": { "version": "202610110652" } },
+    { "type": "builds", "id": "build-0", "attributes": { "version": "202609300101" } }
+  ],
+  "links": { "self": "https://api.appstoreconnect.apple.com/v1/apps/app-1/betaFeedbackScreenshotSubmissions" }
+}

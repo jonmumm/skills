@@ -1,4 +1,5 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { generateKeyPairSync } from "node:crypto";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -200,5 +201,59 @@ describe("run (email from Jon's Mac)", () => {
     expect(posts).toHaveLength(1);
     expect(posts[0]!.auth).toBe("Bearer k");
     expect(posts[0]!.body.runUrl).toBe("local:qa-agent daily");
+  });
+});
+
+describe("run (TestFlight source)", () => {
+  const tf = (name: string) => readFileSync(new URL(`./fixtures/testflight/${name}`, import.meta.url), "utf8");
+  const NOW_TF = Date.parse("2026-10-11T17:00:00.000Z");
+  const { privateKey } = generateKeyPairSync("ec", { namedCurve: "P-256" });
+  const ascEnv = { ...env, ASC_KEY_ID: "K", ASC_ISSUER_ID: "I", ASC_PRIVATE_KEY: privateKey.export({ type: "pkcs8", format: "pem" }).toString() };
+  const config = "autonomy: 1\nsources:\n  - type: testflight\n    bundleId: com.escuchame\n    service: escuchame-ios\n";
+
+  function fakeAscAndGitHub() {
+    const gh = fakeGitHub();
+    const asc: Record<string, unknown> = {
+      "/v1/apps": { data: [{ type: "apps", id: "app-1", attributes: { bundleId: "com.escuchame" } }] },
+      "/v1/apps/app-1/betaFeedbackScreenshotSubmissions": JSON.parse(tf("screenshots.json")),
+      "/v1/apps/app-1/betaFeedbackCrashSubmissions": JSON.parse(tf("crashes.json")),
+      "/v1/betaFeedbackCrashSubmissions/AK7UjG-qL5QxXf3gIOGjbpQ/crashLog": { data: { type: "betaCrashLogs", id: "l", attributes: { logText: tf("crash-symbolicated.txt") } } },
+    };
+    const fetch = async (url: string, init?: RequestInit) => {
+      const u = new URL(url);
+      if (u.host === "api.appstoreconnect.apple.com") return asc[u.pathname] ? Response.json(asc[u.pathname]) : Response.json({ errors: [] }, { status: 404 });
+      return gh.fetch(url, init);
+    };
+    return { gh, fetch };
+  }
+
+  it("files one issue per screenshot report and one per crash, looking back 72 hours by default", async () => {
+    const { gh, fetch } = fakeAscAndGitHub();
+    const out = await run({ configPath: workspace(config, []), dry: false, env: ascEnv, now: NOW_TF, fetch });
+    expect(out.exitCode).toBe(0);
+    expect(gh.issues.map((i) => i.title).sort()).toEqual([
+      "[sre] escuchame-ios: TestFlight crash: EXC_BREAKPOINT (SIGTRAP) in ClipPlayer.play(clip:)",
+      "[sre] escuchame-ios: TestFlight feedback: The play button does nothing after the second clip.",
+    ]);
+    const shot = gh.issues.find((i) => i.title.includes("feedback"))!;
+    expect(shot.body).toContain("Screenshot: https://tf-feedback.itunes.apple.com/eimg/abc/shot1.jpg");
+    expect(shot.body).toContain("| Versions | `202610110652` |");
+    const crash = gh.issues.find((i) => i.title.includes("crash"))!;
+    expect(crash.body).toContain("Stack locations: `ClipPlayer.swift:88`, `ListeningSession.swift:142`, `ListeningView.swift:31`.");
+  });
+
+  it("does not file the same reports again on the next run", async () => {
+    const { gh, fetch } = fakeAscAndGitHub();
+    const path = workspace(config, []);
+    await run({ configPath: path, dry: false, env: ascEnv, now: NOW_TF, fetch });
+    await run({ configPath: path, dry: false, env: ascEnv, now: NOW_TF + 30 * 60_000, fetch });
+    expect(gh.issues).toHaveLength(2);
+  });
+
+  it("fails the run, naming the missing secret, when the key is not set", async () => {
+    const { fetch } = fakeAscAndGitHub();
+    const out = await run({ configPath: workspace(config, []), dry: true, env, now: NOW_TF, fetch });
+    expect(out.exitCode).toBe(1);
+    expect(out.summary).toContain("Source failed: testflight:com.escuchame: missing ASC_KEY_ID");
   });
 });

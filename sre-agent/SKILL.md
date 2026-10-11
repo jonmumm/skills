@@ -4,8 +4,9 @@ description: >
   Install an SRE agent on a service repo: a GitHub Actions cron job that reads the service's
   production logs every 15 minutes, groups errors by fingerprint, files or updates deduplicated
   GitHub issues, reopens regressions, and (when allowed) has Claude attempt a test-first fix PR.
-  Cloudflare Workers Logs built in; any other log store through a command source. Use when asked
-  to "add an SRE agent", "watch my logs", "auto-file issues from errors", "self-healing",
+  Cloudflare Workers Logs and TestFlight feedback (screenshots and crashes) built in; any other log
+  store through a command source. Use when asked
+  to "add an SRE agent", "watch my logs", "fix TestFlight feedback automatically", "auto-file issues from errors", "self-healing",
   "deploy-sre-agent", "log monitoring cron", or "open PRs for production errors".
 dependsOn:
   - jonmumm/skills@wide-events-logging
@@ -36,8 +37,7 @@ Runtime: `runtime/` in this repo, a composite action pinned by commit SHA
 | 2 fix PRs | Also queue `maxFixesPerRun` new or regressed issues for Claude | |
 
 Not built yet: **L3 runtime remediation** (`wrangler rollback` when a spike starts right after a
-deploy) and **Worker-cron triage dispatching `repository_dispatch`** (the workflow already accepts
-`repository_dispatch: sre-agent`). Add them here when they are needed, with tests.
+deploy). Add it here when it is needed, with tests.
 
 ## Install on a repo
 
@@ -122,6 +122,39 @@ queue a fix attempt, or a log source fails. Quiet runs and plain count updates s
     the Claude fix job
   - multi-service causes (retry loops)
   - a fault-injection eval on the QA copy that scores diagnoses
+
+## TestFlight source (iOS apps)
+
+```yaml
+sources:
+  - type: testflight
+    bundleId: com.example.app
+    service: example-ios        # issue titles: "[sre] example-ios: TestFlight crash: …"
+```
+
+- Reads `GET /v1/apps/{id}/betaFeedbackScreenshotSubmissions` and `…/betaFeedbackCrashSubmissions`
+  (+ `GET /v1/betaFeedbackCrashSubmissions/{id}/crashLog`) from the App Store Connect API.
+- **Screenshot reports:** one issue each (`fingerprint: tf-shot-<id>`). The issue carries the tester's
+  comment, device, OS, build number and the screenshot links (Apple's links expire). Never the
+  tester's email.
+- **Crashes:** grouped by exception type plus the top three app frames, without line numbers
+  (`crash-log.ts` reads both the text and the JSON `.ips` formats). The issue lists the crashed
+  thread's `.swift` locations. A headline ending "(unsymbolicated)" means the dSYMs never reached
+  Apple: check `uploadSymbols` in the export options.
+- Each run re-reads `lookbackHours` (default 72), so a missed run loses nothing; reports already
+  filed are skipped. At most `maxCrashLogs` (25) crash logs are read per run.
+- **Key:** App Store Connect → Users and Access → Integrations → Team Keys, role **Developer**
+  (read-only is enough). Secrets `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_PRIVATE_KEY` (the `.p8` file's
+  contents) on the repo, passed as env to the triage step.
+- **The fix job needs a Mac** for TestFlight issues: on `ubuntu-latest` Claude cannot run
+  `xcodebuild`, so it can only comment. Run the fix job on `macos-15` in iOS repos.
+- **Near-real-time (optional):** `asc-webhook/` is a Worker that verifies App Store Connect's
+  `x-apple-signature` HMAC and fires `repository_dispatch: sre-agent` on
+  `betaFeedbackScreenshotSubmissionCreated` / `betaFeedbackCrashSubmissionCreated`. Deploy it with
+  secrets `ASC_WEBHOOK_SECRET` and `GITHUB_TOKEN` (fine-grained PAT, Contents read/write on the
+  allowed repos), add the repo to `ALLOWED_REPOS`, then register
+  `https://sre-asc-webhook.<subdomain>.workers.dev/asc/<owner>/<repo>` with `POST /v1/webhooks`
+  (Apple's docs state no role for it; if the Developer key gets 403, use an Admin key once).
 
 ## Log formats
 

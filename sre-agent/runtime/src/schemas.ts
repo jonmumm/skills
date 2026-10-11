@@ -11,6 +11,8 @@ export const LogEvent = z.object({
   versionId: z.string().optional(),
   /** Structured fields of the line, when the source has them (evidence for the issue). */
   fields: z.record(z.string(), z.unknown()).optional(),
+  /** Grouping key set by the source, when the message alone would group wrongly (one issue per feedback report). */
+  fingerprint: z.string().min(1).max(64).optional(),
 });
 export type LogEvent = z.infer<typeof LogEvent>;
 
@@ -39,7 +41,23 @@ const CommandSource = z.object({
   run: z.string().min(1),
 });
 
-export const Source = z.discriminatedUnion("type", [CloudflareSource, CommandSource]);
+const TestflightSource = z.object({
+  type: z.literal("testflight"),
+  /** The app's bundle id in App Store Connect. */
+  bundleId: z.string().min(1),
+  /** Name used in issue titles, e.g. "myapp-ios". */
+  service: z.string().min(1),
+  /** Reports are re-read for this long, so a missed run loses nothing; issues already filed are skipped. */
+  lookbackHours: z.number().int().positive().max(720).default(72),
+  /** Crash logs read per run (one API call each). */
+  maxCrashLogs: z.number().int().positive().max(200).default(25),
+  keyIdEnv: z.string().default("ASC_KEY_ID"),
+  issuerIdEnv: z.string().default("ASC_ISSUER_ID"),
+  /** Contents of the App Store Connect API key's .p8 file (role Developer or above). */
+  privateKeyEnv: z.string().default("ASC_PRIVATE_KEY"),
+});
+
+export const Source = z.discriminatedUnion("type", [CloudflareSource, CommandSource, TestflightSource]);
 export type Source = z.infer<typeof Source>;
 
 export const Config = z.object({

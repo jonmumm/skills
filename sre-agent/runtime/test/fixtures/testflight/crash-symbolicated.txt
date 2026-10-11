@@ -1,0 +1,33 @@
+Incident Identifier: 6B1C9F3A-2D4E-4F1B-9C3A-1E2D3F4A5B6C
+Hardware Model:      iPhone16,2
+Process:             Escuchame [4821]
+Path:                /private/var/containers/Bundle/Application/0D1C2B3A-4E5F-6A7B-8C9D-0E1F2A3B4C5D/Escuchame.app/Escuchame
+Identifier:          com.escuchame
+Version:             1.0 (202610110652)
+Code Type:           ARM-64 (Native)
+Role:                Foreground
+Parent Process:      launchd [1]
+OS Version:          iPhone OS 26.0 (23A341)
+Release Type:        User
+
+Exception Type:  EXC_BREAKPOINT (SIGTRAP)
+Exception Codes: 0x0000000000000001, 0x000000018c3a1b2c
+Termination Reason: SIGNAL 5 Trace/BPT trap: 5
+Terminating Process: exc handler [4821]
+
+Triggered by Thread:  0
+
+Thread 0 name:
+Thread 0 Crashed:
+0   libswiftCore.dylib            	0x000000018c3a1b2c _assertionFailure(_:_:file:line:flags:) + 244
+1   Escuchame                     	0x0000000100a1b2c4 ClipPlayer.play(clip:) + 412 (ClipPlayer.swift:88)
+2   Escuchame                     	0x0000000100a1c0f0 ListeningSession.advance() + 96 (ListeningSession.swift:142)
+3   Escuchame                     	0x0000000100a2d4e8 closure #1 in ListeningView.body.getter + 52 (ListeningView.swift:31)
+4   SwiftUI                       	0x0000000190f2a1b4 0x190e00000 + 1221044
+5   UIKitCore                     	0x000000018e1b2c3d -[UIApplication sendAction:to:from:forEvent:] + 100
+
+Thread 1:
+0   libsystem_kernel.dylib        	0x00000001e2b3c4d5 __workq_kernreturn + 8
+
+Binary Images:
+       0x100a00000 -        0x100bfffff Escuchame arm64  <1a2b3c4d5e6f70819a2b3c4d5e6f7081> /private/var/containers/Bundle/Application/0D1C2B3A/Escuchame.app/Escuchame

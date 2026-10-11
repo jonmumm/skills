@@ -8,6 +8,7 @@ import { type NotifyItem, sendNotification } from "./notify.ts";
 import type { Action, Config, KnownIssue, LogEvent } from "./schemas.ts";
 import { fetchCloudflareEvents } from "./sources/cloudflare.ts";
 import { runCommandSource } from "./sources/command.ts";
+import { fetchTestflightEvents } from "./sources/testflight.ts";
 import { triage } from "./triage.ts";
 
 type Fetch = (url: string, init?: RequestInit) => Promise<Response>;
@@ -71,13 +72,29 @@ async function collect(cfg: Config, window: { from: number; to: number }, env: R
         const out = await fetchCloudflareEvents({ accountId, token, service: source.service, levels: cfg.levels, outcomes: cfg.outcomes, errorFields: cfg.errorFields, ...window, fetch });
         events.push(...out.events);
         if (out.truncated) notes.push(`cloudflare:${source.service} hit the 2000-event query limit; counts are a floor. Lower lookbackMinutes.`);
+      } else if (source.type === "testflight") {
+        const keyId = env[source.keyIdEnv];
+        const issuerId = env[source.issuerIdEnv];
+        const privateKey = env[source.privateKeyEnv];
+        if (!keyId || !issuerId || !privateKey) throw new Error(`missing ${!keyId ? source.keyIdEnv : !issuerId ? source.issuerIdEnv : source.privateKeyEnv}`);
+        const out = await fetchTestflightEvents({
+          auth: { keyId, issuerId, privateKey },
+          bundleId: source.bundleId,
+          service: source.service,
+          from: Math.min(window.from, window.to - source.lookbackHours * 3_600_000),
+          now: window.to,
+          maxCrashLogs: source.maxCrashLogs,
+          fetch,
+        });
+        events.push(...out.events);
+        notes.push(...out.notes);
       } else {
         const out = await runCommandSource(source.run, window, cfg.errorFields);
         events.push(...out.events);
         if (out.invalidLines) notes.push(`command source skipped ${out.invalidLines} line(s) that were not LogEvent JSON.`);
       }
     } catch (err) {
-      const name = source.type === "cloudflare" ? `cloudflare:${source.service}` : "command";
+      const name = source.type === "cloudflare" ? `cloudflare:${source.service}` : source.type === "testflight" ? `testflight:${source.bundleId}` : "command";
       sourceErrors.push(`${name}: ${err instanceof Error ? err.message : String(err)}`);
     }
   }

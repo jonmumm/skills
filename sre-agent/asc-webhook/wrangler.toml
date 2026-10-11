@@ -1,0 +1,17 @@
+# sre-asc-webhook: App Store Connect webhook → GitHub repository_dispatch "sre-agent", so TestFlight
+# feedback is triaged within a minute instead of at the next cron run.
+# Secrets: ASC_WEBHOOK_SECRET (the `secret` given to POST /v1/webhooks) and GITHUB_TOKEN
+# (fine-grained PAT, Contents: read and write on each allowed repo; that is what repository_dispatch needs).
+name = "sre-asc-webhook"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+account_id = "ccf4d9a0a3b76ffae0b6ee048de66f07"
+workers_dev = true
+preview_urls = false
+
+[vars]
+ALLOWED_REPOS = "jonmumm/escuchame-monorepo"
+
+[observability]
+enabled = true
+head_sampling_rate = 1

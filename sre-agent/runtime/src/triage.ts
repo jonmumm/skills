@@ -22,7 +22,7 @@ export function triage(events: LogEvent[], known: KnownIssue[], cfg: TriageConfi
     if (!isError(event, cfg)) continue;
     const normalized = normalizeMessage(event.message);
     if (ignore.some((re) => re.test(normalized))) continue;
-    const fp = fingerprint(event.service, event.message);
+    const fp = event.fingerprint ?? fingerprint(event.service, event.message);
     const issue = byFp.get(fp);
     if (issue && event.timestamp <= issue.marker.lastSeen) continue; // already counted by an earlier run
 
