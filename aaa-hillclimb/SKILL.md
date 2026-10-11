@@ -204,6 +204,10 @@ polish.
 - **Read a child's verdict JSON from its `--out` file, not stdout**: piped stdout is cut at 64 KB on
   `process.exit`.
 
+- **Never rebuild a session video from truncated recordings.** When a round times out, check every
+  per-screen recording's duration first (`ffprobe`); one that ends early makes the round invalid. Padding
+  it with its last frame (Bobberbrook round 21) handed the critic 330 s of freeze-frame as "evidence".
+
 ## References
 
 - `references/scorecard-aaa.md` — the AAA scorecard template (rows, anchors, log format).
