@@ -21,6 +21,20 @@ export function signAscJwt(auth: AscAuth, now: number): string {
 
 const AscErrors = z.object({ errors: z.array(z.object({ detail: z.string().optional(), title: z.string().optional() })).default([]) });
 
+/** GET against the App Store Connect API (path or absolute `next` link) with one token; throws Apple's error detail. */
+export function ascClient(auth: AscAuth, now: number, fetch: Fetch = globalThis.fetch) {
+  const token = signAscJwt(auth, now);
+  return async (url: string): Promise<unknown> => {
+    const res = await fetch(url.startsWith("http") ? url : `${API}${url}`, { headers: { authorization: `Bearer ${token}` } });
+    const body: unknown = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const detail = AscErrors.safeParse(body).data?.errors.map((e) => e.detail ?? e.title).join("; ");
+      throw new Error(`App Store Connect ${res.status} on ${new URL(res.url || url, API).pathname}: ${detail || res.statusText}`);
+    }
+    return body;
+  };
+}
+
 const Apps = z.object({ data: z.array(z.object({ id: z.string(), attributes: z.object({ bundleId: z.string() }) })) });
 
 // Every attribute is optional in Apple's schema.
@@ -62,17 +76,7 @@ export type TestflightQuery = {
 
 /** TestFlight screenshot feedback and crash reports for one app, as LogEvents. */
 export async function fetchTestflightEvents(q: TestflightQuery): Promise<{ events: LogEvent[]; notes: string[] }> {
-  const fetch = q.fetch ?? globalThis.fetch;
-  const token = signAscJwt(q.auth, q.now);
-  const get = async (url: string) => {
-    const res = await fetch(url.startsWith("http") ? url : `${API}${url}`, { headers: { authorization: `Bearer ${token}` } });
-    const body: unknown = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const detail = AscErrors.safeParse(body).data?.errors.map((e) => e.detail ?? e.title).join("; ");
-      throw new Error(`App Store Connect ${res.status} on ${new URL(res.url || url, API).pathname}: ${detail || res.statusText}`);
-    }
-    return body;
-  };
+  const get = ascClient(q.auth, q.now, q.fetch);
 
   const apps = Apps.parse(await get(`/v1/apps?${new URLSearchParams({ "filter[bundleId]": q.bundleId, "fields[apps]": "bundleId" })}`));
   const app = apps.data.find((a) => a.attributes.bundleId === q.bundleId);

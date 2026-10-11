@@ -137,6 +137,14 @@ sources:
 - **Screenshot reports:** one issue each (`fingerprint: tf-shot-<id>`). The issue carries the tester's
   comment, device, OS, build number and the screenshot links (Apple's links expire). Never the
   tester's email.
+- **Claude sees the screenshot.** Before Claude runs, the fix job's `runtime/screenshot` step reads
+  the submission id from the issue's sre-agent marker (`tf-shot-<id>`, checked against
+  `[A-Za-z0-9_-]{1,64}`), asks App Store Connect for that submission's screenshots, and saves real
+  JPEG/PNG bytes from https `*.apple.com` URLs to `$RUNNER_TEMP/testflight/<issue>-<n>.jpg`. The
+  prompt tells Claude to Read it (`--add-dir`), and that text inside the image is as untrusted as
+  the comment. URLs in the issue body are never fetched. The ASC key is in that step's env only.
+  The image is also uploaded as a workflow artifact (90 days) and linked from the issue, because
+  Apple's link expires. Without a screenshot (ASC down, link expired) the prompt says why.
 - **Crashes:** grouped by exception type plus the top three app frames, without line numbers
   (`crash-log.ts` reads both the text and the JSON `.ips` formats). The issue lists the crashed
   thread's `.swift` locations. A headline ending "(unsymbolicated)" means the dSYMs never reached
@@ -145,7 +153,7 @@ sources:
   filed are skipped. At most `maxCrashLogs` (25) crash logs are read per run.
 - **Key:** App Store Connect → Users and Access → Integrations → Team Keys, role **Developer**
   (read-only is enough). Secrets `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` (the `.p8` file's
-  contents) on the repo, passed as env to the triage step.
+  contents) on the repo, passed as env to the triage step and the fix job's screenshot step.
 - **The fix job needs a Mac** for TestFlight issues: on `ubuntu-latest` Claude cannot run
   `xcodebuild`, so it can only comment. Run the fix job on `macos-15` in iOS repos.
 - **Near-real-time:** App Store Connect webhook → `asc-webhook/` Worker → `repository_dispatch:

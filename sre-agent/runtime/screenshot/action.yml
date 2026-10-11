@@ -1,0 +1,42 @@
+name: sre-agent TestFlight screenshot
+description: For a TestFlight screenshot issue, fetch the screenshot from App Store Connect (never from the issue text) into $RUNNER_TEMP/testflight.
+inputs:
+  issue:
+    description: Issue number
+    required: true
+  config:
+    description: Path to the sre-agent config in the calling repo
+    default: .github/sre-agent.yml
+  github-token:
+    description: Token for reading the issue
+    default: ${{ github.token }}
+outputs:
+  count:
+    description: Number of screenshots saved (0 for issues that are not TestFlight screenshot reports)
+    value: ${{ steps.run.outputs.count }}
+  dir:
+    description: Directory the screenshots were saved in
+    value: ${{ steps.run.outputs.dir }}
+  prompt:
+    description: Paragraph for the fix prompt (which files to Read, or why there is no screenshot); empty for other issues
+    value: ${{ steps.run.outputs.prompt }}
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 24
+    - name: Install runtime
+      shell: bash
+      working-directory: ${{ github.action_path }}/..
+      env:
+        COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+      run: corepack pnpm install --frozen-lockfile --prod
+    - id: run
+      name: Fetch TestFlight screenshot
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        SRE_CONFIG: ${{ inputs.config }}
+        SRE_ISSUE: ${{ inputs.issue }}
+      run: node "$GITHUB_ACTION_PATH/../src/screenshots.ts" --issue "$SRE_ISSUE" --config "$SRE_CONFIG"
