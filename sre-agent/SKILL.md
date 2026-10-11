@@ -158,7 +158,10 @@ sources:
   (read-only is enough). Secrets `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` (the `.p8` file's
   contents) on the repo, passed as env to the triage step and the fix job's screenshot step.
 - **The fix job needs a Mac** for TestFlight issues: on `ubuntu-latest` Claude cannot run
-  `xcodebuild`, so it can only comment. Run the fix job on `macos-15` in iOS repos.
+  `xcodebuild`, so it can only comment. Run the fix job on `macos-15` in iOS repos, add
+  `Bash(xcodebuild:*),Bash(xcrun:*)` to `allowedTools`, boot the simulator and `build-for-testing`
+  before Claude, and pass `settings: '{"env":{"BASH_DEFAULT_TIMEOUT_MS":"900000"}}'` (the default
+  2-minute Bash timeout kills `xcodebuild test`). escuchame-monorepo's sre-agent.yml is the example.
 - **Near-real-time:** App Store Connect webhook → `asc-webhook/` Worker → `repository_dispatch:
   sre-agent`; the cron stays as the fallback. The Worker checks the `x-apple-signature` HMAC, accepts
   only repos in `ALLOWED_REPOS`, and dispatches on `betaFeedbackScreenshotSubmissionCreated` /
