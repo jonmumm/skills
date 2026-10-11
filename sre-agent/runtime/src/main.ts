@@ -41,7 +41,7 @@ export async function run({ configPath, dry, env, now, fetch = globalThis.fetch 
   let fixIssues: number[] = [];
   if (writes && api) {
     applied = await applyActions(api, actions, cfg.issueIntro);
-    fixIssues = await pickFixes(api, applied, cfg);
+    fixIssues = await pickFixes(api, applied, cfg, known);
   }
 
   if (writes && cfg.notify && repo && (applied.created.length || applied.reopened.length || fixIssues.length || sourceErrors.length)) {

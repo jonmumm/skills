@@ -62,10 +62,22 @@ export async function applyActions(api: IssueApi, actions: Action[], intro?: str
   return result;
 }
 
-/** Choose which new or regressed issues get a fix attempt, and label them so no run retries them. */
-export async function pickFixes(api: IssueApi, result: ApplyResult, cfg: Pick<Config, "autonomy" | "maxFixesPerRun">): Promise<number[]> {
+/**
+ * Choose which issues get a fix attempt, and label them so no run retries them: this run's new or regressed
+ * issues first, then open issues filed earlier that never had one (a run can file more than maxFixesPerRun).
+ */
+export async function pickFixes(
+  api: IssueApi,
+  result: ApplyResult,
+  cfg: Pick<Config, "autonomy" | "maxFixesPerRun">,
+  known: ReadonlyArray<Pick<KnownIssue, "number" | "state" | "labels">> = [],
+): Promise<number[]> {
   if (cfg.autonomy < 2 || cfg.maxFixesPerRun === 0) return [];
-  const candidates = [...result.created, ...result.reopened];
+  const backlog = known
+    .filter((k) => k.state === "open" && !k.labels.includes(FIX_LABEL))
+    .map((k) => k.number)
+    .sort((a, b) => a - b);
+  const candidates = [...new Set([...result.created, ...result.reopened, ...backlog])];
   if (candidates.length === 0) return [];
   const attempted = new Set((await api.listLabeled(FIX_LABEL)).map((i) => i.number));
   const picked = candidates.filter((n) => !attempted.has(n)).slice(0, cfg.maxFixesPerRun);

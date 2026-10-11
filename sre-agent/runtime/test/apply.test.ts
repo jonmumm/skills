@@ -178,6 +178,34 @@ describe("applyActions (labels and comments)", () => {
   });
 });
 
+describe("pickFixes (backlog)", () => {
+  const known = (number: number, state: "open" | "closed", labels: string[] = ["sre-agent"]) => ({ number, state, stateReason: null, labels, marker: { fingerprint: "f", count: 1, lastSeen: 0 } });
+
+  it("queues open issues that never had a fix attempt once this run's new ones are taken", async () => {
+    const { api, issues } = memoryApi([seeded(1, group(), "open"), seeded(8, group(), "open"), seeded(9, group(), "open")]);
+    const picked = await pickFixes(api, { created: [1], updated: [], reopened: [] }, { autonomy: 2, maxFixesPerRun: 2 }, [known(8, "open"), known(9, "open")]);
+    expect(picked).toEqual([1, 8]);
+    expect(issues.get(8)!.labels.map((l) => l.name)).toContain("sre-agent:fix-attempted");
+    expect(issues.get(9)!.labels.map((l) => l.name)).not.toContain("sre-agent:fix-attempted");
+  });
+
+  it("works through the backlog on a run that filed nothing new", async () => {
+    const { api } = memoryApi([seeded(8, group(), "open")]);
+    expect(await pickFixes(api, { created: [], updated: [8], reopened: [] }, { autonomy: 2, maxFixesPerRun: 1 }, [known(8, "open")])).toEqual([8]);
+  });
+
+  it("leaves closed and already-attempted backlog issues alone, oldest first otherwise", async () => {
+    const { api } = memoryApi([seeded(7, group(), "open"), seeded(9, group(), "open")]);
+    const backlog = [known(9, "open"), known(2, "closed"), known(3, "open", ["sre-agent", "sre-agent:fix-attempted"]), known(7, "open")];
+    expect(await pickFixes(api, { created: [], updated: [], reopened: [] }, { autonomy: 2, maxFixesPerRun: 1 }, backlog)).toEqual([7]);
+  });
+
+  it("does not queue a backlog issue twice when this run also updated it", async () => {
+    const { api } = memoryApi([seeded(8, group(), "open")]);
+    expect(await pickFixes(api, { created: [], updated: [], reopened: [8] }, { autonomy: 2, maxFixesPerRun: 3 }, [known(8, "open")])).toEqual([8]);
+  });
+});
+
 describe("pickFixes (edge cases)", () => {
   it("makes no GitHub calls when fix attempts are disabled", async () => {
     expect(await pickFixes(unreachableApi, { created: [1], updated: [], reopened: [] }, { autonomy: 2, maxFixesPerRun: 0 })).toEqual([]);

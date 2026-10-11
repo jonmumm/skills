@@ -100,4 +100,4 @@ jobs:
             Do not edit anything else under .github/, and do not change existing tests to make them pass.
           claude_args: |
             --max-turns 60
-            --allowedTools Read,Edit,Write,Glob,Grep,Bash(pnpm:*),Bash(node:*),Bash(git:*),Bash(gh issue view:*),Bash(gh issue comment:*),Bash(gh pr create:*)
+            --allowedTools "Read,Edit,Write,Glob,Grep,Bash(pnpm:*),Bash(node:*),Bash(git:*),Bash(gh issue view:*),Bash(gh issue comment:*),Bash(gh pr create:*)"
