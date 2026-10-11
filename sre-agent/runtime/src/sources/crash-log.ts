@@ -35,7 +35,8 @@ function parseText(lines: string[]): CrashLog {
 function textFrame(image: string, rest: string): Frame {
   const bare = rest.match(ADDRESS_ONLY);
   if (bare) return { image, symbol: `${image} + ${bare[1]}` };
-  const m = rest.match(/^(.*?) \+ \d+(?: \(([^():]+):(\d+)\))?$/);
+  // "(File.swift:88)" for app frames; "(:-1)" when there is no source file.
+  const m = rest.match(/^(.*?) \+ \d+(?: \(([^():]*):(-?\d+)\))?$/);
   if (!m) return { image, symbol: rest };
   return { image, symbol: m[1]!, ...(m[2] ? { file: m[2], line: Number(m[3]) } : {}) };
 }

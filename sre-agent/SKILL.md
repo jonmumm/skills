@@ -144,17 +144,19 @@ sources:
 - Each run re-reads `lookbackHours` (default 72), so a missed run loses nothing; reports already
   filed are skipped. At most `maxCrashLogs` (25) crash logs are read per run.
 - **Key:** App Store Connect → Users and Access → Integrations → Team Keys, role **Developer**
-  (read-only is enough). Secrets `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_PRIVATE_KEY` (the `.p8` file's
+  (read-only is enough). Secrets `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` (the `.p8` file's
   contents) on the repo, passed as env to the triage step.
 - **The fix job needs a Mac** for TestFlight issues: on `ubuntu-latest` Claude cannot run
   `xcodebuild`, so it can only comment. Run the fix job on `macos-15` in iOS repos.
-- **Near-real-time (optional):** `asc-webhook/` is a Worker that verifies App Store Connect's
-  `x-apple-signature` HMAC and fires `repository_dispatch: sre-agent` on
-  `betaFeedbackScreenshotSubmissionCreated` / `betaFeedbackCrashSubmissionCreated`. Deploy it with
-  secrets `ASC_WEBHOOK_SECRET` and `GITHUB_TOKEN` (fine-grained PAT, Contents read/write on the
-  allowed repos), add the repo to `ALLOWED_REPOS`, then register
-  `https://sre-asc-webhook.<subdomain>.workers.dev/asc/<owner>/<repo>` with `POST /v1/webhooks`
-  (Apple's docs state no role for it; if the Developer key gets 403, use an Admin key once).
+- **Near-real-time:** App Store Connect webhook → `asc-webhook/` Worker → `repository_dispatch:
+  sre-agent`; the cron stays as the fallback. The Worker checks the `x-apple-signature` HMAC, accepts
+  only repos in `ALLOWED_REPOS`, and dispatches on `betaFeedbackScreenshotSubmissionCreated` /
+  `betaFeedbackCrashSubmissionCreated`. Secrets: `ASC_WEBHOOK_SECRET` and one
+  `GITHUB_TOKEN_<OWNER>` per repo owner (fine-grained PAT, Contents read/write on that owner's
+  repos; a fine-grained token covers one owner), e.g. `GITHUB_TOKEN_JONMUMM`,
+  `GITHUB_TOKEN_OPEN_GAME_SYSTEM`. Then register each app once with
+  `node asc-webhook/scripts/register.ts --bundle-id … --repo owner/repo --worker https://sre-asc-webhook…`
+  (`--dry` first; it skips apps already pointing at that URL and sends a test ping).
 
 ## Log formats
 

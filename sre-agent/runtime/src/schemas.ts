@@ -54,7 +54,7 @@ const TestflightSource = z.object({
   keyIdEnv: z.string().default("ASC_KEY_ID"),
   issuerIdEnv: z.string().default("ASC_ISSUER_ID"),
   /** Contents of the App Store Connect API key's .p8 file (role Developer or above). */
-  privateKeyEnv: z.string().default("ASC_PRIVATE_KEY"),
+  privateKeyEnv: z.string().default("ASC_KEY_P8"),
 });
 
 export const Source = z.discriminatedUnion("type", [CloudflareSource, CommandSource, TestflightSource]);

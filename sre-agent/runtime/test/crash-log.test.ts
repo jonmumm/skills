@@ -175,5 +175,13 @@ describe("crashSignature (exact)", () => {
     const log = parseCrashLog(`{"app_name":"A"}\n${JSON.stringify({ faultingThread: 1, threads: [{ triggered: true, frames: [{ imageIndex: 0, symbol: "right" }] }, { frames: [{ imageIndex: 0, symbol: "wrong" }] }], usedImages: [{ name: "A" }] })}`);
     expect(log.frames).toEqual([{ image: "A", symbol: "right" }]);
   });
+
+  it("reads system frames that carry no source file, as App Store Connect sends them", () => {
+    const log = parseCrashLog("Process: opengameapp [1]\nThread 0 Crashed:\n0   Security   0x01 SSLWrite + 128 (:-1)\n1   opengameapp   0x02 -[GCKNSSLSocket performCrypto] + 40 (GCKNSSLSocket.m:310)\n");
+    expect(log.frames).toEqual([
+      { image: "Security", symbol: "SSLWrite" },
+      { image: "opengameapp", symbol: "-[GCKNSSLSocket performCrypto]", file: "GCKNSSLSocket.m", line: 310 },
+    ]);
+  });
 });
 

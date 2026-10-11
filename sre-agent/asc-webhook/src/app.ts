@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-export type Env = { ASC_WEBHOOK_SECRET: string; GITHUB_TOKEN: string; ALLOWED_REPOS: string };
+/** GITHUB_TOKEN_<OWNER> per repo owner (e.g. GITHUB_TOKEN_OPEN_GAME_SYSTEM): a fine-grained token covers one owner. */
+export type Env = { ASC_WEBHOOK_SECRET: string; ALLOWED_REPOS: string } & Record<string, string | undefined>;
+
+const tokenFor = (env: Env, repo: string) => env[`GITHUB_TOKEN_${repo.split("/")[0]!.toUpperCase().replace(/[^A-Z0-9]/g, "_")}`];
 type Fetch = (url: string, init?: RequestInit) => Promise<Response>;
 
 /** Events that mean new TestFlight feedback is waiting for sre-agent. */
@@ -36,9 +39,11 @@ export function createApp(env: Env, deps: { fetch: Fetch }) {
     const type = parsed.data.type;
     if (!FEEDBACK.has(type)) return new Response("ignored", { status: 200 });
 
+    const token = tokenFor(env, repo);
+    if (!token) return new Response("no GitHub token for this owner", { status: 500 });
     const res = await deps.fetch(`https://api.github.com/repos/${repo}/dispatches`, {
       method: "POST",
-      headers: { authorization: `Bearer ${env.GITHUB_TOKEN}`, accept: "application/vnd.github+json", "user-agent": "sre-asc-webhook", "content-type": "application/json" },
+      headers: { authorization: `Bearer ${token}`, accept: "application/vnd.github+json", "user-agent": "sre-asc-webhook", "content-type": "application/json" },
       body: JSON.stringify({ event_type: "sre-agent", client_payload: { source: "app-store-connect", event: type } }),
     });
     if (!res.ok) return new Response(`GitHub dispatch failed: ${res.status}`, { status: 502 });

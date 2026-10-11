@@ -271,4 +271,10 @@ describe("triage (fields of a single event)", () => {
     const { body } = renderIssue(group({ sampleFields: { stack } }), nextMarker(null, group()));
     expect(body).toContain("Stack locations: `ClipPlayer.swift:88`, `ListeningSession.swift:142`.");
   });
+
+  it("lists Objective-C stack locations too", () => {
+    const { body } = renderIssue(group({ sampleFields: { stack: "3 opengameapp -[GCKNSSLSocket performCrypto] (GCKNSSLSocket.m:310)" } }), nextMarker(null, group()));
+    expect(body).toContain("Stack locations: `GCKNSSLSocket.m:310`.");
+  });
 });
+

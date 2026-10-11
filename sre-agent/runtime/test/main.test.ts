@@ -208,7 +208,7 @@ describe("run (TestFlight source)", () => {
   const tf = (name: string) => readFileSync(new URL(`./fixtures/testflight/${name}`, import.meta.url), "utf8");
   const NOW_TF = Date.parse("2026-10-11T17:00:00.000Z");
   const { privateKey } = generateKeyPairSync("ec", { namedCurve: "P-256" });
-  const ascEnv = { ...env, ASC_KEY_ID: "K", ASC_ISSUER_ID: "I", ASC_PRIVATE_KEY: privateKey.export({ type: "pkcs8", format: "pem" }).toString() };
+  const ascEnv = { ...env, ASC_KEY_ID: "K", ASC_ISSUER_ID: "I", ASC_KEY_P8: privateKey.export({ type: "pkcs8", format: "pem" }).toString() };
   const config = "autonomy: 1\nsources:\n  - type: testflight\n    bundleId: com.escuchame\n    service: escuchame-ios\n";
 
   function fakeAscAndGitHub() {

@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 import { createApp, verifySignature } from "../src/app.ts";
 
 const SECRET = "webhook-secret";
-const env = { ASC_WEBHOOK_SECRET: SECRET, GITHUB_TOKEN: "gh-token", ALLOWED_REPOS: "jonmumm/escuchame-monorepo,open-game-system/rocket-crew" };
+const env = {
+  ASC_WEBHOOK_SECRET: SECRET,
+  GITHUB_TOKEN_JONMUMM: "gh-token",
+  GITHUB_TOKEN_OPEN_GAME_SYSTEM: "ogs-token",
+  ALLOWED_REPOS: "jonmumm/escuchame-monorepo, open-game-system/open-game-system",
+};
 
 async function sign(secret: string, body: string) {
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
@@ -96,4 +101,18 @@ describe("POST /asc/:owner/:repo", () => {
     expect((await app(new Request("https://hook.example/asc/jonmumm/escuchame-monorepo"))).status).toBe(404);
     expect((await app(await post("/other", "{}"))).status).toBe(404);
   });
+
+  it("uses the token for the repo's owner, since a fine-grained token covers one owner", async () => {
+    const { app, dispatched } = harness();
+    const body = event("betaFeedbackCrashSubmissionCreated");
+    expect((await app(await post("/asc/open-game-system/open-game-system", body, await sign(SECRET, body)))).status).toBe(202);
+    expect(dispatched[0]).toMatchObject({ url: "https://api.github.com/repos/open-game-system/open-game-system/dispatches", auth: "Bearer ogs-token" });
+  });
+
+  it("returns 500 when the owner's token is not set", async () => {
+    const app = createApp({ ...env, ALLOWED_REPOS: "someone/repo" }, { fetch: async () => new Response(null, { status: 204 }) });
+    const body = event("betaFeedbackCrashSubmissionCreated");
+    expect((await app(await post("/asc/someone/repo", body, await sign(SECRET, body)))).status).toBe(500);
+  });
 });
+

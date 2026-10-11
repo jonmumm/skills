@@ -84,7 +84,7 @@ describe("testflight source", () => {
       maxCrashLogs: 25,
       keyIdEnv: "ASC_KEY_ID",
       issuerIdEnv: "ASC_ISSUER_ID",
-      privateKeyEnv: "ASC_PRIVATE_KEY",
+      privateKeyEnv: "ASC_KEY_P8",
     });
   });
 
