@@ -91,7 +91,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           ISSUE: ${{ matrix.issue }}
           ARTIFACT_URL: ${{ steps.keep.outputs.artifact-url }}
-        run: gh issue comment "$ISSUE" --body "sre-agent saved this report's TestFlight screenshot (fetched from App Store Connect) for 90 days: $ARTIFACT_URL"
+        run: |
+          gh issue comment "$ISSUE" --body "sre-agent saved this report's TestFlight screenshot (fetched from App Store Connect) for 90 days: $ARTIFACT_URL"
       - uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
