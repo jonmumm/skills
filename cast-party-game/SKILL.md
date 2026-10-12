@@ -352,3 +352,29 @@ down. Give every family game an optional **toddler seat** from day one:
   renderer's Chrome isn't verified to decode AAC, `decodeAudioData` fails and the narrator is silently
   skipped on the TV. Give the TV a small "no sound" marker when its AudioContext isn't running or its
   clock doesn't advance, so a silent game can be told apart from a silent stream.
+
+## Lessons from Settlewood (Oct 2026)
+
+- **The TV is the table's clock.** Phones that update instantly spoil the TV: the roll result, a
+  steal or "Ana wins!" reached the phones 1–8 s before the TV animated them. The TV reports each batch
+  it has finished showing (`{type:'SHOWN', batch}` on its socket); phones show the game as of that
+  batch (offers, notices, seats stay live), except their own action (instant). Two traps:
+  - **Only move forward:** keep a floor of the newest batch the phone has shown, or a bot's beat
+    after your own action rewinds the phone ("Your turn" → "Ana to roll" → "Your turn", stale Roll
+    buttons that toast "not your turn").
+  - **The win waits even for the winner**, and the hold cap must exceed the longest TV beat (the win
+    dolly + celebration ran ~8.6 s; a 6 s cap released the phones early).
+- **Stitched session videos need a shared clock.** Separate Playwright recordings drift by seconds;
+  a critic graded "phones 5 s ahead" from a stitching offset. Flash every page white at the same
+  instant (from black: pages open white) and trim each clip at its detected flash
+  (`settlewood/scripts/record.mjs`).
+- **A toast at the bottom covers the action bar.** A refusal toast over End turn blocked the turn for
+  3 s per notice (found by a chaos run). Toasts go top, `pointer-events: none`, and not on the win screen.
+- **One action at a time from a phone**: drop a second ACT until the room answers (a double-tapped
+  Roll sent twice and toasted an error).
+- **The harshness detector is level-based**: content above 6 kHz crossing −30 dB. A surf/wind bed
+  hovering there read as 100–150 "clicks" per 10 s; low-pass the ambience bed at 4–5 kHz, the effects
+  bus around 6.5 kHz, keep birds under 3 kHz, and duck the bed a few dB (not 8) under events.
+- **Chaos tests find real bugs, but the chaos player must act like a person**: tap inside an open
+  sheet first, fill an owed discard, close stray sheets, end the turn after 15 s; otherwise it reports
+  "stalls" that are its own dithering (`settlewood/e2e/chaos.seam.test.ts`).
