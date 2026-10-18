@@ -204,6 +204,22 @@ polish.
 - **Read a child's verdict JSON from its `--out` file, not stdout**: piped stdout is cut at 64 KB on
   `process.exit`.
 
+- **A row stuck through polish passes is structural** (Midnight Museum, Phone UI 5 for three rounds while
+  every named defect was fixed: each critic found new emptiness). The pivot that moved it changed the
+  staging model ("the phone IS the case board": the lineup fills ≥ 55% of an upright phone, actions are
+  equal cards in the bottom band), not the polish.
+- **Never animate scale or position on a button the e2e driver taps**: Playwright's click waits for the
+  element to stop moving, so a pulsing card hangs the seam test. Pulse brightness or glow instead.
+- **Script the shortest path to each check screen.** A setup that lets the bot play until a state happens
+  ("until the kid gets an uncover turn") ran ~10 min and crashed the rig's browser twice.
+- **Shared Mac, shared GPU.** Other sessions' rigs push the load to 50–230 and stall screenshots, the
+  recorder's freeze/pop-in counters and timings. Log `uptime` with every round, tell the critic which
+  counters are contaminated, and measure TV stillness on the TV panel alone (freezedetect on a crop): the
+  stitched video's freeze count is mostly phones holding still by design.
+- **Add a stranger row for public try paths** ("First 5 minutes, no app"): a `first5` script that opens the
+  link on a laptop, opens it once on a phone, then joins every device by the QR and plays at a family's
+  pace, shot every few seconds with each screen's text. It found the missing pitch, the unlabelled role
+  picker and the clipped landscape cards that gameplay rounds never showed.
 - **Never rebuild a session video from truncated recordings.** When a round times out, check every
   per-screen recording's duration first (`ffprobe`); one that ends early makes the round invalid. Padding
   it with its last frame (Bobberbrook round 21) handed the critic 330 s of freeze-frame as "evidence".
