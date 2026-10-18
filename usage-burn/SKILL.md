@@ -104,7 +104,10 @@ Each time a session ends a turn:
 
 **While Jon sleeps**, wakes from sessions can stall. Schedule them yourself with `CronCreate`:
 an hourly recurring check-in (off the hour, for example `17 * * * *`) that runs this step, plus a
-one-shot about 2 hours before the reset that runs step 6. Both are session-only and die if the
+one-shot about 2 hours before the reset that runs step 6. A cron-fired turn **cannot start new
+sessions** (the app refuses them). To add capacity overnight, give a finished, idle session a new
+task with `SendMessage` and have it make its own worktree in the target repo. Before bed, start one
+spare session for this if none is likely to finish. Both are session-only and die if the
 app quits. Anything that needs Jon (posts, repos, production deploys, paid spend) goes in
 `~/.claude/usage-burn/morning.md` instead of being done.
 
