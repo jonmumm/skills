@@ -86,6 +86,10 @@ are whole percents, so space them at least 30 minutes apart.
 
 Each time a session ends a turn:
 
+0. **Detect dead sessions:** if several sessions went idle at the same moment, read their last event
+   (`list_events`, limit 4). `exited with code 143` means they were SIGTERMed (on 2026-10-18 the app
+   restarted at 23:04). Resume each one with a message: run git status, commit any work worth keeping,
+   and restart any background jobs that died. Skip adding sessions that hour.
 1. Sample usage and log it. Compute the burn rate from the last two samples and project weekly % at reset.
 2. **Check the work, not the report:** run `git log` on its branch. Report only commits that exist.
 3. Route the outputs: research becomes briefs for builders (`SendMessage` to the owning
