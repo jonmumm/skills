@@ -55,7 +55,11 @@ pick needs his money, his login or a public post.
 - **Git identity:** run `git config user.email` in each repo. A placeholder like `ai@example.com`
   means every commit gets the wrong author. Flag it; don't change global config without asking.
 - **Remote:** if a repo has no `origin`, its commits are the only backup. Say so in the brief.
-- **Keep awake:** local sessions stop when the Mac sleeps. Call `mcp__ccd_host__request_keep_awake`.
+- **Right target:** before hardening a library "every game uses", check what the consumers
+  actually pin. Tonight the games pinned npm `actor-kit@0.52.6` plus a patch, while the session
+  hardened `actor-kit-2`, so none of its fixes reached them.
+- **Keep awake:** local sessions stop when the Mac sleeps. Call `mcp__ccd_host__request_keep_awake`
+  with `until: "session_idle"`. Tell Jon to leave the lid open and the app running.
 - **Paid services:** briefs repeat the rules: Codex images first, `--dry` before paid
   calls, never raise caps, stop on "usage limit" or "exhausted balance".
 
@@ -70,7 +74,13 @@ Start one session per independent piece (`start_session`, `initiation: "user_ask
 - a fixed status line at the end of each turn (done / in progress / blocked plus the exact command Jon must run)
 - the money and taste rules from `~/.claude/CLAUDE.md`
 
-Start with about one session per 1.5% of target pace, then calibrate from samples.
+**One owner per repo.** When Jon adds work in a repo that already has a session, send that
+session the new phases in order with `SendMessage`. Don't start a second writer there.
+
+**Sizing:** on 2026-10-18, 7 Opus sessions burned about 2.4% of the weekly limit and about 7% of
+the 5-hour window per hour, which is roughly 0.35% weekly per session-hour. Divide the target
+pace by that to get a starting session count, then recalibrate from your own samples. Readings
+are whole percents, so space them at least 30 minutes apart.
 
 ## 5. Steer on every wake
 
@@ -85,6 +95,14 @@ Each time a session ends a turn:
    - projected above 100% before reset: pause the lowest-ranked session
    - 5-hour window above 85%: add nothing until it resets
 5. A finished session gets its next piece or gets archived. Never leave a session idle while the projection is below target.
+6. **Peer requests that change existing tests or shared defaults go to Jon.** Tell the session
+   to hold, ask Jon as one question with the session's recommendation, then pass his answer on in his own words.
+
+**While Jon sleeps**, wakes from sessions can stall. Schedule them yourself with `CronCreate`:
+an hourly recurring check-in (off the hour, for example `17 * * * *`) that runs this step, plus a
+one-shot about 2 hours before the reset that runs step 6. Both are session-only and die if the
+app quits. Anything that needs Jon (posts, repos, production deploys, paid spend) goes in
+`~/.claude/usage-burn/morning.md` instead of being done.
 
 ## 6. Land it
 
