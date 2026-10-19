@@ -54,7 +54,8 @@ const within = (l: Span, r: Span) => before(r.start, l.start) && before(l.end, r
 const toSpan = (l: SourceLocation): Span => ({ start: { line: l.start.line, column: l.start.column }, end: { line: l.end.line, column: l.end.column } });
 
 export function crapRows(file: string, source: string, coverage: FileCoverage): CrapRow[] {
-  const ast = parse(source, { sourceType: "module", plugins: ["typescript", "jsx"] });
+  // JSX only in .tsx/.jsx: in a .ts file `<T>(x) =>` is a generic arrow, which the jsx plugin misreads as a tag.
+  const ast = parse(source, { sourceType: "module", plugins: /\.[jt]sx$/.test(file) ? ["typescript", "jsx"] : ["typescript"] });
   const stmts = Object.entries(coverage.statementMap).map(([id, loc]) => ({ loc, hit: (coverage.s[id] ?? 0) > 0 }));
   const rows: CrapRow[] = [];
   traverse(ast, {

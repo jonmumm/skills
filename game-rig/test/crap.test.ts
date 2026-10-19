@@ -28,3 +28,15 @@ describe("CRAP from a Babel AST + v8 statement coverage", () => {
     expect(rows[0]?.name).toBe("grade"); // worst first
   });
 });
+
+describe("file kinds", () => {
+  const generic = "export const first = <T>(xs: T[]): T | undefined => xs[0];\n";
+  const cov = { statementMap: { "0": { start: { line: 1, column: 52 }, end: { line: 1, column: 57 } } }, s: { "0": 1 } };
+  test("a .ts file with a generic arrow parses (no JSX in .ts)", () => {
+    expect(crapRows("first.ts", generic, cov).find((r) => r.name === "first")?.cc).toBe(1);
+  });
+  test("a .tsx file still parses JSX", () => {
+    const tsx = "export const View = (p: { n: number }) => <b>{p.n > 1 ? p.n : 0}</b>;\n";
+    expect(crapRows("view.tsx", tsx, { statementMap: {}, s: {} }).find((r) => r.name === "View")?.cc).toBe(2);
+  });
+});
