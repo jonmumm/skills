@@ -49,7 +49,11 @@ numbers (frame-time p95, shader programs flat, input latency).
 
 | Round | Art | Illus | Env | … | Perf | Min | Changed |
 |---|---|---|---|---|---|---|---|
-| 00 | 5 | 5 | 4 | … | 7 | 4 | baseline (previous build graded at AAA) |
+| spread | 1 | 2 | 1 | … | 0 | — | max − min of 3 critics on round 00's evidence |
+| 00 | 5 | 5 | 4 | … | 7 | 4 | baseline (previous build graded at AAA; median of 3) |
+
+The spread row is measured once, at round 00: a row only moved when the change beats it. A row
+with spread ≥ 2 gets split into yes/no checks with a cap before round 01.
 
 One row per round, appended by the main loop from the critic's log row. The "Changed" cell says
 what the pass did and the critic's largest remaining gaps, so the log reads as a story.

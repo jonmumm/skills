@@ -96,6 +96,12 @@ names, timestamps), names the single largest gap, ranks its top 6 fixes by score
 writes a log row. Then **merge**: findings both critics name come first; product beats polish
 when they disagree on priority; take the lower score when they disagree by ≥ 2 and note it.
 
+**At round 00, measure the noise floor**: run each critic prompt three times fresh on the same
+evidence, write each row's spread into the scorecard, split rows with spread ≥ 2 into yes/no
+checks, and check the critics against `critic/golden.md` (variants the user already chose
+between). Details in `hillclimb` Step 1. Keep a held-out scenario set shot only at round 00 and
+at hand-off.
+
 Don't reuse a critic, and don't argue with one. A critic that misreads evidence means the
 evidence is unclear: fix the evidence (labels, a missing state, a shot that's frozen mid-fade).
 
@@ -116,8 +122,8 @@ minimum where it was.
   "commit after each step", "re-shoot and look at the shots with the Read tool after each step",
   a budget, and a final report (changes per step, best shots, thresholds moved old → new, what
   wasn't achieved).
-- **Keep or revert each step** against the shots it names, logged in `critic/decisions.tsv`
-  (`aaa-hillclimb` Step 3).
+- **Keep or revert each step** by a fresh critic's blind A/B on the shots it names (never the
+  fix owner's own judgement), logged in `critic/decisions.tsv` (`aaa-hillclimb` Step 3).
 - Use the impeccable skills as targeted tools when a row calls for them: `/clarify` (copy,
   labels), `/distill` (overloaded screens), `/arrange` (layout rhythm), `/typeset` (type),
   `/animate` (transitions that explain), `/harden` (edge states), `/onboard` (first run),
@@ -150,7 +156,8 @@ Write `BRIEFING.md` (two-minute read) and fill in the case study.
 - **Taps-per-flow drift.** Count taps in the flow bot (each `click` is a tap) and log them; a
   "simplification" that adds a confirm step shows up as a number.
 - **Critic variance.** Fresh critics rediscover and sometimes miss. Judge by the minimum and the
-  trend, not a single row's wobble.
+  trend, not a single row's wobble, and never call a move smaller than the row's round-00 spread
+  progress.
 - **Concept bleed.** Concept agents that can see each other's folders converge. Give each its own
   folder and tell it not to read the others.
 - **Shared dev server rebuilds.** Two agents editing while a round shoots contaminate shots.

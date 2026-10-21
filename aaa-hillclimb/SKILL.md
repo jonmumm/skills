@@ -40,7 +40,10 @@ Old scorecards drift toward "good for us". Write a new one, `critic/aaa/SCORECAR
 `references/scorecard-aaa.md`: named references as the 10 (e.g. Paper Mario, Tearaway, Yoshi's
 Crafted World for papercraft), an **anchor for 6, 8 and 10 on every row**, and the sentence
 "8 = a first-party art director would sign off shipping it". Then grade the *current* build with
-a fresh critic. Expect previous 7s and 8s to land at 4–6. That drop is the point.
+**three** fresh critics on the same evidence. Expect previous 7s and 8s to land at 4–6. That drop
+is the point. The three also give each row's **spread** (max − min): write it into the scorecard.
+A later round only moved a row if the change beats its spread; a row with spread ≥ 2 gets split
+into yes/no checks with a cap, like Onboarding's "explain three outcomes" (`hillclimb` Step 1).
 
 **Rows come from the game, not from Story Nook.** Write the game's audience (kids / family /
 adults) at the top of the scorecard and pick rows for it: kid-UX and "Calm (bedtime)" rows only
@@ -54,7 +57,9 @@ the user already liked**, each with a shot. The critic reads it and any round th
 or loses a liked thing is reverted, whatever it scored. Rocket Crew's critic added faces to the
 rockets and made the planets "look less like real planets"; both had been liked or vetoed.
 A redesign of an existing game always keeps the pre-climb look as option 1 (Trivia Jam: "I kind
-of like the existing one the best").
+of like the existing one the best"). Turn each of those into a **golden pair** in
+`critic/golden.md` (the shot the user preferred vs the one they didn't); round 00's critics must
+pick the user's side on most of them, or the scorecard is missing the user's taste.
 
 **Read the baseline's largest gap literally.** If the critic says "the art itself is the
 ceiling", no amount of lighting or shaders will fix it: change the asset pipeline first
@@ -78,6 +83,10 @@ The critic only sees evidence, so evidence is the product. Build `scripts/round.
 3. **Phone strip / phones sheet**: every phone state at CSS scale.
 4. **Perf JSON** (p50/p95/p99 frame times, programs at start vs end, input latency).
 5. **Audio report + spectrogram** per section (loudness, low/treble share, harsh transients).
+
+**Held-out run:** `round.sh` also takes a second seed/scenario, shot at round 00 and at hand-off
+only and never shown to critics in between. Every family playtest note becomes a scenario hook
+in it ("start from the planet we landed on"), so real failures stay in the evidence for good.
 
 Commit each round's evidence under `critic/rounds/NN/`. Open the session video for the user
 at each round: they will want to watch it, and their reaction outranks the scorecard.
@@ -117,9 +126,10 @@ misreads evidence, fix the evidence (see Gotchas), not the critic.
   what wasn't achieved.
 - Relay user-facing trade-offs (moved brightness targets, behaviour changes) to the user in
   plain words. Tests that pin behaviour stay; fold new content into existing structure instead.
-- **Keep or revert, one step at a time.** After each numbered step, re-shoot the shots it names.
-  Keep the step only if those shots improved and nothing else regressed; otherwise revert it in
-  full ("might help" is not kept). Log one row per step in `critic/decisions.tsv`
+- **Keep or revert, one step at a time.** After each numbered step, re-shoot the shots it names
+  and give before/after to a **fresh critic as a blind A/B** (random order, no diff, no author
+  notes). The fixing agent never decides. Keep the step only if the critic prefers "after" and
+  nothing else regressed; otherwise revert it in full ("might help" is not kept). Log one row per step in `critic/decisions.tsv`
   (`round, step, hypothesis, shots, before, after, verdict, commit`), kept or reverted. Read it
   before planning the next round so reverted ideas aren't retried blind.
 
@@ -165,7 +175,10 @@ polish.
 - **Secrets live in ~/.zshenv**, so every shell has them (no `source ~/.zshrc` or `zsh -ic` needed); never printed or logged.
 - **Long rounds.** A full round can exceed a 10-minute tool timeout: run it in the background.
 - **Critic variance.** Fresh critics re-discover issues and sometimes miss fixed ones. Judge
-  progress by the minimum and the trend over rounds, not a single row's wobble.
+  progress by the minimum and the trend over rounds, not a single row's wobble. With one critic
+  per round, a 1-point step (Story Nook's 4 → 5 → 6) is inside the typical spread: on the row
+  that sets the minimum, use 3–4 critics and take the median before calling it progress or a
+  plateau.
 - **Server timing vs TV staging.** When the TV adds a cinematic beat (a cloud punch-through at
   liftoff), the phones still follow the server clock: the Captain read problem 1 while the TV was
   a white screen. Hold visuals on the TV *and* move the server beat (Rocket Crew: countdown 4 → 6.5 s).
