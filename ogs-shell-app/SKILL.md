@@ -68,7 +68,7 @@ What the game is made of (copy these patterns when writing the real game):
 checks `/healthz`. Then `GAME_ORIGIN=<url> pnpm smoke` plays a round against the deploy.
 Production is `pnpm run deploy`; ask before deploying anything that isn't a preview.
 
-## 3. The app in the iOS Simulator, TV on the external display (≈10–15 min, mostly xcodebuild)
+## 3. The app in the iOS Simulator, TV on the external display (≈3–6 min, mostly xcodebuild)
 
 ```bash
 cd app && pnpm install && pnpm e2e:ios
@@ -97,15 +97,19 @@ All tiers load the OGS TV launcher with `chrome=none&app=<appId>` in an own app;
 couch session's current game (or else the catalogue `tvUrl`) and sends `ogs:start` /
 `ogs:suspend` / `ogs:resume`.
 
-**Known gap, found by the Kite Count proof (2026-10-25):** the shell's single-game cast ignores the
-page's `SET_VIEW_URL` (`packages/shell/src/single-cast.ts`) and never sends `game.start` /
-`game.view` to the couch session, so the launcher has no current game and an uncatalogued app
-has no `tvUrl`: the AirPlay display keeps the native idle card ("Pick a game on your phone…")
-while the phone says "On Apple TV / AirPlay". A room game needs the shell to forward the declared
-view (as `apps/mobile/services/game-cast-route.ts` does in the OGS app) plus a catalogue entry.
-Also seen: the TV window stays 720×480 after `screen.pick_mode` picks 1920×1080 (native log,
-`xcrun simctl spawn <udid> log show --info --predicate 'category == "airplay"'`). Check whether
-both are fixed before promising a TV in an own app.
+**The own-app TV gap (found by the Kite Count proof, 2026-10-25), fixed in OGS PR #57, awaiting
+Jon:** the shell's single-game cast ignored the page's `SET_VIEW_URL`, so the `chrome=none`
+launcher had no current game and an uncatalogued app had no `tvUrl`: the AirPlay display kept the
+native idle card. PR #57 forwards the declared view to the couch session (`game.start` +
+`game.view`, `packages/shell/src/couch-link.ts`, as `apps/mobile/services/game-cast-route.ts`
+does) and fits the TV window to a 1080p display. Check the PR is merged (and the vendored shell
+repacked) before promising a TV in an own app. Debug the TV with the native log:
+`xcrun simctl spawn <udid> log show --info --predicate 'category == "airplay"'` (`tv_webview.start
+url=ogs-tv.pages.dev/` means the launcher loaded).
+
+Simulator builds must be **signed to run locally** (no `CODE_SIGNING_ALLOWED=NO`): unsigned, the
+app has no keychain, expo-secure-store can't keep the OGS identity, and the cast never gets a
+launcher token (`KeychainA required entitlement isn't present` in the JS log).
 
 ## 5. TV performance budget (the phone draws the TV)
 
