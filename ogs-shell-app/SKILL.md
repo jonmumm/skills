@@ -79,7 +79,11 @@ cd app && pnpm install && pnpm e2e:ios
 with Screen Mirroring; needs Accessibility access for the terminal) → Maestro: name → lobby → Show
 on TV → `castPickerDevice-airplay` → Start. Screenshots (`xcrun simctl io <udid> screenshot
 --display=external`) and `timings.txt` land in `app/e2e/out/`. Look at the TV screenshots before
-saying it works. `SKIP_BUILD=1` reruns the walk on the last build.
+saying it works. `SKIP_BUILD=1` reruns the walk on the last build. **Take videos liberally**:
+`pnpm e2e:record` (after `e2e:ios`) films phone and TV side by side into `recordings/<time>/` with
+one clip per milestone; `open` it. simctl allows only one host recording at a time, so the TV is
+`recordVideo --display=external` and the phone a screenshot loop; a killed recorder leaves
+"Host recording is already in progress" until the simulator is shut down and booted again.
 
 Gotchas seen: `pod install` dies on a non-UTF-8 locale and `expo prebuild` still exits 0 (the
 script exports `LANG` and checks for the workspace); a seam test that sends two JOINs at once makes
