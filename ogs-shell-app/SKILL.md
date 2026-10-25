@@ -94,7 +94,18 @@ the wrong phone host over a real network (wait for each join).
 | Browser TV (`ogs-tv.pages.dev` + code) | that browser | works |
 
 All tiers load the OGS TV launcher with `chrome=none&app=<appId>` in an own app; it frames the
-game's declared view and sends `ogs:start` / `ogs:suspend` / `ogs:resume`.
+couch session's current game (or else the catalogue `tvUrl`) and sends `ogs:start` /
+`ogs:suspend` / `ogs:resume`.
+
+**Known gap, found by the Kite Count proof (2026-10-25):** the shell's single-game cast ignores the
+page's `SET_VIEW_URL` (`packages/shell/src/single-cast.ts`) and never sends `game.start` /
+`game.view` to the couch session, so the launcher has no current game and an uncatalogued app
+has no `tvUrl`: the AirPlay display keeps the native idle card ("Pick a game on your phone…")
+while the phone says "On Apple TV / AirPlay". A room game needs the shell to forward the declared
+view (as `apps/mobile/services/game-cast-route.ts` does in the OGS app) plus a catalogue entry.
+Also seen: the TV window stays 720×480 after `screen.pick_mode` picks 1920×1080 (native log,
+`xcrun simctl spawn <udid> log show --info --predicate 'category == "airplay"'`). Check whether
+both are fixed before promising a TV in an own app.
 
 ## 5. TV performance budget (the phone draws the TV)
 
