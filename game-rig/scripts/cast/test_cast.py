@@ -94,6 +94,27 @@ class CastTests(unittest.TestCase):
         self.assertEqual([m["type"] for m in ctrl.sent[:2]], ["GET_STATE", "LOAD_VIEW"])
         self.assertEqual(cast.quit_calls, 1)
 
+    def test_app_id_defaults_to_the_ogs_receiver(self):
+        self.assertEqual(castlib.parse_args(["launch"]).app_id, "807AD5E9")
+        self.assertEqual(castlib.parse_args(["launch", "--app-id", "1A2B3C4D"]).app_id, "1A2B3C4D")
+
+    def test_a_dev_receiver_renders_locally_so_its_view_is_free(self):
+        # A dev Cast app (the local-render receiver, ADR 2026-10-25-cast-local-render) draws the page
+        # on the device: LOAD_VIEW {viewUrl, apiUrl}, no stream server, no --confirm-paid.
+        args = castlib.parse_args(["launch", "--app-id", "1A2B3C4D", "--view", "https://ogs-tv.pages.dev/?fake=1", "--api", "https://api.example"])
+        self.assertEqual(castlib.view_message(args), {"type": "LOAD_VIEW", "viewUrl": "https://ogs-tv.pages.dev/?fake=1", "apiUrl": "https://api.example"})
+        args = castlib.parse_args(["launch", "--app-id", "1A2B3C4D", "--view", "https://ogs-tv.pages.dev/?fake=1"])
+        self.assertEqual(castlib.view_message(args), {"type": "LOAD_VIEW", "viewUrl": "https://ogs-tv.pages.dev/?fake=1"})
+
+    def test_a_local_view_is_sent_after_get_state_and_still_times_out(self):
+        code, cast, ctrl, _, _ = run(["launch", "--app-id", "1A2B3C4D", "--view", "https://t/?fake=1", "--minutes", "1"])
+        self.assertEqual([m["type"] for m in ctrl.sent[:2]], ["GET_STATE", "LOAD_VIEW"])
+        self.assertEqual(cast.quit_calls, 1)
+
+    def test_app_id_must_look_like_a_cast_app_id(self):
+        with self.assertRaises(SystemExit):
+            castlib.parse_args(["launch", "--app-id", "not-an-id"])
+
     def test_minutes_has_a_ceiling(self):
         with self.assertRaises(SystemExit):
             castlib.parse_args(["launch", "--minutes", "500"])

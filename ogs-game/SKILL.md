@@ -51,7 +51,19 @@ Work test-first (`/tdd`); commit at each green step.
      `night-flight-owls/src/client/audio-pause.ts` (`createAudioPause`): it also keeps a sound
      unlocked while parked silent until Continue.
    - Want the couch's names on the TV? `useOgsSession()` (`profile-kit/react`) gives
-     `{ players, token, instanceId, mode }`, `null` when not on an OGS TV.
+     `{ players, token, instanceId, mode, tier? }`, `null` when not on an OGS TV.
+   - **Honour the render tier** (`ogs:start` `tier`, `useOgsSession()?.tier`; spec "Render tiers").
+     The TV renders the game itself (no cloud GPU), and a Chromecast is weak. Read it once at start:
+     - `full` or absent (browser TV, Apple TV via iPhone, Google TV Streamer): 3D at 1080p, post
+       passes, shadows, every particle; 60 fps.
+     - `lite` (Chromecast with Google TV, Ultra, Nest Hub): 3D at 1280×720 (`setPixelRatio` so the
+       drawing buffer is ≤ 720p), no EffectComposer passes, baked/blob shadows, ¼ particles,
+       textures ≤ 1024 px, fixed light count, shaders prewarmed; cap at a steady 30 fps.
+     - `minimal` (Chromecast 1st–3rd gen, no WebGL or software GL): no WebGL; 2D canvas or DOM/CSS
+       with the art kit's pre-rendered art, transforms and opacity only; 30 fps.
+     Same rules, screens and sound at every tier. Test each with the launcher's fake couch and
+     `?tier=`: frame the TV page from a parent page posting `ogs:start` with each `tier` (seam test),
+     and watch `receiver.fps` in the client log on a real Chromecast.
    - Report the sitting label: `reportOgsSitting({ instanceId, appId, status, title: "Mission 6" })`
      whenever it changes. Same call on the phone (goes over the app bridge).
    - On an OGS TV: no cast button, no room code, no join QR; nothing over the focal area.
@@ -96,7 +108,8 @@ Then go through the checklist.
 
 ## Done when
 
-- Seam tests above pass; the game still plays end to end in a plain browser.
+- Seam tests above pass (including `ogs:start` with `tier: "lite"` and `"minimal"`); the game still
+  plays end to end in a plain browser.
 - In the OGS app: no name form, the TV shows the couch's names, Home silences the TV, Continue brings
   it back with sound, Playing shows the sitting label.
 - Say which it is: committed / deployed / verified on a real device.

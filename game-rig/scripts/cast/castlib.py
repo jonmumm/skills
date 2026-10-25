@@ -11,10 +11,15 @@ Modes:
                                stdin  {"send": {...}} to the receiver, or {"quit": true}; EOF = quit.
   stop                       Stop whatever app the device is showing.
 
-The first message is always GET_STATE: a receiver that hears nothing for 8 s starts its default
-CLOUD view, which bills a GPU stream. LOAD_VIEW (cloud rendering, ~$1.4/h) is only sent with
---view URL --stream-server URL --confirm-paid.
+The first message is always GET_STATE: an older receiver that hears nothing for 8 s starts its
+default CLOUD view, which bills a GPU stream. On the OGS receiver (807AD5E9) LOAD_VIEW is only sent
+with --view URL --stream-server URL --confirm-paid until the local-render receiver is deployed there.
+
+--app-id <ID> launches another Cast app, e.g. a dev registration of the local-render receiver
+(apps/tv/receiver.html, ADR 2026-10-25-cast-local-render in open-game-system). It draws the page on
+the device, so `--view URL [--api URL]` sends LOAD_VIEW {viewUrl, apiUrl}: free, no stream server.
 """
+import re
 import argparse
 import json
 import queue
@@ -25,6 +30,7 @@ import time
 
 NAMESPACE = "urn:x-cast:org.opengame.view"
 APP_ID = "807AD5E9"
+APP_ID_RE = re.compile(r"^[0-9A-F]{8}$")
 MAX_MINUTES = 180
 STATE_EVERY_S = 10
 
@@ -35,13 +41,18 @@ def parse_args(argv):
     p.add_argument("--device", default="Chromecast HD", help="friendly name (default: Chromecast HD)")
     p.add_argument("--minutes", type=float, default=10, help=f"stop the receiver after this long (default 10, max {MAX_MINUTES})")
     p.add_argument("--keep", action="store_true", help="no time limit (still stopped on exit)")
-    p.add_argument("--view", help="TV page for the CLOUD path (LOAD_VIEW); needs --stream-server and --confirm-paid")
+    p.add_argument("--app-id", default=APP_ID, help=f"Cast app to launch (default {APP_ID}, the OGS receiver)")
+    p.add_argument("--view", help="TV page (LOAD_VIEW). On 807AD5E9: the CLOUD path, needs --stream-server and --confirm-paid. With another --app-id (a local-render receiver): free")
+    p.add_argument("--api", help="OGS API the receiver logs to (LOAD_VIEW apiUrl), local view only")
     p.add_argument("--stream-server", help="OGS stream server for --view")
     p.add_argument("--confirm-paid", action="store_true", help="I know --view starts a billed GPU stream")
     args = p.parse_args(argv)
     if args.minutes <= 0 or args.minutes > MAX_MINUTES:
         p.error(f"--minutes must be in (0, {MAX_MINUTES}]")
-    if args.view and not (args.stream_server and args.confirm_paid):
+    args.app_id = args.app_id.upper()
+    if not APP_ID_RE.match(args.app_id):
+        p.error("--app-id is 8 hex digits (the Cast SDK Developer Console's Application ID)")
+    if args.view and args.app_id == APP_ID and not (args.stream_server and args.confirm_paid):
         p.error("--view renders on the cloud GPU (billed): pass --stream-server URL and --confirm-paid")
     return args
 
@@ -49,6 +60,11 @@ def parse_args(argv):
 def view_message(args):
     if not args.view:
         return None
+    if args.app_id != APP_ID:
+        msg = {"type": "LOAD_VIEW", "viewUrl": args.view}
+        if args.api:
+            msg["apiUrl"] = args.api
+        return msg
     return {"type": "LOAD_VIEW", "viewUrl": args.view, "streamServerUrl": args.stream_server}
 
 
@@ -163,12 +179,12 @@ def real_connect(name):
     return (casts[0] if casts else None), browser.stop_discovery
 
 
-def real_controller(stdout=sys.stdout):
+def real_controller(stdout=sys.stdout, app_id=APP_ID):
     from pychromecast.controllers import BaseController
 
     class ViewController(BaseController):
         def __init__(self):
-            super().__init__(NAMESPACE, APP_ID)
+            super().__init__(NAMESPACE, app_id)
 
         def receive_message(self, _message, data):
             _emit(stdout, {"event": "message", "data": data})
@@ -195,4 +211,4 @@ def main(argv):
         raise KeyboardInterrupt
 
     signal.signal(signal.SIGTERM, on_term)
-    return run(args, real_connect, real_controller(), RealClock())
+    return run(args, real_connect, real_controller(app_id=args.app_id), RealClock())

@@ -26,7 +26,7 @@ $RIG record                # session → recordings/latest.mp4 + av-verdict, the
 $RIG verdict clip.mp4 --expect-motion --expect-audio [--expect-smooth] [--busy spans.jsonl] [--expect-speech words.txt]
 $RIG crap --coverage coverage/coverage-final.json --threshold 8
 PORT=8795 $RIG https       # wrangler dev over HTTPS (mkcert) for the iPad / phones; PERSIST_TO=… for its own state
-$RIG cast list|launch|bridge|stop --device "Chromecast HD" [--minutes 10] [--keep]
+$RIG cast list|launch|bridge|stop --device "Chromecast HD" [--minutes 10] [--keep] [--app-id ID --view URL [--api URL]]
 $RIG stream-check receiver.html out.png --game URL --stream-server URL --confirm-paid   # PAID
 ```
 
@@ -70,13 +70,21 @@ overrides `baseUrl`), and kill it by PID afterwards.
 conda base (`scripts/cast/setup-venv.sh`, run for you). Every launch stops the receiver app after
 `--minutes` (default 10, max 180) unless `--keep`, and always on exit. The first message is
 `GET_STATE`, so the receiver never falls back to its default cloud view (a billed GPU stream).
-`LOAD_VIEW` (cloud rendering, ~$1.4/h) needs `--view URL --stream-server URL --confirm-paid`.
+`--app-id <8 hex>` launches another Cast app: a dev registration of the **local-render receiver**
+(open-game-system `apps/tv/receiver.html`, ADR 2026-10-25-cast-local-render). That receiver draws
+the page on the Chromecast, so `--view URL [--api URL]` is free: LOAD_VIEW `{viewUrl, apiUrl}`, no
+stream server. `--view https://ogs-tv.pages.dev/?fake=1` shows the launcher's fake couch, no login.
+GET_STATE answers carry `tier`, `reasons`, `probe` and (after a minute) `fps`: the device's render
+tier and frame rate. Device steps: open-game-system `docs/testing/chromecast-local-render.md`.
+On the OGS app's own receiver (807AD5E9, until the local render ships there) `LOAD_VIEW` is still
+the cloud path (~$1.4/h) and needs `--view URL --stream-server URL --confirm-paid`.
 `bridge` speaks JSON lines on stdin/stdout for device harnesses.
 
 ## Money
 
-`stream-check` and `cast --view` start a billed GPU stream; both refuse without `--confirm-paid`
-and have hard timeouts. Nothing else here calls a paid service.
+`stream-check` and `cast --view` on 807AD5E9 start a billed GPU stream; both refuse without
+`--confirm-paid` and have hard timeouts. `cast --app-id <dev receiver> --view` renders on the device
+and costs nothing. Nothing else here calls a paid service.
 
 ## Not here (still per game)
 
