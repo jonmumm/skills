@@ -60,3 +60,32 @@ export default config
 reports/
 .stryker-tmp/
 ```
+
+## TypeScript 7 (native compiler) and pnpm
+
+TypeScript 7 ships the native compiler without the JavaScript compiler API. Stryker 10's tsconfig preprocessor calls it and crashes at startup:
+
+```
+TypeError: ts.parseConfigFileTextToJson is not a function
+    at TSConfigPreprocessor.rewriteTSConfigFile
+```
+
+The preprocessor only rewrites project `references` paths for the sandbox. If your tsconfig has no `references`, point `tsconfigFile` at a file that doesn't exist and Stryker skips it. Don't downgrade TypeScript.
+
+```json
+{
+  "testRunner": "vitest",
+  "plugins": ["@stryker-mutator/vitest-runner"],
+  "tsconfigFile": "tsconfig.no-references.json",
+  "coverageAnalysis": "perTest"
+}
+```
+
+- Leave out `checkers: ["typescript"]`: the TypeScript checker relies on the same compiler API (not tried here, but expect the same failure). Vitest still type-strips the mutants, and `pnpm typecheck` (tsgo) gates types separately.
+- With pnpm 10 and Stryker 10.1, the vitest runner wasn't discovered automatically ("no TestRunner plugins were loaded") until it was listed in `plugins`.
+- A crashed run can leave `.stryker-tmp/sandbox-*/` behind, and Vitest then runs those copies too: every test file counts twice. Delete the folder, and exclude it in `vitest.config.ts`:
+
+```ts
+import { configDefaults, defineConfig } from "vitest/config";
+export default defineConfig({ test: { exclude: [...configDefaults.exclude, ".stryker-tmp/**"] } });
+```

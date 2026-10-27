@@ -4,7 +4,7 @@ The starter `scripts/crap.mjs` is intentionally minimal so it stays readable. Fo
 
 ## TS/JS — accurate complexity via ESLint
 
-The starter approximates CC by counting v8 branch nodes inside a function. For real CC, use ESLint's built-in `complexity` rule with `--rule '{"complexity": ["error", 0]}'` and parse the output, or use `typhonjs-escomplex` directly:
+The starter counts CC from v8 branch nodes: `if` = +1, `a && b && c` = +2, an n-case `switch` = +(n−1), excluding branches inside nested functions. It does not count loops (v8 doesn't report them as branches). An earlier version added every branch *location* and included nested arrow functions, which roughly doubled CC on functional-style code (a function measured 23 that really had 12). If you need loops counted, use ESLint's built-in `complexity` rule with `--rule '{"complexity": ["error", 0]}'` and parse the output, or use `typhonjs-escomplex` directly:
 
 ```bash
 pnpm add -D typhonjs-escomplex

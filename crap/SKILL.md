@@ -59,7 +59,7 @@ Bob's strongest piece of advice in the bathrobe rant: **write your own CRAP meas
 - **CC is language-dependent.** What ESLint counts as a branch differs from what `radon` counts in Python or what Swift considers a control-flow node.
 - **Your thresholds may differ per layer.** Pure domain logic should be stricter than glue code.
 
-A starter script is in [scripts/crap.mjs](scripts/crap.mjs) — it merges Vitest v8 coverage with ESLint complexity output and prints a sorted CRAP table. Use it as a starting point and customize for your project (filter paths, weight by layer, change thresholds, add a Worker-aware coverage merger, etc.). See [references/measurer-recipes.md](references/measurer-recipes.md) for variations (Python, multi-package monorepos, Cloudflare Workers test pools).
+A starter script is in [scripts/crap.mjs](scripts/crap.mjs) — it computes cyclomatic complexity from Vitest's v8 branch data (no ESLint needed, so it works under TypeScript 7), merges it with coverage and prints a sorted CRAP table. Use it as a starting point and customize for your project (filter paths, weight by layer, change thresholds, add a Worker-aware coverage merger, etc.). See [references/measurer-recipes.md](references/measurer-recipes.md) for variations (Python, multi-package monorepos, Cloudflare Workers test pools).
 
 ## Standard workflow (TS/JS with Vitest)
 

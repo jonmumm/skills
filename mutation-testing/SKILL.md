@@ -26,6 +26,8 @@ If your tests don't catch these, they're not testing real behavior.
 
 See [references/setup.md](references/setup.md): install Stryker packages, add `stryker.config.mjs`, npm scripts (`test:mutate`, `test:mutate:incremental`), and `.gitignore` entries.
 
+On TypeScript 7 (native compiler), Stryker's tsconfig preprocessor crashes with `ts.parseConfigFileTextToJson is not a function`. The workaround is in [references/setup.md](references/setup.md#typescript-7-native-compiler-and-pnpm).
+
 ## The Quality Gate Workflow
 
 Run **after all unit tests pass**:
