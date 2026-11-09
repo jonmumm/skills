@@ -238,5 +238,6 @@ in the case study.
 - `references/critic-visual.md` — the visual critic prompt (first-party craft).
 - `references/evidence-rig.md` — scenario switcher, screen sheet, flow bot, checks, round.sh.
 - `references/concept-prompt.md` — the go-wide concept subagent prompt.
-- `references/fix-pass-prompt.md` — the fix-pass owner prompt.
+- `references/propose-ideas.md` — draft ideas, judge pick, then implement.
+- `references/fix-pass-prompt.md` — the fix-pass owner prompt (chosen idea only).
 - `references/case-study-ogs.md` — the first run (OGS app: launcher, casting, kid iPads, TV).
