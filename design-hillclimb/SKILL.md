@@ -108,19 +108,27 @@ Rules that make the evidence trustworthy:
   words on a kid screen, a wrong scenario) and confirm it fails. Gate flow recordings with
   `verify-on-device`'s `av-verdict.mjs`.
 
-## Step 2 — Two fresh critics, every round
+## Step 2 — A varied critic panel, every round
 
-Spawn **two new subagents in parallel** (strongest model, **mixed families**) with
-`references/critic-product.md` and `references/critic-visual.md`. Neither reads code. Each
-scores every row with evidence (shot names, timestamps), names the single largest gap, ranks its
-top 6 fixes by score per effort, and writes a log row. Then **merge**: findings both critics
-name come first; product beats polish when they disagree on priority; take the lower score when
-they disagree by ≥ 2 and note it.
+Spawn a **panel**, not a pair. Default: **≥ 4 fresh critics in parallel**, mixed families and
+roles — at least two product-minded and two visual-minded, on **different providers/models**
+(e.g. Codex + Claude + Grok + Cursor/Gemini). Use `references/critic-product.md` and
+`references/critic-visual.md` (or slight role variants: outdoor glance, a11y/trust, craft density).
+Neither reads code. Each scores every row with evidence (shot names, timestamps), names the
+single largest gap, ranks its top 6 fixes by score per effort, and writes a log row under
+`critic/rounds/NN/<critic-id>.md`.
+
+Then **merge** into `critic/rounds/NN/merged.md`:
+- Findings named by ≥ 2 critics come first.
+- Product beats polish when they disagree on priority.
+- Per row: take the **median**, and if the spread is ≥ 2 take the **lower quartile / min of the
+  bottom half** — never the friendly average.
+- One critic alone is not a grade; quarantine outliers and note them.
 
 **Do not tell critics the target score** (no "need ≥ 9.5"). Knowing the stop bar inflates grades.
 Tell them the anchors and the evidence only; the parent applies the stop rule.
 
-**At round 00, measure the noise floor**: run each critic prompt three times fresh on the same
+**At round 00, measure the noise floor**: run the panel (or each role twice) on the same
 evidence, write each row's spread into the scorecard, split rows with spread ≥ 2 into yes/no
 checks, and check the critics against `critic/golden.md` (variants the user already chose
 between). Details in `hillclimb` Step 1. Keep a held-out scenario set shot only at round 00 and
