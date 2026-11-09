@@ -2,13 +2,14 @@
 name: design-hillclimb
 description: >
   Hill-climb a product's UX and visual craft to a first-party ship bar after arena/concept pick:
-  clickable multi-device prototype, fixed evidence every round (device-size screen sheets, flow
-  recordings, automatic checks for targets / contrast / overflow / type-floor / taps-per-flow,
-  coverage matrix), TWO fresh critics (product + visual) blind to the target score, golden pairs
-  from user vetoes, fix passes until every row ≥ 8. Concept rubrics alone are not enough — type,
-  spacing, density, and device-size honesty are first-class rows. Use for "keep improving until a
-  studio would ship it", "hill-climb the UX/craft", "the arena winner still looks wrong",
-  multi-device design, or redesigning IA.
+  clickable multi-device prototype, fixed evidence every round (device-size sheets, flow recordings,
+  automatic checks for targets / contrast / overflow / type-floor / taps-per-flow), a varied ≥4
+  critic panel (mixed providers, product + visual) blind to the target score, golden pairs from
+  user vetoes, propose 2–4 ideas → judges pick → implement only the chosen idea, then climb until
+  every row ≥ 8 (or a harder user bar like 10/10). Concept rubrics alone are not enough — type,
+  spacing, density, and device-size honesty are first-class. Use for "keep improving until a studio
+  would ship it", "hill-climb the UX/craft", "the arena winner still looks wrong", multi-device
+  design, or redesigning IA.
 dependsOn:
   - jonmumm/skills@aaa-hillclimb
   - jonmumm/skills@autodesign
