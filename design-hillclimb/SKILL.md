@@ -136,17 +136,35 @@ moment) before any polish pass. Polishing a confused model lifts the visual rows
 minimum where it was. If the gap is craft (padding, type floor, density), fix craft before
 chasing brand flourishes.
 
-## Step 3 — Fix passes, split by coupling
+## Step 3 — Propose ideas to judges, then implement the chosen one
+
+Do **not** jump from critique straight into pixels. After the merged gap list:
+
+1. **Draft 2–4 concrete ideas** that address the largest gap(s). Each idea is a short brief: name,
+   what changes on which shots, what stays the same, and which scorecard rows it aims to move.
+   Ideas must be mutually distinguishable (not three shades of the same tweak). Put them in
+   `critic/rounds/NN/proposals.md`.
+2. **Judge the ideas before code.** Spawn a fresh panel (same product + visual critic prompts, or
+   one mixed-family judge) with the proposals **and** the current evidence only — no preferred
+   winner in the prompt. They pick one idea (or a named hybrid of two) with reasons tied to
+   anchors. Log the pick in `critic/decisions.tsv` as `propose|NN|<idea id>|chosen`.
+3. **Only then** run the fix pass on the **chosen** idea. If the user already named a direction
+   ("keep Timer cathedral", "outdoor yellow"), that constrains the proposal set; judges still
+   pick among remaining craft/CX options inside it.
+4. If judges split evenly, take the lower-risk idea that names the fewer surfaces; note the
+   runner-up for the next round.
+
+Then the fix pass:
 
 - **One owner per coupled surface** (e.g. the phone shell, the TV surfaces, the kid surfaces, a
   docs page). Shared tokens/components belong to one owner per pass; others consume them.
   Parallel agents on one coupled surface make it worse.
 - The **main loop** takes independent rows: copy, the fake world, the rig, the checks.
 - Every agent prompt carries (`references/fix-pass-prompt.md`): owned files and off-limits
-  files, the critic's fixes as numbered steps with acceptance criteria that **name shots**,
+  files, the **chosen idea id + brief**, the critic's acceptance criteria that **name shots**,
   "commit after each step", "re-shoot and look at the shots with the Read tool after each step",
   a budget, and a final report (changes per step, best shots, thresholds moved old → new, what
-  wasn't achieved).
+  wasn't achieved). Do not implement a rejected proposal in the same pass.
 - **Keep or revert each step** by a fresh critic's blind A/B on the shots it names (never the
   fix owner's own judgement), logged in `critic/decisions.tsv` (`aaa-hillclimb` Step 3).
 - Use the impeccable skills as targeted tools when a row calls for them: `/clarify` (copy,
@@ -158,13 +176,19 @@ chasing brand flourishes.
 
 ## Step 4 — Stop rule
 
-Stop when every row ≥ 8 (after a floor of 3 rounds), or the minimum stays flat through one
+Default stop: every row ≥ 8 (after a floor of 3 rounds), or the minimum stays flat through one
 **pivot round** (`aaa-hillclimb` Step 4: when two flat rounds' kept steps were all one kind of
 change, the next round's fixes come from a different category, usually the IA model), or the
-budget ends (default 8 rounds / ~10 h). At a plateau, hand the user: the score table (baseline →
-now), the latest flow recordings, the stuck rows and *why* (usually structural: the model, a
-platform limit, a rule that fights another rule), and 2–3 directions with a recommendation.
-Write `BRIEFING.md` (two-minute read) and fill in the case study.
+budget ends (default 8 rounds / ~10 h).
+
+If the user sets a harder bar (e.g. **every row 10/10**), that overrides the default — keep
+proposing → judging → implementing until every row hits it or the user stops you. Still never
+tell critics the numeric target; the parent enforces it.
+
+At a plateau, hand the user: the score table (baseline → now), the latest flow recordings, the
+stuck rows and *why* (usually structural: the model, a platform limit, a rule that fights another
+rule), and 2–3 directions with a recommendation. Write `BRIEFING.md` (two-minute read) and fill
+in the case study.
 
 ## Gotchas
 

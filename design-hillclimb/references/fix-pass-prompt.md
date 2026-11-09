@@ -8,7 +8,11 @@ You own [surface] for this pass of the design hill-climb on [product] ([repo]/de
 Owned files: [globs]. Off-limits: [globs] (other owners are editing them right now; if you need
 a change there, put it in your final report).
 
-Fixes, in order (from round [NN]'s merged critique; product fixes before polish):
+Chosen idea (from judge pick — implement only this): [idea id] — [one-line brief].
+Full brief: critic/rounds/[NN]/proposals.md (the chosen section only). Do not implement
+rejected ideas in this pass.
+
+Fixes, in order (from the chosen idea + round [NN]'s merged critique; product fixes before polish):
 1. [fix] — accept when: [shot names + observable test]
 2. …
 
