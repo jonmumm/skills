@@ -42,7 +42,8 @@ Run it in the background; a round with several concepts takes 5–15 minutes.
 - Builds a private snapshot (`vite build --outDir .cache/dist-<pid>`) and serves it on a random
   port: parallel agents editing the source can't change the app mid-shoot.
 - One Playwright context per device at true CSS size (phone 390×844 @2x, tablet 820×1180 @2x, TV
-  1920×1080 @1x); `hasTouch` on touch devices.
+  1920×1080 @1x, Watch ~184×224 @2x or the product's declared size); `hasTouch` on touch
+  devices. Never grade craft from a desktop page that only *illustrates* a Watch.
 - Shim `window.__name` with an init script: tsx/esbuild's keepNames wraps functions passed to
   `page.evaluate` in `__name()`, which doesn't exist in the page.
 - Waits for ack, `document.fonts.ready`, image decode, 250 ms; JPEG shot per scenario × device.
@@ -55,7 +56,10 @@ Run it in the background; a round with several concepts takes 5–15 minutes.
   - `kidWords`: visible text with letters on the kid surface outside `[data-grownup]` (want 0);
   - `tvSmallText`: TV text under 24 px (3 m readability);
   - `clippedText`: text clipped by overflow or outside the device bounds;
+  - `typeFloorFails`: body / critical label text below the product's declared px floor;
+  - `labelWrapFails`: critical labels wrapping past N lines at device size;
   - `tapsPerFlow`: taps per flow counted from the flow scripts (each step is a real tap).
+  Run checks **before** critics; failing overflow / type-floor / targets hard-gates those rows.
 - `sheet.py`: a labelled tile sheet per device, each tile flagged with its failing checks.
 - `coverage.py`: flows × state kinds, each cell listing scenario ids + devices, or MISSING.
 

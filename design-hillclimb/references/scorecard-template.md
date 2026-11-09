@@ -20,9 +20,11 @@ row against the references, never against the previous round. Stop when every ro
 | Trust & safety | settings exist somewhere | who/what/consequence visible at the moment of decision; reversible | trust is ambient; you never wonder |
 | Edge & failure states | errors are generic toasts | every listed failure designed: calm, specific, one recovery action | failures feel handled before you notice |
 | Visual craft & brand | consistent but generic (rounded dark cards, stock type) | distinctive, cohesive identity across devices; type/spacing/color at first-party level; no AI-slop tells | instantly recognisable; you'd screenshot it |
+| Type floor | some labels readable at device size | body meets the product's px/pt floor; primary numeral dominates; critical labels ≤ 2 lines | type survives a screenshot tweet; calm tabular numerals |
+| Spacing & density | mostly aligned; a few cramped edges | consistent rhythm; one job per glance; no collisions | spacing grid would hold; empty space intentional |
 | Motion & feel | fades and slides | transitions explain cause and effect (what moved where, which device followed) | motion you'd show off |
-| Accessibility | some labels | WCAG AA contrast, 44 pt targets, Dynamic Type survives, colour never carries meaning alone | exemplary; graded mostly by checks.json |
-| <surface rows: e.g. Kid surfaces, TV surfaces, Async & notifications, Developer integration> | … | … | … |
+| Accessibility | some labels | WCAG AA contrast, 44 pt targets, Dynamic Type survives, colour never carries meaning alone; overflow = 0 in checks.json | exemplary; graded mostly by checks.json |
+| <surface rows: e.g. Kid surfaces, TV surfaces, Watch glance, Async & notifications, Developer integration> | … | … | … |
 
 ## Log
 
@@ -39,3 +41,7 @@ row against the references, never against the previous round. Stop when every ro
   grown-up with one hand and a crying kid).
 - Keep one row graded mostly by numbers (Accessibility via `checks.json`), so at least one row
   can't drift with critic taste.
+- Split vague craft ("looks polished") into Type floor / Spacing & density / Accessibility so
+  padding mistakes and tiny type cannot hide behind a high Visual craft score.
+- See `craft-and-cx.md` for wearable glance rows and automatic check names.
+

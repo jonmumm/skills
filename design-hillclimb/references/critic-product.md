@@ -9,16 +9,19 @@ team that shipped [references, e.g. Switch home / PS5 activities / Apple TV cont
 reviewing [one-line description of the product, its users and its devices]. You have NOT seen
 the code; do not read source code (no src/, scripts/, e2e/). Grade only from evidence.
 
+You are **not** told a target score to hit. Soft 9s without evidence are worse than honest 6s.
+If critic/golden.md exists, prefer the user's side on those pairs.
+
 Read, in [repo path]:
 - critic/SCORECARD.md (rubric with anchors; grade against the named references, never against
   previous rounds) and critic/COVERAGE.md (flows × states × devices).
 - [brief/problem doc] — the jobs the product must do and its non-negotiable principles.
 - Evidence in critic/rounds/[NN]/: sheet-<device>.png (every screen × state, labelled with the
-  scenario id; full-size shots in shots/), flows/<flow>.mp4 (each flow played by a bot on every
-  device side by side, with marks.json timestamps), checks.json (automatic checks: tap targets,
-  contrast, overflow, words on kid screens, taps per flow), coverage.md (each cell linked to a
-  shot or MISSING). Extract frames from the flow videos with ffmpeg around the marks and view
-  them; crop to zoom.
+  scenario id; full-size shots in shots/ at true device size), flows/<flow>.mp4 (each flow
+  played by a bot on every device side by side, with marks.json timestamps), checks.json
+  (automatic checks: tap targets, contrast, overflow, type floor, words on kid screens, taps
+  per flow), coverage.md (each cell linked to a shot or MISSING). Extract frames from the flow
+  videos with ffmpeg around the marks and view them; crop to zoom.
 
 Think like product-design-critic: for each flow, the job, the owning surface, the one primary
 action, what's at risk, the full state set (empty, loading, partial, success, error,

@@ -1,16 +1,14 @@
 ---
 name: design-hillclimb
 description: >
-  Hill-climb a product's UX and visual design to a first-party ship bar: build the design as a
-  clickable multi-device prototype with a scenario switcher, shoot fixed evidence every round
-  (screen sheet of every screen × state, bot-played flow recordings across devices side by side,
-  automatic checks for tap targets / contrast / overflow / words-on-kid-screens / taps-per-flow,
-  a state-coverage matrix), grade it with TWO fresh critics (product + visual) who never read
-  code, fix the top gaps with one owner per coupled surface, and repeat until every scorecard row
-  ≥ 8 or the minimum stops rising. Starts wide (3–5 parallel concept directions, ranked, user
-  picks) then goes deep. Use for "keep improving the app design until a real studio would ship
-  it", "hill-climb the UX", "grade this design like Apple/Nintendo", multi-device or multi-flow
-  product design, or redesigning an app's information architecture.
+  Hill-climb a product's UX and visual craft to a first-party ship bar after arena/concept pick:
+  clickable multi-device prototype, fixed evidence every round (device-size screen sheets, flow
+  recordings, automatic checks for targets / contrast / overflow / type-floor / taps-per-flow,
+  coverage matrix), TWO fresh critics (product + visual) blind to the target score, golden pairs
+  from user vetoes, fix passes until every row ≥ 8. Concept rubrics alone are not enough — type,
+  spacing, density, and device-size honesty are first-class rows. Use for "keep improving until a
+  studio would ship it", "hill-climb the UX/craft", "the arena winner still looks wrong",
+  multi-device design, or redesigning IA.
 dependsOn:
   - jonmumm/skills@aaa-hillclimb
   - jonmumm/skills@autodesign
@@ -37,6 +35,10 @@ Step 3  fix passes, one owner per coupled surface; main loop takes independent r
 Step 4  stop rule: every row ≥ 8, or min flat two rounds, or budget → hand off with directions
 ```
 
+**Arena is not the finish.** `/arena` (or round 00 concepts) picks a *direction*. This skill
+climbs *craft and CX* until the face would ship. A concept winner that still has broken padding,
+tiny type, or density failures has not finished — start Step 1 on the pick immediately.
+
 ## When to start
 
 - There is a product to design with several surfaces, flows or states, and the bar is a studio
@@ -44,24 +46,37 @@ Step 4  stop rule: every row ≥ 8, or min flat two rounds, or budget → hand o
 - Build a **prototype, not mockups**: a clickable app with fake data (Vite + React + TS is the
   fastest loop). Static frames can't show flows, motion or states; critics grade what they see.
 - A single screen tweak is not this loop; use `/critique` + one impeccable skill.
+- After an arena / concept pick when the interaction model is right but the pixels are not.
 
 ## Step 0 — Scorecard, then go wide (round 00)
 
 1. Write `critic/SCORECARD.md` from `references/scorecard-template.md`: named shipped products as
    the 10, an **anchor for 6, 8 and 10 on every row**, and "8 = a first-party product/design lead
    would sign off shipping it". Rows cover product (IA, flow efficiency, state, trust, edge
-   states) *and* craft (visual, motion, a11y). Add rows for the product's specific surfaces.
+   states) *and* craft (type, spacing, density, visual, motion, a11y). Add rows for the product's
+   specific surfaces. Craft rows must use **observable tests** (px, pt, line counts) — see
+   `references/craft-and-cx.md`. Concept-only rubrics (e.g. "distinctiveness", "glanceable") are
+   not enough; they let broken padding and illegible type win.
 2. Write the **coverage matrix** (`critic/COVERAGE.md`): every flow × its full state set
    (empty, loading, partial, success, error, interrupted, undone) × every device. A blank cell is
    a gap the critic will score; keep the matrix honest.
-3. **Go wide** (an `arena` with one candidate per direction). Name 3–5 genuinely different concept directions (the name is the brief; make the
+3. Seed **`critic/golden.md`** with any user veto or preference already stated ("this looks like
+   shit", "prefer E over synthesis"). The panel must pick the user's side on those pairs before
+   round 01; if it doesn't, the rubric is missing taste the user already gave you.
+4. **Go wide** (an `arena` with one candidate per direction). Name 3–5 genuinely different concept directions (the name is the brief; make the
    biggest open product question, e.g. brand or IA model, one axis). Launch one subagent per
    concept *in a single message* (independent context, no cross-contamination); each builds the
    same 2–3 hardest moments into the shared prototype harness under its own folder
    (`src/concepts/<id>/`). Prompt template: `references/concept-prompt.md`.
-4. Shoot every concept with the rig, grade each with the two fresh critics, plus a Codex
-   cross-check (`codex exec`, screenshots only) when available. Rank by consensus.
-5. **Stop and show the user the ranked shortlist with screen sheets.** The pick is theirs.
+5. Shoot every concept with the rig **at true device CSS size** (not a desktop marketing page with
+   a Watch illustration). Grade each with the two fresh critics, plus a Codex cross-check
+   (`codex exec`, screenshots only) when available. Rank by consensus **and** by
+   `checks.json` (a concept that fails overflow / type-floor / targets cannot rank above one that
+   passes, regardless of concept score).
+6. **Comparative panel (optional but strong):** include 1–2 peer product screenshots (or prior
+   baseline) in the same judge packet so isolation inflation doesn't invent a 9/10. Score the
+   candidate *relative* to peers as well as to the anchors.
+7. **Stop and show the user the ranked shortlist with screen sheets.** The pick is theirs.
    Never take a direction deep without it.
 
 ## Step 1 — The evidence rig (one command per round)
@@ -73,7 +88,7 @@ The critic only sees evidence, so evidence is the product. Build `scripts/round.
 |---|---|---|
 | **Screen sheet** per device | every screen × state at device size, labelled with the scenario id | the critic's contact sheet |
 | **Flow recordings** | a Playwright bot plays each key flow on every device at once, stitched side by side (phone · tablet · TV), with `marks.json` | flows, timing, motion, cross-device cause→effect |
-| **Automatic checks** (`checks.json`) | tap targets ≥ 44 pt, WCAG AA text contrast, overflow/clipping, words on no-words surfaces, taps per flow, scenario acknowledgement | objective rows; catches regressions critics miss |
+| **Automatic checks** (`checks.json`) | tap targets ≥ 44 pt (or platform minimum), WCAG AA text contrast, overflow/clipping, type-floor failures, label wrap > N lines, words on no-words surfaces, taps per flow, scenario acknowledgement | objective rows; catches regressions critics miss |
 | **Coverage matrix** | the matrix with each cell linked to a shot or marked missing | state completeness at a glance |
 
 Rules that make the evidence trustworthy:
@@ -82,19 +97,28 @@ Rules that make the evidence trustworthy:
   a shot labelled "swap: TV cut-over" can never silently be the home screen.
 - **Freeze time and randomness** in shot mode (`?shot=1`: fixed clock, no entrance animations
   mid-capture, seeded data). Flow recordings run with motion on.
-- Device frames at true CSS size (phone 390×844, tablet 820×1180, TV 1920×1080), shot at 2×.
+- Device frames at true CSS size (phone 390×844, tablet 820×1180, TV 1920×1080, Watch ~184×224
+  for 41mm-class or the product's declared size), shot at 2×. **Never** grade craft from a
+  cropped marketing hero of a Watch floating on a desktop page.
+- Run **`checks.json` before critics**. A failing overflow / type-floor / target check is a hard
+  gate for that row; don't ask a critic to "feel" a bug the rig already measured.
 - Commit each round's evidence under `critic/rounds/NN/`. Open the flow recordings for the user.
 - **Prove the rig, then freeze it** (as in `aaa-hillclimb` Step 1): before round 01, feed every
-  check a deliberate fault (a tiny tap target, low-contrast text, words on a kid screen, a wrong
-  scenario) and confirm it fails. Gate flow recordings with `verify-on-device`'s `av-verdict.mjs`.
+  check a deliberate fault (a tiny tap target, low-contrast text, 9 px body type, clipped label,
+  words on a kid screen, a wrong scenario) and confirm it fails. Gate flow recordings with
+  `verify-on-device`'s `av-verdict.mjs`.
 
 ## Step 2 — Two fresh critics, every round
 
-Spawn **two new subagents in parallel** (strongest model) with `references/critic-product.md`
-and `references/critic-visual.md`. Neither reads code. Each scores every row with evidence (shot
-names, timestamps), names the single largest gap, ranks its top 6 fixes by score per effort, and
-writes a log row. Then **merge**: findings both critics name come first; product beats polish
-when they disagree on priority; take the lower score when they disagree by ≥ 2 and note it.
+Spawn **two new subagents in parallel** (strongest model, **mixed families**) with
+`references/critic-product.md` and `references/critic-visual.md`. Neither reads code. Each
+scores every row with evidence (shot names, timestamps), names the single largest gap, ranks its
+top 6 fixes by score per effort, and writes a log row. Then **merge**: findings both critics
+name come first; product beats polish when they disagree on priority; take the lower score when
+they disagree by ≥ 2 and note it.
+
+**Do not tell critics the target score** (no "need ≥ 9.5"). Knowing the stop bar inflates grades.
+Tell them the anchors and the evidence only; the parent applies the stop rule.
 
 **At round 00, measure the noise floor**: run each critic prompt three times fresh on the same
 evidence, write each row's spread into the scorecard, split rows with spread ≥ 2 into yes/no
@@ -109,7 +133,8 @@ evidence is unclear: fix the evidence (labels, a missing state, a shot that's fr
 architecture**, not pixels: if a critic says "the model is confusing" or "I can't tell what
 tonight means", fix the model (rename, merge or remove a layer, change which surface owns the
 moment) before any polish pass. Polishing a confused model lifts the visual rows and leaves the
-minimum where it was.
+minimum where it was. If the gap is craft (padding, type floor, density), fix craft before
+chasing brand flourishes.
 
 ## Step 3 — Fix passes, split by coupling
 
@@ -173,10 +198,18 @@ Write `BRIEFING.md` (two-minute read) and fill in the case study.
 - **The prototype isn't the proof.** Carry the rig into the build: synced phone + TV video, a fake
   device that counts side effects (casts, loads), and at least one run against a real game, not a
   fixture. OGS's build found a double-open, a swallowed gesture and a duplicated label only there.
+- **Concept win, craft loss.** An arena / round-00 pick scored on interaction metaphor can still
+  ship broken type, padding, and density. If the user rejects the pixels, treat that as a golden
+  veto and climb craft — do not defend the concept score.
+- **Isolation inflation.** Scoring one design alone often yields a soft 8–9. Put baseline and peer
+  screenshots in the same packet; relative rank is stabler than absolute score.
+- **Target-score leakage.** Telling a critic "stop at 9.5" biases grades upward. Keep stop rules
+  in the parent only.
 
 ## References
 
 - `references/scorecard-template.md` — rows, anchors, log format.
+- `references/craft-and-cx.md` — measurable craft/CX rows and Watch/phone floors.
 - `references/critic-product.md` — the product critic prompt (flows, jobs, states, trust).
 - `references/critic-visual.md` — the visual critic prompt (first-party craft).
 - `references/evidence-rig.md` — scenario switcher, screen sheet, flow bot, checks, round.sh.
