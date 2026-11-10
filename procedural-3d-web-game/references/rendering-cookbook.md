@@ -52,6 +52,16 @@ turn a critic's complaint into a concrete fix. Everything here can be done in th
   silver linings near the sun; cirrus as a broad subtle texture, not lines; avoid "tall
   marshmallows" and granular/pixelated raymarch noise (use blue-noise jitter + temporal accumulation).
 - Lightning lights the clouds and the whole scene; thunder arrives late (speed of sound).
+- **Stylised / poster-art sky** (Back Nine, Nov 2026): a painted dome (`BackSide` sphere,
+  `gl_Position = p.xyww`, follows the camera) beats tuning the physical `Sky` toward a palette.
+  Keep the physical `Sky` only in the PMREM env scene so lighting stays plausible. With an
+  `OutputPass` doing ACES, invert the curve in the dome shader (Narkowicz fit, divided by
+  exposure/0.6), or the authored teal and cream come out crushed and muddy.
+- Poster cumulus that **towers off the horizon** must be drawn in azimuth/elevation space
+  (height per azimuth from seamless noise on `vec2(cos az, sin az)`, a billowy top edge,
+  terracotta belly, cream top). A cloud plane projected `d.xz / d.y` flattens them into streaks
+  near the horizon, and high-frequency octaves punch holes that critics read as noise.
+- Mixing an orange sun glow into a teal sky makes mud-green; keep the glow narrow and peach.
 
 ## Terrain and rocks
 - Heights: fBm + ridged multifractal, then **simulated erosion** baked offline/at load (the
@@ -97,6 +107,13 @@ turn a critic's complaint into a concrete fix. Everything here can be done in th
   Feet planted, weight shifts, no hands passing through held objects.
 - Animation feel: drive motion with simulation (springs, damping, momentum, flocking) rather
   than linear tweens; critically damped cameras; hit-stop, screen shake and recoil for impacts.
+- Props: Opus driving headless Blender (`Blender -b -P build_x.py`, a shared `propkit.py`,
+  render a preview, iterate on it, export GLB, then `gltf-transform optimize --compress meshopt`)
+  gave authored props at ~60–90 KB each that critics scored above procedural boxes. Add a
+  shared world-space speckle plus a darker contact band at the ground in `onBeforeCompile` so
+  they don't read as clean CG.
+- Anti-bloom guards rot: a luminance cap on character cloth (added when bloom was strong) left
+  the figures as dark boxes after bloom was turned down. Re-check old caps when the grade changes.
 
 ## Named techniques worth asking for (Simon's Halloween scene)
 Simon (@iced_coffee_dev) broke down a small three.js scene his family gave feedback on. Each item
