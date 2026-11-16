@@ -297,3 +297,19 @@ breaks and fades on its own; whitecaps come from that breaking crest (thresholde
 as confetti); ripple normal maps at 3 scales/rotations, domain-warped and faded with distance; keep
 CPU `waveAt` and the shader formula in one module with an agreement test. Crossing sine ripples
 always make a lattice, and bending them with noise makes blocks.
+
+## Lesson from Warship Duel (Nov 2026): a seascape that isn't empty
+
+"Plain and repetitive" open sea came from three things: the ocean plane stopped short of the
+horizon (sky fill showed under the coast), the sea haze, fog and sky each faded to a different
+colour, and the procedural detail died out in the far sea. What fixed it (techniques ported from
+Boatload's `water.ts`/`skycolor.ts`/`far-isles.ts`, art repainted in the game's own style):
+a flat skirt carrying the ocean material to the horizon; one shared GLSL horizon function for the
+sky, sea haze and fog; a code-generated wavelet height map sampled in near/mid/far bands (two
+tilings 15° apart plus a two-scale warp, with a repetition test using autocorrelation at the tile
+period); painted far-coast cards that dip into the sea with a faint broken reflection and
+edge-free mist, with a different set per screen. **Land and set dressing go only on the far
+horizon.** An island between the boards was vetoed straight away ("i meant coasts and stuff on
+the distance, not mid battlefield"). In a hidden-fleet game, never fire from a ship parked next
+to a board: the shooter flashes far off on its own side and the shell arrives as a trail in its
+colour.
