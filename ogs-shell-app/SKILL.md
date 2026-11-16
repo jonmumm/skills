@@ -92,7 +92,9 @@ then `... geometry 1920x1080` turns it on with no Simulator menu and no Accessib
 host app lacks it, and times out on a loaded Mac). Then `screenshot --display=external` works.
 Also: give `simctl io … screenshot` an **absolute** path; Maestro's `-e KEY=VAL` goes **after**
 `test`; a flow's `console.log` only reaches a log with `test --debug-output <dir>` (grep it there,
-e.g. for a room code); `runFlow.when` has no `enabled`; `setOrientation: LANDSCAPE_LEFT` turns an
+e.g. for a room code); `runFlow.when` has no `enabled`; with the keyboard up, any `tapOn` that lands
+on it types a letter (Pair under the keyboard, or a text match whose container centre is on a key) and
+`hideKeyboard` fails on the shell's code field: pair with `pressKey: Enter` (the field's Go key); `setOrientation: LANDSCAPE_LEFT` turns an
 iPad (screenshots stay in the portrait framebuffer: `transpose=2` in ffmpeg). Existing games:
 create-ogs-app first, then copy create-ogs-game's `templates/app-overlay` (sim.sh, record.sh,
 presubmit, AirPlay config) and rewrite the Maestro flows for the game's own labels.
