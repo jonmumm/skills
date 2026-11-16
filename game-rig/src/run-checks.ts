@@ -117,7 +117,7 @@ export async function runChecks(config: GameRigConfig, opts: RunOpts): Promise<R
             add(tap);
           }
         } catch (e) {
-          result.failures.push({ code: "screen_error", message: e instanceof Error ? e.message.split("\n")[0] : String(e) });
+          result.failures.push({ code: "screen_error", message: e instanceof Error ? e.message.replace(/\s+/g, " ").slice(0, 600) : String(e) });
         } finally {
           if (opened) await closeAll(opened);
         }
