@@ -181,6 +181,13 @@ Follow `references/critic-loop.md`. In short:
    the round/budget cap hits, or two consecutive rounds fail to raise the minimum — then ask
    the user for direction with the contact sheet in hand.
 
+**Target images are references, never assets.** When the loop matches target screenshots
+(dream-loop style), the build must not show target pixels: no billboards, "reliefs" or matte
+cards cut from a target and shown only from its camera. Boatload r18–r21 did exactly that. It
+scored 8–9 from the judged bearing, while from anywhere else the player saw the old models and a
+visible dissolve. Also judge **held-out views** every round: one or two bearings and a moving
+clip the targets don't cover. Report both scores; the held-out one is the real number.
+
 If subagents aren't available, do the critique yourself but only from the images and metrics,
 in a separate step, and write the scores down before you look at code.
 
