@@ -378,3 +378,20 @@ down. Give every family game an optional **toddler seat** from day one:
 - **Chaos tests find real bugs, but the chaos player must act like a person**: tap inside an open
   sheet first, fill an owed discard, close stray sheets, end the turn after 15 s; otherwise it reports
   "stalls" that are its own dithering (`settlewood/e2e/chaos.seam.test.ts`).
+
+## Lessons from Warship Duel (Nov 2026)
+
+- **A pre-reader's buttons need feedback that doesn't wait for React.** Under a heavy 3D frame the
+  React commit after a tap took 500+ ms, and the animated sea around the button hid any pixel change
+  (game-rig `no_tap_feedback`, flaky only under load). A CSS `:active` brightness/border change
+  answers the finger at once; never transform the button (the e2e driver waits for it to settle).
+- **A button that can't act yet must not glow.** The kid's fire button glowed before he picked a
+  square, promising a shot he couldn't take. Half-lit (desaturated) until aimed, then lit with a
+  flash; a tap on it early greys it for a beat and replays the ghost-hand demo.
+- **Medals mean winning, nothing else.** A "you sank one" badge that reused the win medal made
+  sinking and winning look the same to a non-reader; draw the sunk ship going under in its colour.
+- **Tallies: fade the ship, never the strike.** `opacity` on a sunk glyph faded its red slash too;
+  grey the hull and keep the strike at full strength. Scope phone "shrink to fit" rules with
+  `:not(.kid)`, or they silently override the iPad's big glyph size.
+- **Duck the music under impacts** through its own gain node (separate from the narrator's duck),
+  −4 dB under guns, −9 under hits, −12 under a sink; critics read an LRA of 5.5 LU as a flat mix.

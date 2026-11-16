@@ -287,3 +287,13 @@ changing code, and confirm it with a playtest or screenshot afterwards.
   "Correctness" row to the scorecard, have the critic check the physics or facts against
   sources, list any simplifications on the page, and recommend that a domain expert review it
   before it's shared widely.
+
+## Lesson from Warship Duel (Nov 2026): water that isn't wallpaper
+
+The owner vetoed two seas in a row ("background wallpaper on repeat"). What worked: several wave
+trains, each with its own wavelength (no simple ratios: a 2:1 pair lined crests up again, caught by
+a test), heading and domain warp, travelling in groups at half their speed, so each crest grows,
+breaks and fades on its own; whitecaps come from that breaking crest (thresholded foam textures read
+as confetti); ripple normal maps at 3 scales/rotations, domain-warped and faded with distance; keep
+CPU `waveAt` and the shader formula in one module with an agreement test. Crossing sine ripples
+always make a lattice, and bending them with noise makes blocks.
