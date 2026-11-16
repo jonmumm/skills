@@ -4,7 +4,7 @@ import { existsSync } from "node:fs";
 const FONT = ["/System/Library/Fonts/Supplemental/Arial Rounded Bold.ttf", "/System/Library/Fonts/Supplemental/Arial.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"].find(existsSync);
 
 /** Text that is safe inside an ffmpeg drawtext `text='...'` option. */
-export const drawtextSafe = (s: string): string => s.replace(/[\\':%,;[\]]/g, " ");
+export const drawtextSafe = (s: string): string => s.replace(/'/g, "\u2019").replace(/[\\:%,;[\]]/g, " ");
 
 export function drawtext(text: string, size: number, at = "x=(w-tw)/2:y=10"): string {
   const font = FONT ? `fontfile='${FONT}':` : "";
