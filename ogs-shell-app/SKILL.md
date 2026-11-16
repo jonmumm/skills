@@ -85,6 +85,18 @@ one clip per milestone; `open` it. simctl allows only one host recording at a ti
 `recordVideo --display=external` and the phone a screenshot loop; a killed recorder leaves
 "Host recording is already in progress" until the simulator is shut down and booted again.
 
+**External display without Accessibility (Midnight Museum, 2026-11-15, Xcode 26.4):** every
+simulator already has a `TVOut` screen; `xcrun simctl io <udid> screenConfig --display=TVOut power on`
+then `... geometry 1920x1080` turns it on with no Simulator menu and no Accessibility permission
+(the osascript menu click fails with "osascript is not allowed assistive access" when the agent's
+host app lacks it, and times out on a loaded Mac). Then `screenshot --display=external` works.
+Also: give `simctl io … screenshot` an **absolute** path; Maestro's `-e KEY=VAL` goes **after**
+`test`; a flow's `console.log` only reaches a log with `test --debug-output <dir>` (grep it there,
+e.g. for a room code); `runFlow.when` has no `enabled`; `setOrientation: LANDSCAPE_LEFT` turns an
+iPad (screenshots stay in the portrait framebuffer: `transpose=2` in ffmpeg). Existing games:
+create-ogs-app first, then copy create-ogs-game's `templates/app-overlay` (sim.sh, record.sh,
+presubmit, AirPlay config) and rewrite the Maestro flows for the game's own labels.
+
 Gotchas seen: `pod install` dies on a non-UTF-8 locale and `expo prebuild` still exits 0 (the
 script exports `LANG` and checks for the workspace); a seam test that sends two JOINs at once makes
 the wrong phone host over a real network (wait for each join).
@@ -114,6 +126,11 @@ url=ogs-tv.pages.dev/` means the launcher loaded).
 Simulator builds must be **signed to run locally** (no `CODE_SIGNING_ALLOWED=NO`): unsigned, the
 app has no keychain, expo-secure-store can't keep the OGS identity, and the cast never gets a
 launcher token (`KeychainA required entitlement isn't present` in the JS log).
+
+**Kids on iPads in an own app:** the app opens `/host`, which makes a new room, so a second device
+running the app can't join a room yet (no join deep link without `ogs apps register` + a link
+domain). The simple path: the host phone's lobby shows the room QR + code (the `chrome=none`
+launcher TV draws none), and the iPad joins in Safari (Midnight Museum `HostPanel` / `phoneHost`).
 
 ## 5. TV performance budget (the phone draws the TV)
 
