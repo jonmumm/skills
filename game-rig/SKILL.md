@@ -54,6 +54,9 @@ overrides `baseUrl`), and kill it by PID afterwards.
   screen; needs a DOM change not seen in a 300 ms idle baseline, a pixel change clearly above the
   scene's own motion, or a Web Audio / media / speech start, within 300 ms. Hold-only controls
   (`[data-hold]` or "hold" in the label) must show new text (a hint) within 1 s of a plain tap.
+- **`sheet` runs no checks.** Its "0 findings" means nothing; gate on `check`. The focal rect must be
+  `{x, y, width, height}` in CSS px (Warship Duel returned `{w, h}`: every TV screen was a
+  `screen_error` for a day while `sheet` reported clean, and a title sat over the TV's centre).
 - **safe-area**: on the TV at 1280×720, all text, images, buttons and media inside a 5% inset.
   Full-bleed art (≥ half the screen) may run into the overscan.
 - **av-verdict** (in ../verify-on-device/scripts/av-verdict.mjs, shared with verify skills):
