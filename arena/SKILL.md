@@ -22,7 +22,7 @@ space; the synthesis keeps the best of each. Adapted from pstack's `arena` (see 
   or `/tmp/arena-<slug>/<n>/`. Shared output dirs contaminate each other.
 - Pick runners: 3 by default, mixing families (`fable`, `opus`, `sonnet`). Same model N times is
   fine when the variation should come from the brief (e.g. one art direction per candidate).
-- Paid generation: give each candidate an asset budget through `ai-art-assets` caps first.
+- Paid generation: give each candidate an asset budget through `imagegen` caps first.
 
 ## 2. Fan out
 

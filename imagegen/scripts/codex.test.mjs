@@ -1,4 +1,4 @@
-// node --test ~/src/skills/ai-art-assets/scripts/
+// node --test ~/src/skills/imagegen/scripts/
 // Runs codex.mjs in a temp project against a fake `codex` binary (CODEX_BIN) and a temp CODEX_HOME.
 // No network and no ChatGPT usage.
 import { test } from 'node:test';

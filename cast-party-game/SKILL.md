@@ -214,7 +214,7 @@ once, run them as a studio (`/game-studio`).
 - Record decisions in the spec under "Decisions and assumptions".
 - **Budgets** per service in `.asset-budget.json` (`fal_usd`, `meshy_credits`,
   `elevenlabs_credits`), set by Jon at kickoff and enforced by the generator scripts; the tally
-  is `assets/SPEND.jsonl` (`spend.mjs budget`). Ask before going over. See `ai-art-assets` →
+  is `assets/SPEND.jsonl` (`spend.mjs budget`). Ask before going over. See `imagegen` →
   "Cost discipline".
 - Keys only from env. Kids' photos only in `private/` (gitignored).
 - Ask before adding anything not in the spec. Commit at every working milestone (Jon wants
@@ -226,7 +226,7 @@ once, run them as a studio (`/game-studio`).
 - `SCORECARD.md`, `STATUS.md` (always resumable), `CREDITS.md` / `assets/**/CREDITS.json`.
 - Critic evidence in `critic/rounds/NN/`.
 - `.claude/skills/` links to `~/src/skills`: cast-party-game, procedural-3d-web-game,
-  ai-art-assets, tdd, grill-me, seam-tester.
+  imagegen, tdd, grill-me, seam-tester.
 - `CLAUDE.md` with a skills table. Update it when a rule changes; stale "off-limits" lines
   mislead later sessions.
 - One fixed dev port per game, taken from the studio registry, so games can run side by side.
@@ -254,7 +254,7 @@ once, run them as a studio (`/game-studio`).
 **The look that worked**
 A 2.5D painted diorama: fal-generated character sheets and poses as cutouts, painted layers and
 pop-ups, placed in a lit Three.js scene with depth of field, a grade and paper or felt materials.
-It beat both vector clip-art and generated 3D. See `ai-art-assets` → "Art kit pipeline".
+It beat both vector clip-art and generated 3D. See `imagegen` → "Art kit pipeline".
 
 **Evidence each round**: use `~/src/skills/game-rig` (one `game-rig.config.ts` per game; don't
 copy scripts between repos). `game-rig check` (screen × viewport sheet plus overlay-on-focal,

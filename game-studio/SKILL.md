@@ -29,7 +29,7 @@ Navier–Stokes), adapted for building OGS games:
    For us, one small slice proves the pipeline before a fleet runs.
 
 For games, "deep" is the per-game loop that already works: `cast-party-game` for the format and
-skeleton, `procedural-3d-web-game` for the critic loop and scene quality, `ai-art-assets` for art,
+skeleton, `procedural-3d-web-game` for the critic loop and scene quality, `imagegen` for art,
 `game-design-stages` for paper sims. This skill adds the wide part: the studio board, the teams,
 the coordinator and the kids.
 
@@ -117,7 +117,7 @@ produce assets, change the version, merge into another team, or prune.
   restarts and can be read by any session. Live nudges between sessions (SendMessage between local
   sessions, agent-team mailboxes) are optional extras.
 - **Promote what's proven.** When a finding is adopted by 2+ teams, the coordinator proposes moving
-  it into a skill (`cast-party-game`, `procedural-3d-web-game`, `ai-art-assets`) or the kit. Skills
+  it into a skill (`cast-party-game`, `procedural-3d-web-game`, `imagegen`) or the kit. Skills
   carry the cross-pollination forward in time.
 
 ## Running it in Claude Code
@@ -140,7 +140,7 @@ produce assets, change the version, merge into another team, or prune.
   sessions plus the board.
 - **Budgets:** per team, in `REGISTRY.yaml` (fal, ElevenLabs, Runway, Meshy spend plus model
   choice), mirrored into each repo's `.asset-budget.json`, where the generator scripts enforce
-  them. The coordinator reads real spend from `node ~/src/skills/ai-art-assets/scripts/spend.mjs
+  them. The coordinator reads real spend from `node ~/src/skills/imagegen/scripts/spend.mjs
   report` and puts it in the morning report. The team caps together must fit the wallet: on Sep 29 four
   uncapped teams drained fal and Meshy in one night.
   - Check fal and other balances before an overnight run. Teams have stalled on "awaiting fal

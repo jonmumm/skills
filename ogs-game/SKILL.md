@@ -10,7 +10,7 @@ description: >
 dependsOn:
   - jonmumm/skills@tdd
   - jonmumm/skills@seam-tester
-  - jonmumm/skills@ai-art-assets
+  - jonmumm/skills@imagegen
 ---
 
 # Make a game OGS-compatible
@@ -85,7 +85,7 @@ Work test-first (`/tdd`); commit at each green step.
    `suspended` after `ogs:suspend` and `running` after `ogs:resume`); add `ogs:start` and the
    `ogs:instance` you post back. Phone side: `rocket-crew/e2e/ogs-bridge.seam.test.ts` (fake WebView
    bridge, local JWKS).
-7. **Art kit** via `/ai-art-assets` (Codex `codex.mjs` first, `--dry` first, the project's
+7. **Art kit** via `/imagegen` (Codex `codex.mjs` first, `--dry` first, the project's
    `.asset-budget.json` caps): `icon` 1:1, `cover` 2:3 with the title, transparent `logo`, `heroClean`
    16:9 with no text or HUD. Files go in `~/src/open-game-system/apps/tv/public/art/<appId>/`. The game's
    own art direction; no faces on objects. Add the game to `KIT-SHEET.jpg` and look at it.

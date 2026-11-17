@@ -1,4 +1,4 @@
-// node --test ~/src/skills/ai-art-assets/scripts/
+// node --test ~/src/skills/imagegen/scripts/
 // Runs the real scripts in a temp project with a temp state dir. No network: every case stops before a request.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

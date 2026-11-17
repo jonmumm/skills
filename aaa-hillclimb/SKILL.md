@@ -10,7 +10,7 @@ description: >
   "keep improving until it's 8/10" request on a game that already plays end to end.
 dependsOn:
   - jonmumm/skills@procedural-3d-web-game
-  - jonmumm/skills@ai-art-assets
+  - jonmumm/skills@imagegen
   - jonmumm/skills@verify-on-device
 ---
 
@@ -63,11 +63,11 @@ pick the user's side on most of them, or the scorecard is missing the user's tas
 
 **Read the baseline's largest gap literally.** If the critic says "the art itself is the
 ceiling", no amount of lighting or shaders will fix it: change the asset pipeline first
-(`ai-art-assets`: style bible + prompt prefix, 4-image calibration, character sheet → poses with
+(`imagegen`: style bible + prompt prefix, 4-image calibration, character sheet → poses with
 an image-edit model, background removal, WebP + manifest; ElevenLabs for music beds and foley).
 In Story Nook that one pass was worth more than any later pass. It is also where the money goes:
 agree the pass's cap in `.asset-budget.json` first, calibrate at 1K and get the sheet approved
-before the bulk run, and generate parts rather than permutations (`ai-art-assets` → "Cost
+before the bulk run, and generate parts rather than permutations (`imagegen` → "Cost
 discipline").
 
 ## Step 1 — A fixed evidence rig (one command per round)

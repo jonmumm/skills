@@ -82,7 +82,7 @@ Angle to push: <the approach it is prompted to take>
 Out of scope: <what the other teams own>
 Done when: <studio scorecard rows ≥ 8 and a kid playtest verdict>, or <a pilot question answered>
 Budget: <spend caps>. Models: <lead / scene / critic>. Port: <n>.
-Skills: cast-party-game, procedural-3d-web-game, ai-art-assets, tdd, grill-me (…)
+Skills: cast-party-game, procedural-3d-web-game, imagegen, tdd, grill-me (…)
 Rules: read INBOX + new FINDINGS every round; post 1–3 findings every round; claim shared work;
 never edit tests to fit a change without flagging it; STATUS.md must always be resumable.
 ```
@@ -96,5 +96,5 @@ The coordinator appends. The team marks each item `done` / `declined: why`.
 1. Team nook found produced lullaby beds took Audio 4→7 (FINDINGS 09-29). Your Audio row is 5; try
    the same pipeline. Claim `audio-beds` first; kit is packaging it.
 2. Your min has been flat for 2 rounds on "TV beauty". Before another code pass, calibrate a painted
-   kit (ai-art-assets) and re-score. Budget raised to $15 (Jon approved).
+   kit (imagegen) and re-score. Budget raised to $15 (Jon approved).
 ```

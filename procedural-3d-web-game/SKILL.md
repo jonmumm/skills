@@ -86,14 +86,14 @@ most impressive, zero dependencies) vs. procedural + CC0 textures/sounds vs. AI-
 models (Tripo/Higgsfield/Blender) for hero characters. Characters and realistic footsteps/music
 are where pure code is weakest; say so.
 
-**Art: Codex, fal.ai and Meshy.** For generated illustrations, character sheets, textures or 3D models, use the `ai-art-assets` skill. Images: `codex.mjs` on the ChatGPT plan first, fal when you need its models (`FAL_KEY` and `MESHY_API_KEY` in env, same key rules as below).
+**Art: Codex, fal.ai and Meshy.** For generated illustrations, character sheets, textures or 3D models, use the `imagegen` skill. Images: `codex.mjs` on the ChatGPT plan first, fal when you need its models (`FAL_KEY` and `MESHY_API_KEY` in env, same key rules as below).
 
 **Audio: Jon has ElevenLabs API access.** The key is in the `ELEVENLABS_API_KEY` environment
 variable. Use `scripts/elevenlabs.mjs` (run `check` first) for anything synthesis does badly:
 music loops and stingers, realistic sound effects, and voice lines. Voice matters most in kids'
 games with no words on screen: a narrator can say whose turn it is, read clues, and cheer.
 **Paid assets share one wallet per service across every game.** Before any fal, Meshy or
-ElevenLabs run, follow `ai-art-assets` → "Cost discipline": caps in `.asset-budget.json`
+ElevenLabs run, follow `imagegen` → "Cost discipline": caps in `.asset-budget.json`
 (enforced by the scripts), `--dry` counts first, generate parts and compose in code, preview before
 paying for finals. ElevenLabs specifics: music is the costly kind (keep loops 30–60 s and
 crossfade them); draft trailer and VO scripts with macOS `say` and generate the final voice once

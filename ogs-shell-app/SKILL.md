@@ -182,4 +182,4 @@ Steps for the owner (put them in your report as a checklist, with exact commands
 
 `/cast-party-game` (designing the game itself), `/ogs-game` (catalogue entry, art kit, profiles,
 seam tests against the launcher), `/expo-testing` (devices, Maestro), `/tdd`, `/deploy-verify`,
-`/ai-art-assets` (the icon and art: Codex first).
+`/imagegen` (the icon and art: Codex first).

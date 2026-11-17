@@ -15,14 +15,14 @@
 //
 // Spend: paid calls run one at a time across every agent on this machine (the plan's concurrency limit is
 // 2-4, and parallel calls just fail with 429), are checked against the project's elevenlabs_credits cap
-// (.asset-budget.json, see ai-art-assets/scripts/spend.mjs) with the request's estimated cost, and log what
+// (.asset-budget.json, see imagegen/scripts/spend.mjs) with the request's estimated cost, and log what
 // they cost to assets/SPEND.jsonl: the response's cost header if there is one, else the change in the
 // subscription counter (which updates seconds after the call, so it is polled until it moves), else the
 // estimate (estimated: true). --dry prints the budget and exits.
 // Music is the expensive kind: keep loops 30-60 s and crossfade them, rather than asking for 120 s.
 import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { guard, record, withLock, looksExhausted, markExhausted, clearExhausted, elevenlabsEstimate, loadBudget } from '../../ai-art-assets/scripts/spend.mjs';
+import { guard, record, withLock, looksExhausted, markExhausted, clearExhausted, elevenlabsEstimate, loadBudget } from '../../imagegen/scripts/spend.mjs';
 
 const BASE = process.env.ELEVENLABS_BASE ?? 'https://api.elevenlabs.io/v1'; // tests point this at a fake
 const [cmd, ...rest] = process.argv.slice(2);
