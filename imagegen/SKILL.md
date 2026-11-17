@@ -29,7 +29,7 @@ Free tools first, local first among them, and **stop and ask before any paid wal
 
 | Tool | Cost | Good at | Limits | Script |
 |---|---|---|---|---|
-| **Local: Qwen-Image 2.1 Turbo** (ComfyUI on the M5 Max) | $0, no quota | Exploration, calibration, bulk variants, textures, transparent props (real alpha), edits with up to 10 references, text in images | **Non-commercial license** (below). ~45 s/image at 1K warm, ~95 s for edits; first run loads ~17 GB | `local.mjs` |
+| **Local: Qwen-Image 2.1 Turbo** (ComfyUI on the M5 Max) | $0, no quota | Exploration, calibration, bulk variants, textures, transparent props (real alpha), edits with up to 10 references, text in images | **Non-commercial license** (below). ~45 s/image at 1K warm, ~2–3 min for edits; first run loads ~17 GB | `local.mjs` |
 | **Codex** (gpt-image, ChatGPT plan) | $0, plan quota | Hero art, character sheets, logos with spelled titles, icons, transparent PNGs, the most-used tool (≈25 repos) | ~1 min/image; quota runs out (blocked Nov 15→18); size is a request (1254², 1734×907, 1024×1536) | `codex.mjs` |
 | **Grok Imagine** (`grok -p`, plan) | $0, plan quota | Edits and repaints (`image_edit`), aspect ratios 1:1 16:9 9:16 3:2 2:3, checks its own tiling | JPEG, ≤~1.4K, no alpha (paint on magenta and key it), references downscaled to ~768 px, can stall >10 min sampling pixels | `kit.mjs` |
 | **Muse** (`muse exec`, Meta, plan) | $0, small quota | Tileable textures, sky plates, foam/detail maps | Quota is tiny (3 textures, then `429 Subscription quota exhausted`); ~1920×1280 JPEG whatever you ask; the T3 Muse provider has **no** image tool | `kit.mjs` |
@@ -140,12 +140,25 @@ doesn't work for Grok; Muse's workspace must be fresh).
 official turbo template: 8 steps, euler, cfg 1, the distilled sigma schedule. Don't change steps
 without the schedule.
 
-- **Speed (M5 Max, 128 GB):** ~3.5 s/step, ~45 s for 1024² warm, ~50 s for 1344×768, ~95 s for an
+- **Speed (M5 Max, 128 GB):** ~3.5 s/step, ~45 s for 1024² warm, ~50 s for 1344×768, ~95–190 s for an
   edit; the first call after a start also loads the models (~55 s). The video's 16 s is a 4080.
 - **Native 2K:** 2048² works (4 MP); prefer multiples of 32. Explore at 1K.
 - **Transparency:** `--rgba` wraps the prompt: "This is an RGBA format image with transparency. …
   The image has an alpha channel and a transparent background." Edits of a transparent input keep
   alpha (the RGB under transparent pixels can be any colour; composite to check).
+  Scene words break it: "cinematic, soft rim light" gave an opaque dark backdrop. Say "a single
+  isolated game item … nothing else, no floor, no backdrop" and leave lighting out.
+- **Edits:** the output keeps the first reference's aspect at ~1 MP (1672×941 → 1360×768) unless
+  `--w/--h` are given. ~120–190 s for a busy 16:9 scene. Removing a HUD while repainting works in
+  one pass ("remove every interface element (the badges, top bar, title text)").
+- **Style references:** an edit *edits* the reference. "A rowboat in this lantern's style" painted
+  the boat inside the lantern. Start the prompt "Image 1 is only a style reference: do not draw the
+  lantern. Draw a new, separate object…".
+- **Tried Nov 17 on real games (all usable as exploration):** Boatload screenshot → gouache key art
+  with the HUD removed; a new Midnight Museum suspect (heron) dropped into the look-reference with
+  the cast kept; Library-style rowboat and Museum moonstone with real alpha; a deck-plank texture
+  (seam 3.23 → 1.16 after `tileable.py`); a Warship Duel icon concept (flat, fine for direction,
+  generic for a final).
 - **Not installed:** the prompt enhancer (`qwen3.5_9b_…_pe_t2i`, +9.5 GB); bf16 weights (+31 GB,
   maybe faster on MPS, untested); disk was 97% full on Nov 16.
 - **Commercially licensed local options (not installed):** `Tongyi-MAI/Z-Image-Turbo` and

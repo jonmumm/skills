@@ -58,6 +58,20 @@ async function serve() {
   die(`ComfyUI did not come up in 3 min; see ${LOG}`);
 }
 
+// Width and height of a PNG or JPEG, from its header.
+function imageSize(b) {
+  if (b.readUInt32BE(0) === 0x89504e47) return [b.readUInt32BE(16), b.readUInt32BE(20)];
+  for (let i = 2; b[0] === 0xff && b[1] === 0xd8 && i < b.length;) {
+    const m = b[i + 1];
+    if (m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !== 0xcc) return [b.readUInt16BE(i + 7), b.readUInt16BE(i + 5)];
+    i += 2 + b.readUInt16BE(i + 2);
+  }
+  die('reference image must be a PNG or JPEG to size the edit; pass --w and --h');
+}
+
+// Scale [w, h] to about `area` pixels, each side a multiple of 16.
+const fitArea = ([w, h], area) => { const k = Math.sqrt(area / (w * h)); return [w, h].map((v) => Math.max(16, Math.round((v * k) / 16) * 16)); };
+
 function graph({ prompt, w, h, seed, refs }) {
   const g = {
     unet: { class_type: 'UNETLoader', inputs: { unet_name: MODEL.unet, weight_dtype: 'default' } },
@@ -99,7 +113,9 @@ async function run() {
   const refPaths = args.image.map((p) => { need(existsSync(p), `image not found: ${p}`); return resolve(p); });
   const outPath = resolve(args.out);
   need(!existsSync(outPath) || args.force, `${args.out} exists; pass --force to regenerate.`);
-  const w = Number(args.w ?? 1024), h = Number(args.h ?? 1024);
+  // An edit keeps the first reference's aspect (a 16:9 screenshot stays 16:9) unless --w/--h say otherwise.
+  const fit = refPaths.length && args.w == null && args.h == null ? fitArea(imageSize(readFileSync(refPaths[0])), 1024 * 1024) : null;
+  const w = Number(args.w ?? fit?.[0] ?? 1024), h = Number(args.h ?? fit?.[1] ?? 1024);
   need(w % 16 === 0 && h % 16 === 0, '--w and --h must be multiples of 16 (32 preferred)');
   const seed = args.seed != null ? Number(args.seed) : Math.floor(Math.random() * 2 ** 32);
   const prompt = args.rgba

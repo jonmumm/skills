@@ -161,3 +161,23 @@ test('rejects a non-png --out and a missing reference image', async () => {
   assert.equal(r1.status, 2); assert.match(r1.stderr, /\.png/);
   assert.equal(r2.status, 2); assert.match(r2.stderr, /not found/);
 });
+
+test('an edit without --w/--h keeps the first reference aspect at about 1 MP (png and jpeg)', async () => {
+  const root = project();
+  const mk = spawn('python3', ['-I', '-c', `from PIL import Image
+Image.new('RGB',(1672,941)).save('wide.png'); Image.new('RGB',(600,900)).save('tall.jpg', quality=80)`], { cwd: root });
+  await new Promise((r) => mk.on('close', r));
+  for (const [ref, want] of [['wide.png', [1360, 768]], ['tall.jpg', [832, 1248]]]) {
+    const c = await fakeComfy();
+    const r = await run(root, c.url, 'run', '--prompt', 'repaint', '--image', ref, '--out', `${ref}.out.png`);
+    c.close();
+    assert.equal(r.status, 0, r.stderr);
+    const l = node(c.seen.prompts[0], 'EmptyLatentImage').inputs;
+    assert.deepEqual([l.width, l.height], want, ref);
+  }
+  const c = await fakeComfy();
+  await run(root, c.url, 'run', '--prompt', 'x', '--image', 'wide.png', '--w', '512', '--h', '512', '--out', 'forced.png');
+  c.close();
+  const l = node(c.seen.prompts[0], 'EmptyLatentImage').inputs;
+  assert.deepEqual([l.width, l.height], [512, 512], 'explicit --w/--h still win');
+});
