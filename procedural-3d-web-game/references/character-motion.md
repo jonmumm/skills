@@ -48,7 +48,8 @@ The critic loop scored that frame 8.2/10 against its target. Jon caught both bug
 ## Pose assertions beat image critics for anatomy
 - Write a unit test for each key pose that checks numbers in rig space, using the motion's
   domain rules. For a golf swing:
-  - at the top, the hands are above the trail shoulder and in front of the head;
+  - at the top, the hands are about cap height over the trail shoulder (behind the head as the
+    tee camera sees it);
   - the trail elbow is below the hands;
   - the lead arm crosses the chest;
   - the knees stay over the toes;
