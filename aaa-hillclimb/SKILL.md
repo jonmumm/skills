@@ -56,6 +56,11 @@ the global CLAUDE.md "Taste" list and anything the user has said about this game
 the user already liked**, each with a shot. The critic reads it and any round that breaks a veto
 or loses a liked thing is reverted, whatever it scored. Rocket Crew's critic added faces to the
 rockets and made the planets "look less like real planets"; both had been liked or vetoed.
+**Characters get pose tests, not just critic scores.** An image critic scored a golfer 8.2/10 at
+the top of his swing while his arm crossed his face, and an earlier round's hack (lifting the hands
+so they'd show past his big head) had raised that score. Any round touching a rig runs the pose
+assertions and the 4-angle pose sheet from `procedural-3d-web-game/references/character-motion.md`.
+A failed assertion reverts the round, whatever it scored.
 A redesign of an existing game always keeps the pre-climb look as option 1 (Trivia Jam: "I kind
 of like the existing one the best"). Turn each of those into a **golden pair** in
 `critic/golden.md` (the shot the user preferred vs the one they didn't); round 00's critics must

@@ -22,6 +22,29 @@ The critic loop scored that frame 8.2/10 against its target. Jon caught both bug
   the trail elbow points at the ground. A single world-space pole is right at only one pose.
 - Never move a joint to please the camera. Move the camera, or change the proportions.
 
+## Measure the model before tuning the rig
+- Read the real joints and proportions out of the GLB before touching pose numbers. Parse the
+  skin's inverse bind matrices for the joint rest positions, and the vertices weighted to each
+  bone for its extent (a 30-line Python script does it, no Blender needed). Check the rig's
+  limb lengths against them.
+- **Know where each bone starts.** In Back Nine, golfer.glb's hand bone starts at the wrist and
+  its palm centres 9 cm further on. The solver put the hand bone on the club grip, so every
+  arm holding the club was overstretched by a hand's length, for weeks. Solve the arm to the
+  wrist, a palm up the shaft from the grip.
+- Stylized proportions (big head, wide shoulders, short arms) make some real poses impossible.
+  Find out which, by measuring, before tuning numbers against a target image.
+
+## Swing arcs and body sync
+- **A held object follows the arm that can reach it.** Arcs centred somewhere convenient (the
+  chest) drift past the arm's length. Clamp the reach: when the target is further than the arm
+  plus a little give (Back Nine allows 8%), move the hands and the held club toward the
+  shoulder. Don't stretch the arm.
+- **Sequence the body the way real movement does.** In a golf downswing the hips lead, and the
+  chest follows the arms (it unwinds with them and is about square at impact). Unwinding the
+  chest early left the hands far behind it, stretching the lead arm 35%.
+- Keep the joins continuous: when one phase's formula changes, start the next phase from where
+  the first one ends (the finish's twist starts at the impact twist).
+
 ## Pose assertions beat image critics for anatomy
 - Write a unit test for each key pose that checks numbers in rig space, using the motion's
   domain rules. For a golf swing:
@@ -34,11 +57,29 @@ The critic loop scored that frame 8.2/10 against its target. Jon caught both bug
   pose assertion.
 - Critics matching a still image score silhouette and colour. They don't reliably see that
   the wrong arm is in front, so give them the pose sheet below and ask about anatomy directly.
+- **Write checks in the camera's terms as well as the body's.** "The trail elbow folds
+  downward" passed while the elbow stuck straight out at the tee camera. Seen from that camera,
+  "toward the lens" is "ahead of the chest", so cap that too. Bound every check on both sides
+  (not behind the chest *and* not more than a hand's width ahead of it).
+- **Add any rule the reference image implies.** A search that satisfied every check put the
+  hands in front of the face. The target has them behind the head, so that became a check.
+- Any threshold the model's proportions force you to loosen, write down in the test with the
+  reason ("a touch of lead-arm bend: these shoulders can't also keep it straight").
+- **Make the pose maths importable in node.** Bundler asset imports (`?url`, `.png`) stop a
+  module loading in tests. Keep the pose functions in a module that imports only three.js, and
+  let the system mix them in.
+
+## Tune pose numbers by search, then look
+- With the pose maths in node, grid-search the free constants (pivot offsets, reach, pole
+  directions) against every pose assertion: thousands of candidates in seconds, scored by the
+  smallest margin. That beats build-render-squint loops of minutes each.
+- Then render the winner from every angle. A search finds whatever your checks allow, so a
+  pose that passes and still looks wrong means a check is missing. Add it and search again.
 
 ## Evidence: a pose sheet, not only the game camera
 - Use a probe that renders the character alone, at each key moment and from 4 orbit angles
   (0/90/180/270), plus one view from the game camera. One view hides which arm is in front.
-  Back Nine's is `tv-scene/scripts/_pose-probe.mjs` (`--taus`, `--angs`).
+  Back Nine's is `tv-scene/scripts/pose-sheet.mjs` (`--taus`, `--angs`, `tv` for the game camera).
 - Put the reference pose next to each frame at the same angle.
 
 ## Base the numbers on real motion
