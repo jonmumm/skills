@@ -208,3 +208,24 @@ test('every tool exhausted → exit 1, and the plan is to stop, not to use paid 
   assert.match(r.stdout + r.stderr, /no tool left/);
   assert.match(r.stderr, /ask the owner/i);
 });
+
+test('tool "z-image" runs the Apache-2.0 local model, also in a commercial kit', async () => {
+  const p = await project({ license: 'commercial', jobs: [{ name: 'a', tool: 'z-image', prompt: 'deck planks', w: 1344, h: 768 }] });
+  const r = await p.run();
+  p.close();
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(p.comfy.seen.prompts.length, 1);
+  const g = Object.values(p.comfy.seen.prompts[0]);
+  assert.equal(g.find((n) => n.class_type === 'UNETLoader').inputs.unet_name, 'z_image_turbo_int8_convrot.safetensors');
+  assert.deepEqual(['width', 'height'].map((k) => g.find((n) => n.class_type === 'EmptySD3LatentImage').inputs[k]), [1344, 768]);
+  assert.equal(p.credits()[0].license, 'Apache-2.0');
+});
+
+test('a z-image job with refs or rgba goes to the next tool (z-image has neither); commercial skips local too', async () => {
+  const p = await project({ license: 'commercial', jobs: [{ name: 'a', tool: 'z-image', prompt: 'x', rgba: true }] });
+  const r = await p.run();
+  p.close();
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(p.comfy.seen.prompts.length, 0);
+  assert.equal(p.calls('codex').length, 1);
+});

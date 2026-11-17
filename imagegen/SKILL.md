@@ -29,7 +29,8 @@ Free tools first, local first among them, and **stop and ask before any paid wal
 
 | Tool | Cost | Good at | Limits | Script |
 |---|---|---|---|---|
-| **Local: Qwen-Image 2.1 Turbo** (ComfyUI on the M5 Max) | $0, no quota | Exploration, calibration, bulk variants, textures, transparent props (real alpha), edits with up to 10 references, text in images | **Non-commercial license** (below). ~45 s/image at 1K warm, ~2–3 min for edits; first run loads ~17 GB | `local.mjs` |
+| **Local: Qwen-Image 2.1 Turbo** (ComfyUI on the M5 Max) | $0, no quota | Exploration, calibration, bulk variants, textures, transparent props (real alpha), cutouts, edits with up to 10 references, text in images | **Non-commercial license** (below). ~45 s/image at 1K warm, ~2–3 min for edits; first run loads ~17 GB | `local.mjs` |
+| **Local: Z-Image-Turbo** (`--model z-image`) | $0, no quota | **Shippable** (Apache-2.0) text-to-image: textures, backgrounds, sky plates, props on a plain background | Text-to-image only: no edits, no references, no alpha. ~27 s at 1K warm (faster than Qwen); first run loads ~14 GB | `local.mjs` |
 | **Codex** (gpt-image, ChatGPT plan) | $0, plan quota | Hero art, character sheets, logos with spelled titles, icons, transparent PNGs, the most-used tool (≈25 repos) | ~1 min/image; quota runs out (blocked Nov 15→18); size is a request (1254², 1734×907, 1024×1536) | `codex.mjs` |
 | **Grok Imagine** (`grok -p`, plan) | $0, plan quota | Edits and repaints (`image_edit`), aspect ratios 1:1 16:9 9:16 3:2 2:3, checks its own tiling | JPEG, ≤~1.4K, no alpha (paint on magenta and key it), references downscaled to ~768 px, can stall >10 min sampling pixels | `kit.mjs` |
 | **Muse** (`muse exec`, Meta, plan) | $0, small quota | Tileable textures, sky plates, foam/detail maps | Quota is tiny (3 textures, then `429 Subscription quota exhausted`); ~1920×1280 JPEG whatever you ask; the T3 Muse provider has **no** image tool | `kit.mjs` |
@@ -49,13 +50,18 @@ Free tools first, local first among them, and **stop and ask before any paid wal
 Qwen-Image 2.1 is under the **Qwen Research License: non-commercial ("research or evaluation")
 only**, and that covers its outputs. So:
 
-- **Use it freely for** exploration, style calibration, concept and look boards, critic/judge
+- **Z-Image-Turbo is Apache-2.0**: its output can ship. For anything shipped that it can do
+  (no edit, no alpha), use `--model z-image` or `"tool": "z-image"` in a kit.
+- **Use Qwen freely for** exploration, style calibration, concept and look boards, critic/judge
   references, hill-climb targets, prototypes, placeholder art, and test fixtures.
 - **Don't ship its output** in anything sold or monetized (an App Store app, a paid OGS game,
   marketing for one). Re-render the approved look with Codex/Grok/Muse, or with a commercially
   licensed local model (see "Local models"), before shipping.
 - Every `local.mjs` image has `license` in its CREDITS row, and a kit with `"license":
-  "commercial"` never routes to it. Before a release, grep CREDITS for `Qwen Research`.
+  "commercial"` never routes to Qwen. Before a release, grep CREDITS for `Qwen Research`.
+- `cutout` and the `--rgba` auto-cutout are Qwen edits, so a cut-out image is non-commercial even
+  when the input wasn't. For shipped cutouts use Codex "transparent background", or ask for fal
+  birefnet (~$0.01).
 - Check the terms of Codex/Grok/Muse outputs yourself before a commercial launch; don't assume.
 
 ## Use cases (what to use, what we learned)
@@ -91,6 +97,9 @@ All scripts save into the project, refuse to overwrite without `--force`, log to
 node $S/local.mjs run --prompt "..." --out assets/art/x.png [--w 1344 --h 768] [--seed 7]
 node $S/local.mjs run --prompt "a toy rocket, soft studio light" --rgba --out assets/art/rocket.png
 node $S/local.mjs run --prompt "replace her jacket with the one in image 2" --image a.png --image b.png --out e.png
+node $S/local.mjs run --prompt "a wooden rowboat" --style lantern.png --rgba --out boat.png  # look only
+node $S/local.mjs cutout render.png --out render-cut.png   # remove the background (real alpha)
+node $S/local.mjs run --model z-image --prompt "..." --out tex.png   # Apache-2.0, shippable, t2i only
 node $S/local.mjs status | serve | stop          # stop frees ~20 GB of unified memory
 
 # A whole kit across the free tools with automatic fallback (local → codex → grok → muse)
@@ -121,14 +130,17 @@ node $S/gemini-tts.mjs batch --lines lines.json --out-dir public/voice --voice S
   "license": "commercial",
   "jobs": [
     { "name": "sky", "tool": "muse", "prompt": "flat equirectangular sky texture map, 2:1" },
+    { "name": "deck", "tool": "z-image", "prompt": "flat top-down oak deck planks texture" },
     { "name": "rocket", "prompt": "a toy rocket", "rgba": true },
     { "name": "hero-wave", "tool": "codex", "prompt": "waving", "refs": ["refs/sheet.png"] }
   ]
 }
 ```
 
-`license: "commercial"` keeps every job off the local model. Leave it out while exploring.
-Concurrency: local 1, codex 1, grok/muse `GEN_PARALLEL` (3). Grok and Muse JPEGs are converted
+`license: "commercial"` keeps every job off Qwen (`local`); `z-image` jobs still run locally.
+`z-image` is never a fallback: name it on the job or as the kit's `tool`. A `z-image` job with
+`refs` or `rgba` skips it. Leave `license` out while exploring.
+Concurrency: local 1, z-image 1, codex 1, grok/muse `GEN_PARALLEL` (3). Grok and Muse JPEGs are converted
 to PNG. Each tool is called with a fresh temp workspace and references copied in (`--add-dir`
 doesn't work for Grok; Muse's workspace must be fresh).
 
@@ -147,13 +159,18 @@ without the schedule.
   The image has an alpha channel and a transparent background." Edits of a transparent input keep
   alpha (the RGB under transparent pixels can be any colour; composite to check).
   Scene words break it: "cinematic, soft rim light" gave an opaque dark backdrop. Say "a single
-  isolated game item … nothing else, no floor, no backdrop" and leave lighting out.
+  isolated game item … nothing else, no floor, no backdrop" and leave lighting out. If the border
+  still comes back opaque, `local.mjs` runs one background-removal pass on the result itself
+  (stderr says so, CREDITS has `cutout: true`; ~80 s more).
+- **Cutouts:** `local.mjs cutout in.png --out x.png` is Comfy-Org's background-removal edit ("Remove
+  the background, and output a PNG image"). It cut the opaque moonstone cleanly, tassels included.
 - **Edits:** the output keeps the first reference's aspect at ~1 MP (1672×941 → 1360×768) unless
   `--w/--h` are given. ~120–190 s for a busy 16:9 scene. Removing a HUD while repainting works in
   one pass ("remove every interface element (the badges, top bar, title text)").
-- **Style references:** an edit *edits* the reference. "A rowboat in this lantern's style" painted
-  the boat inside the lantern. Start the prompt "Image 1 is only a style reference: do not draw the
-  lantern. Draw a new, separate object…".
+- **Style references:** an `--image` edit *edits* the reference. "A rowboat in this lantern's style"
+  painted the boat inside the lantern. Pass look-only references as `--style`: the prompt then says
+  "Image N is only a style reference: do not draw its subject. Draw a new, separate subject: …",
+  and the size stays 1024² (not the reference's aspect).
 - **Tried Nov 17 on real games (all usable as exploration):** Boatload screenshot → gouache key art
   with the HUD removed; a new Midnight Museum suspect (heron) dropped into the look-reference with
   the cast kept; Library-style rowboat and Museum moonstone with real alpha; a deck-plank texture
@@ -161,8 +178,11 @@ without the schedule.
   generic for a final).
 - **Not installed:** the prompt enhancer (`qwen3.5_9b_…_pe_t2i`, +9.5 GB); bf16 weights (+31 GB,
   maybe faster on MPS, untested); disk was 97% full on Nov 16.
-- **Commercially licensed local options (not installed):** `Tongyi-MAI/Z-Image-Turbo` and
-  `Qwen/Qwen-Image` (v1) are Apache-2.0. Add one before relying on local output for shipped art.
+- **Z-Image-Turbo (installed Nov 17, Apache-2.0):** `diffusion_models/z_image_turbo_int8_convrot`,
+  `text_encoders/qwen_3_4b` (bf16; the fp8 one may not run on MPS), `vae/ae`, from
+  `Comfy-Org/z_image_turbo`; ~15 GB. Graph = Comfy-Org `image_z_image_turbo_int8`: 8 steps,
+  res_multistep/simple, cfg 1, AuraFlow shift 3. `Qwen/Qwen-Image` (v1, Apache-2.0, has an edit
+  model) is not installed.
 - **Draw Things** is installed but only has an SD1.x checkpoint; mflux isn't installed.
 - **ComfyUI UI:** http://127.0.0.1:8188, drag in Comfy-Org's
   `templates/image_qwen_image_2_1_turbo_t2i.json` (and `_turbo_image_edit`, `_background_removal`).

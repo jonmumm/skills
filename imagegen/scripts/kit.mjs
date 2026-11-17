@@ -13,8 +13,9 @@
 //   "jobs": [{ "name", "prompt", "tool"?, "refs"?: [paths], "w"?, "h"?, "rgba"? }]
 // }   (a bare array of jobs also works)
 //
-// Tools: local (Qwen-Image 2.1 Turbo via local.mjs), codex (codex.mjs), grok (`grok -p`), muse
-// (`muse exec`). Each job tries its tool, then the rest of CHAIN. A usage limit (or a local server
+// Tools: local (Qwen-Image 2.1 Turbo via local.mjs, non-commercial), z-image (Z-Image-Turbo via
+// local.mjs, Apache-2.0, text-to-image only: named explicitly, never a fallback), codex (codex.mjs),
+// grok (`grok -p`), muse (`muse exec`). Each job tries its tool, then the rest of CHAIN. A usage limit (or a local server
 // that isn't up) takes that tool out for the rest of the run and moves its jobs on. An answer with
 // no image retries once on the next tool. Existing outputs are skipped. Every image is credited in
 // assets/art/CREDITS.json (codex.mjs and local.mjs write their own rows).
@@ -36,7 +37,7 @@ const dry = argv.includes('--dry');
 const OUT = resolve(kit.outDir ?? 'assets/gen');
 const N = Number(process.env.GEN_PARALLEL ?? 3);
 const CHAIN = ['local', 'codex', 'grok', 'muse'];
-const LIMIT = { local: 1, codex: 1, grok: N, muse: N };
+const LIMIT = { local: 1, 'z-image': 1, codex: 1, grok: N, muse: N };
 const SOURCE = { grok: 'Grok Imagine (grok -p, plan usage)', muse: 'Muse (muse exec, plan usage)' };
 const LIMIT_RE = /usage limit|rate limit|quota|exhausted/i;
 const commercial = kit.license === 'commercial';
@@ -67,10 +68,10 @@ const promptOf = (job) => (kit.prefix ? `${kit.prefix} ${job.prompt}` : job.prom
 async function generate(job, tool) {
   const dest = join(OUT, `${job.name}.png`);
   const prompt = promptOf(job);
-  if (tool === 'local' || tool === 'codex') {
-    const script = join(here, tool === 'local' ? 'local.mjs' : 'codex.mjs');
-    const extra = tool === 'local'
-      ? [...(job.w ? ['--w', String(job.w)] : []), ...(job.h ? ['--h', String(job.h)] : []), ...(job.rgba ? ['--rgba'] : [])]
+  if (tool === 'local' || tool === 'z-image' || tool === 'codex') {
+    const script = join(here, tool === 'codex' ? 'codex.mjs' : 'local.mjs');
+    const extra = tool !== 'codex'
+      ? [...(tool === 'z-image' ? ['--model', 'z-image'] : []), ...(job.w ? ['--w', String(job.w)] : []), ...(job.h ? ['--h', String(job.h)] : []), ...(job.rgba ? ['--rgba'] : [])]
       : [];
     const prompt2 = tool === 'codex' && job.rgba ? `${prompt}. Transparent background.` : prompt;
     const r = await run('node', [script, 'run', '--prompt', prompt2, '--out', dest, ...(job.refs ?? []).flatMap((p) => ['--image', p]), ...extra], { timeout: 900e3 });
@@ -116,9 +117,10 @@ if (dry) {
 
 const next = (job) => {
   const first = job.tool ?? kit.tool ?? 'local';
-  return [first, ...CHAIN.filter((t) => t !== first)].find((t) => !exhausted.has(t) && !job.tried?.has(t));
+  const zOk = !job.rgba && !job.refs?.length; // z-image has no alpha and no edits
+  return [first, ...CHAIN.filter((t) => t !== first)].find((t) => !exhausted.has(t) && !job.tried?.has(t) && (t !== 'z-image' || zOk));
 };
-const active = { local: 0, codex: 0, grok: 0, muse: 0 };
+const active = { local: 0, 'z-image': 0, codex: 0, grok: 0, muse: 0 };
 const results = {};
 await new Promise((done) => {
   let running = 0;
