@@ -111,6 +111,11 @@ the wrong phone host over a real network (wait for each join).
 | Chromecast (OGS receiver `807AD5E9`) | the Chromecast itself | local rendering in progress on OGS `feat/cast-local-render`; there is **no cloud rendering** |
 | Browser TV (`ogs-tv.pages.dev` + code) | that browser | works |
 
+**AirPlay only:** `cast: { airplay: true }` (no `receiver`) makes the Apple TV the app's only TV: no
+Google Cast, no browser TV, no picker; Show on TV goes straight to the Screen Mirroring steps, the
+TV window loads the game's own declared TV page (not the launcher), and it goes up by itself when
+mirroring starts mid-game (OGS branch `feat/shell-airplay-only`; first user Warship Duel).
+
 All tiers load the OGS TV launcher with `chrome=none&app=<appId>` in an own app; it frames the
 couch session's current game (or else the catalogue `tvUrl`) and sends `ogs:start` /
 `ogs:suspend` / `ogs:resume`.
