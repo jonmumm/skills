@@ -49,6 +49,8 @@ affected checks only, no full re-audit.
 - `references/critic-loop.md` — scorecard format, anchors, critic subagent prompt, stop rules.
 - `references/rendering-cookbook.md` — technique checklists per subsystem (water, sky, light,
   vegetation, materials, characters, audio, performance) and the vocabulary for steering.
+- `references/character-motion.md` — animating characters: IK control rigs, pose assertions,
+  4-angle pose sheets, key poses fitted from real footage.
 - `references/case-studies.md` — what each notable builder did, with links.
 
 Read the reference file for a phase when you reach that phase, not all up front.

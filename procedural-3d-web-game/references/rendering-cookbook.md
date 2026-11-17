@@ -105,6 +105,9 @@ turn a critic's complaint into a concrete fix. Everything here can be done in th
   IK and secondary motion (breathing, cloth, hair); (b) image-gen concept → image-to-3D (Tripo,
   Higgsfield) → GLB, embedded; (c) Blender Python scripted by Opus for rigging/animation.
   Feet planted, weight shifts, no hands passing through held objects.
+  Rigging by intent (IK targets as pure functions of time), pose-dependent poles, numeric pose
+  assertions and the 4-angle pose sheet: `references/character-motion.md`. Image critics miss
+  anatomy bugs such as an arm on the wrong side.
 - Animation feel: drive motion with simulation (springs, damping, momentum, flocking) rather
   than linear tweens; critically damped cameras; hit-stop, screen shake and recoil for impacts.
 - Props: Opus driving headless Blender (`Blender -b -P build_x.py`, a shared `propkit.py`,
