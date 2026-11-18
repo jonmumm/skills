@@ -115,6 +115,22 @@ turn a critic's complaint into a concrete fix. Everything here can be done in th
   gave authored props at ~60–90 KB each that critics scored above procedural boxes. Add a
   shared world-space speckle plus a darker contact band at the ground in `onBeforeCompile` so
   they don't read as clean CG.
+- **Per-asset gate before export.** Every Blender build script ends with checks and fails loudly:
+  - measured bounds in metres against the brief's numbers;
+  - triangle count against the budget;
+  - origin where gameplay expects it (bottom-centre for floor props, feet for characters);
+  - transforms applied, so no stray scale;
+  - names publishable (no `Cube.017` or `.001`);
+  - no lights or cameras in the export set.
+
+  Then it renders a 4-angle solid plus wireframe sheet of the asset alone, exports, and reads the
+  GLB back to confirm the bounds and the names. Judging only in-game screenshots from fixed cameras
+  hides wrong scale and backsides. A Back Nine golfer 7–8% short on screen, and Boatload islands
+  that only held up from one bearing, both came from skipping this.
+- Approve one module, then make variants on a grid ("seven more, same trim, 0.5 m grid"). This
+  suits docks, huts, walls and kits better than modelling each piece fresh.
+- Poly Haven (CC0) textures, HDRIs and models are free and photoscanned: try them before
+  generating tiling ground, rock, wood or fabric for a realistic look. Log them in CREDITS.
 - Anti-bloom guards rot: a luminance cap on character cloth (added when bloom was strong) left
   the figures as dark boxes after bloom was turned down. Re-check old caps when the grade changes.
 
