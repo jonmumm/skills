@@ -327,6 +327,37 @@ templated lines; budget on double. Free local alternative: Kokoro-82M (Apache-2.
 **ElevenLabs** spend is measured late: `elevenlabs.mjs` records the request's estimate or polls the
 counter; cross-check big runs with `elevenlabs.mjs check` before and after.
 
+## Talking-head video (Google Flow, Omni 1.2 Flash)
+
+Escúchame generated about 400 selfie-style speaker clips this way; the reference pipeline is
+`escuchame-monorepo/scripts/speaker-video/` (README).
+
+- **Driving Flow:**
+  - Use Flow's **agent panel**, which only appears when the window is at least ~1280 px wide. One
+    prompt for a batch of 10 gives 10 videos. In the narrow layout the same prompt becomes one long
+    video.
+  - State the length in the prompt text. Clips run 3–15 s; credits are 24 for 8 s, 36 for 11 s,
+    48 for 13 s and 60 for 15 s.
+- **Speech:**
+  - Whisper-match every clip to its script, at a ratio of 0.9 or better. Speakers shorten long
+    lines to fit the clip.
+  - Size the clip to the line: up to 14 words in 8 s, up to 20 in 11 s, up to 26 in 13 s, beyond
+    that 15 s.
+- **Visual QA:** check 6 frames with a local VLM before publishing. The defects to check for:
+  - on-screen text;
+  - a melted face or hands;
+  - the speaker changing identity;
+  - the face or mouth hidden;
+  - glitches;
+  - **a phone or device frame drawn around the footage.** "Selfie phone video" sometimes makes
+    the model draw the phone itself, with bezel, Dynamic Island and home bar. One shipped and
+    the owner caught it on device.
+- **When a new defect reaches production:**
+  1. Add it to the checklist.
+  2. Prove the new check flags the bad clip and still passes known-good ones.
+  3. Re-scan everything already published.
+  4. Unpublish the clips it catches and regenerate them.
+
 ## Honest limits
 
 - Hands, small text and exact likeness are the usual failures. Frame shots to avoid close-up hands;
